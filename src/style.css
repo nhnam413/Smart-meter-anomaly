@@ -1,0 +1,404 @@
+/*
+============================================================
+style.css — Smart Meter Anomaly Detection Dashboard Styles
+============================================================
+Theme: Light Theme (Ocean Blue & Deep Navy Accent)
+Typography: Inter (Google Fonts)
+============================================================
+*/
+
+/* ───── IMPORT GOOGLE FONT ───── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* ───── GLOBAL TYPOGRAPHY & BODY ───── */
+.stApp {
+    background-color: #FFFFFF !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    color: #0F172A !important;
+}
+.stApp * {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+/* ───── CONTRAST FIX ───── */
+.stApp .stMarkdown p,
+.stApp .stMarkdown li,
+.stApp .stMarkdown span,
+.stApp label,
+.stApp .stRadio label,
+.stApp .stSlider label,
+.stApp .stDateInput label,
+.stApp div[data-baseweb="select"] span {
+    color: #0F172A !important;
+    font-weight: 500 !important;
+}
+.stApp .stMarkdown h1,
+.stApp .stMarkdown h2,
+.stApp .stMarkdown h3,
+.stApp .stMarkdown h4 {
+    color: #0F172A !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.3px !important;
+}
+.stApp .stTabs [data-baseweb="tab"] {
+    color: #334155 !important;
+    font-weight: 600 !important;
+}
+.stApp .stTabs [aria-selected="true"] {
+    color: #2563EB !important;
+    font-weight: 700 !important;
+    border-bottom-color: #2563EB !important;
+}
+
+/* ───── NÚT BẤM HOÀN TOÀN TĨNH (FLAT STYLING) ───── */
+.stApp button,
+div.stButton > button {
+    width: 100% !important;
+    min-height: 46px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 9999px !important;
+    font-weight: 700 !important;
+    font-size: 0.92em !important;
+    padding: 10px 20px !important;
+    transition: none !important;
+    transform: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+.stApp button:focus,
+.stApp button:focus-visible,
+.stApp button:active,
+div.stButton > button:focus,
+div.stButton > button:focus-visible,
+div.stButton > button:active,
+.stApp button:hover,
+div.stButton > button:hover {
+    outline: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+    transition: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Ép thẻ con bên trong button kế thừa màu chữ */
+.stApp button *,
+div.stButton > button *,
+div.stButton > button p,
+div.stButton > button span,
+div.stButton > button div {
+    color: inherit !important;
+    background: transparent !important;
+}
+
+/* Primary Active Button (Nút được chọn: Nền Xanh, Chữ Trắng Tĩnh) */
+div.stButton > button[kind="primary"]:not(:disabled),
+div.stButton > button[kind="primary"]:not(:disabled):hover {
+    background: #2563EB !important;
+    background-color: #2563EB !important;
+    color: #FFFFFF !important;
+    border: 1.5px solid #2563EB !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+/* Secondary Inactive Button (Nút chưa chọn: Nền Trắng, Chữ Navy Tĩnh) */
+div.stButton > button[kind="secondary"]:not(:disabled),
+div.stButton > button[kind="secondary"]:not(:disabled):hover {
+    background: #FFFFFF !important;
+    background-color: #FFFFFF !important;
+    color: #0F172A !important;
+    border: 1.5px solid #CBD5E1 !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+/* Disabled State (Nút ngắt logic: Nền Xám, Chữ Ghi Tĩnh) */
+.stApp button:disabled,
+div.stButton > button:disabled,
+div.stButton > button[disabled],
+.stApp button:disabled:hover,
+div.stButton > button:disabled:hover {
+    background: #F1F5F9 !important;
+    background-color: #F1F5F9 !important;
+    color: #94A3B8 !important;
+    border: 1.5px solid #E2E8F0 !important;
+    cursor: not-allowed !important;
+    opacity: 0.8 !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+/* ───── HEADER ───── */
+header[data-testid="stHeader"] {
+    background-color: #FFFFFF !important;
+    border-bottom: 1px solid #E2E8F0 !important;
+}
+
+/* ───── SIDEBAR ───── */
+section[data-testid="stSidebar"] {
+    background-color: #EFF6FF !important;
+    border-right: 1px solid #BFDBFE !important;
+}
+section[data-testid="stSidebar"] p,
+section[data-testid="stSidebar"] li {
+    color: #1E3A8A !important;
+    font-size: 0.88em !important;
+    line-height: 1.6 !important;
+}
+section[data-testid="stSidebar"] label {
+    color: #0F172A !important;
+    font-size: 0.88em !important;
+    font-weight: 700 !important;
+}
+section[data-testid="stSidebar"] hr {
+    border-color: #BFDBFE !important;
+}
+
+/* SIDEBAR TITLE CARD (MIDNIGHT NAVY GRADIENT) */
+.sidebar-title-block,
+section[data-testid="stSidebar"] .sidebar-title-block {
+    background: #07132B !important;
+    background: linear-gradient(135deg, #050C1E 0%, #0E2452 100%) !important;
+    border-radius: 16px !important;
+    padding: 22px 16px !important;
+    margin: -10px 0 18px 0 !important;
+    text-align: center !important;
+    box-shadow: 0 6px 20px rgba(5, 12, 30, 0.4) !important;
+    border: 1.5px solid #1D4ED8 !important;
+}
+.sidebar-title-block h3,
+.sidebar-title-block .sidebar-title-text,
+section[data-testid="stSidebar"] .sidebar-title-block h3,
+section[data-testid="stSidebar"] .sidebar-title-block .sidebar-title-text {
+    margin: 0 !important;
+    font-size: 1.15em !important;
+    font-weight: 800 !important;
+    color: #FFFFFF !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.8px !important;
+}
+.sidebar-title-block span,
+.sidebar-title-block .sidebar-subtitle-text,
+section[data-testid="stSidebar"] .sidebar-title-block span,
+section[data-testid="stSidebar"] .sidebar-title-block .sidebar-subtitle-text {
+    font-size: 0.82em !important;
+    color: #38BDF8 !important;
+    font-weight: 600 !important;
+    margin-top: 6px !important;
+    display: block !important;
+    letter-spacing: 0.3px !important;
+}
+
+/* ───── METRIC CARD ───── */
+.metric-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 20px 16px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+}
+.metric-value {
+    font-size: 1.8em;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 4px;
+    letter-spacing: -0.5px;
+}
+.metric-label {
+    font-size: 0.75em;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 600;
+}
+.metric-delta {
+    font-size: 0.75em;
+    margin-top: 4px;
+    font-weight: 600;
+}
+
+/* ───── METRIC CARD COLOR VARIANTS ───── */
+.metric-card-red {
+    background: #EF4444 !important;
+    border-color: #EF4444 !important;
+}
+.metric-card-red .metric-value,
+.metric-card-red .metric-label,
+.metric-card-red div,
+.metric-card-red span {
+    color: #FFFFFF !important;
+}
+
+.metric-card-green {
+    background: #10B981 !important;
+    border-color: #10B981 !important;
+}
+.metric-card-green .metric-value,
+.metric-card-green .metric-label,
+.metric-card-green div,
+.metric-card-green span {
+    color: #FFFFFF !important;
+}
+
+.metric-card-blue {
+    background: #2563EB !important;
+    border-color: #2563EB !important;
+}
+.metric-card-blue .metric-value {
+    color: #FACC15 !important;
+}
+.metric-card-blue .metric-label {
+    color: #FEF08A !important;
+}
+
+/* ───── ALERT BAR ───── */
+@keyframes pulse-border {
+    0%, 100% { border-color: #EF4444; box-shadow: 0 0 0 0 rgba(239,68,68,0.15); }
+    50% { border-color: #DC2626; box-shadow: 0 0 12px 3px rgba(239,68,68,0.2); }
+}
+.anomaly-alert-bar {
+    background: #FEF2F2;
+    border: 1.5px solid #EF4444;
+    border-radius: 16px;
+    padding: 14px 20px;
+    margin: 8px 0 16px 0;
+    animation: pulse-border 2s ease-in-out infinite;
+}
+.alert-title {
+    font-weight: 700;
+    color: #991B1B;
+    font-size: 0.9em;
+    margin-bottom: 3px;
+    letter-spacing: 0.3px;
+}
+.alert-detail {
+    color: #334155;
+    font-size: 0.85em;
+}
+
+/* ───── CONTAINER CARDS & TOP BAR ───── */
+.section-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 8px;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+    margin-bottom: 16px;
+}
+.top-bar {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 16px 28px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+}
+.top-bar-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.top-bar-title h1 {
+    font-size: 1.25em;
+    font-weight: 700;
+    color: #0F172A !important;
+    margin: 0;
+    letter-spacing: -0.3px;
+}
+.top-bar-badge {
+    background: #EFF6FF;
+    color: #2563EB;
+    border: 1px solid #BFDBFE;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 0.72em;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+/* ───── DATE INPUT & POP-UP STYLING ───── */
+div[data-testid="stDateInput"] {
+    width: 100% !important;
+}
+div[data-testid="stDateInput"] label,
+div[data-testid="stDateInput"] label p,
+div[data-testid="stDateInput"] label span {
+    color: #0F172A !important;
+    font-weight: 700 !important;
+    font-size: 0.92em !important;
+    margin-bottom: 6px !important;
+}
+div[data-testid="stDateInput"] div[data-baseweb="input"] {
+    background-color: #FFFFFF !important;
+    border: 1.5px solid #CBD5E1 !important;
+    border-radius: 9999px !important;
+    padding: 4px 16px !important;
+}
+div[data-testid="stDateInput"] input {
+    color: #0F172A !important;
+    font-weight: 700 !important;
+    font-size: 0.95em !important;
+    background-color: transparent !important;
+}
+div[data-testid="stDateInput"] svg {
+    fill: #2563EB !important;
+}
+div[data-baseweb="popover"],
+div[data-baseweb="popover"] * {
+    color: #0F172A !important;
+}
+div[data-baseweb="calendar"] {
+    background-color: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+    border-radius: 16px !important;
+}
+
+/* ───── INPUT FIELDS & STATUS DOTS ───── */
+.stApp input[type="text"],
+.stApp input[type="number"],
+.stApp div[data-baseweb="input"] {
+    border-radius: 9999px !important;
+    border-color: #CBD5E1 !important;
+    color: #0F172A !important;
+}
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+}
+.status-dot.online { background: #10B981; }
+.status-dot.offline { background: #94A3B8; }
+
+.stDataFrame {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #E2E8F0;
+}
+
+/* ───── HIDE STREAMLIT DEFAULT UI ───── */
+#MainMenu,
+footer,
+header[data-testid="stHeader"],
+.stDeployButton,
+[data-testid="stToolbar"],
+[data-testid="stHeaderActionElements"],
+[data-testid="stToolbarActions"],
+button[data-testid="baseButton-header"],
+button[data-testid="baseButton-headerNoPadding"],
+div[data-testid="stDecoration"] {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+}
