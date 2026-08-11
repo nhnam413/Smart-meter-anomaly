@@ -31,6 +31,9 @@ data/demo/
 # Trained model artifacts (reproduce via training script)
 models/*.pkl
 
+# Generated evaluation reports
+reports/
+
 # Streamlit
 .streamlit/
 
