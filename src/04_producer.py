@@ -1,22 +1,5 @@
 """
-============================================================
-04_producer.py — File Producer (Giả lập Smart Meter Stream)
-============================================================
-Mục đích:
-    - Đọc tập demo_with_anomalies.csv (đã bơm lỗi giả lập).
-    - Đóng gói mỗi dòng dữ liệu thành 1 message JSON.
-    - Ghi ra file JSONL (stream_buffer.jsonl) mỗi giây 1 lần.
-    - Giả lập luồng dữ liệu thời gian thực từ đồng hồ điện thông minh.
-
-Kiến trúc:
-    [demo_with_anomalies.csv]
-        → 04_producer.py (đọc từng dòng, mỗi giây 1 lần)
-            → stream_buffer.jsonl
-                → 05_dashboard.py (đọc file + Streamlit)
-
-Tác giả: Sinh viên + AI Advisor
-Ngày tạo: 2026-07-12
-============================================================
+04_producer.py — Trình phát luồng dữ liệu giả lập thời gian thực (JSONL Stream)
 """
 
 import os
@@ -27,7 +10,6 @@ import argparse
 import pandas as pd
 from datetime import datetime
 
-# UTF-8 Encoding Fix for Windows Console / Subprocess Output
 if sys.platform == "win32":
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -35,38 +17,21 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-# ============================================================
-# 1. CẤU HÌNH
-# ============================================================
-
-PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEMO_DIR = os.path.join(PROJECT_DIR, "data", "demo")
-STREAM_FILE = os.path.join(DEMO_DIR, "stream_buffer.jsonl")
-
-# Tốc độ gửi: mỗi bao nhiêu giây gửi 1 message
-SEND_INTERVAL = 1.0  # giây
+from config import DEMO_DIR, STREAM_FILE, SEND_INTERVAL
 
 
 def load_demo_with_anomalies() -> pd.DataFrame:
-    """
-    Đọc tập demo đã bơm anomaly từ bước 03.
-
-    Returns:
-        pd.DataFrame với index là datetime
-    """
+    """Tải dữ liệu demo đã bơm bất thường."""
     demo_path = os.path.join(DEMO_DIR, "demo_with_anomalies.csv")
-
     if not os.path.exists(demo_path):
-        print(f"❌ Không tìm thấy: {demo_path}")
-        print("   → Hãy chạy 03_inject_anomalies.py trước!")
+        print(f"Lỗi: Không tìm thấy file {demo_path}")
         sys.exit(1)
 
-    df = pd.read_csv(demo_path, index_col="datetime", parse_dates=True)
-    return df
+    return pd.read_csv(demo_path, index_col="datetime", parse_dates=True)
 
 
 def row_to_json(row: pd.Series, timestamp: str) -> dict:
-    """Chuyển 1 dòng DataFrame thành dict JSON với các trường sensor + metadata."""
+    """Chuyển đổi một dòng dữ liệu thành cấu trúc JSON message."""
     return {
         "timestamp": timestamp,
         "Global_active_power": round(float(row["Global_active_power"]), 4),
@@ -82,21 +47,13 @@ def row_to_json(row: pd.Series, timestamp: str) -> dict:
     }
 
 
-# ============================================================
-# FILE PRODUCER — Ghi ra JSONL (giả lập real-time streaming)
-# ============================================================
-
-def run_file_producer(df: pd.DataFrame, append: bool = False) -> None:
-    """
-    Ghi dữ liệu ra file JSONL (JSON Lines) — mỗi dòng 1 message.
-    """
-    mode_str = "Nối tiếp (APPEND)" if append else "Mới (OVERWRITE)"
-    print(f"📁 Chế độ FILE ({mode_str}) — Ghi ra: {STREAM_FILE}")
-    print(f"   Mỗi giây ghi 1 message (giả lập real-time)...\n")
+def run_file_producer(df: pd.DataFrame, interval: float, append: bool = False) -> None:
+    """Ghi tin nhắn dạng luồng vào file JSONL theo từng khoảng thời gian."""
+    file_mode = "a" if append else "w"
+    print(f"Đang phát luồng dữ liệu ({len(df):,} tin nhắn) tới {STREAM_FILE}:")
 
     sent = 0
     anomaly_sent = 0
-    file_mode = "a" if append else "w"
 
     try:
         with open(STREAM_FILE, file_mode, encoding="utf-8") as f:
@@ -104,95 +61,37 @@ def run_file_producer(df: pd.DataFrame, append: bool = False) -> None:
                 timestamp = idx.strftime("%Y-%m-%d %H:%M:%S")
                 message = row_to_json(row, timestamp)
 
-                # Ghi 1 dòng JSON + xuống dòng
                 f.write(json.dumps(message) + "\n")
-                f.flush()  # Flush ngay để Dashboard đọc được
+                f.flush()
 
                 sent += 1
-                is_anom = message["is_anomaly"] == 1
-                if is_anom:
+                if message["is_anomaly"] == 1:
                     anomaly_sent += 1
 
-                print(f"   [{sent:>5}/{len(df)}] "
-                      f"{'\ud83d\udd34 ANOMALY' if is_anom else '\ud83d\udfe2 Normal '} | "
-                      f"{timestamp} | Power: {message['Global_active_power']:>7.3f} kW | "
-                      f"{message['anomaly_type']}")
-
-                time.sleep(SEND_INTERVAL)
+                print(f"  [{sent:>5}/{len(df)}] {timestamp} | Power: {message['Global_active_power']:>7.3f} kW | {message['anomaly_type']}")
+                time.sleep(interval)
 
     except KeyboardInterrupt:
-        print(f"\n\n⚠️ Dừng bởi người dùng (Ctrl+C)")
+        print("\nĐã dừng phát luồng (Ctrl+C).")
 
     finally:
-        print(f"\n{'=' * 60}")
-        print(f"📊 Kết quả: Đã ghi {sent:,} messages ({anomaly_sent} anomalies)")
-        print(f"   File: {STREAM_FILE}")
-        print(f"{'=' * 60}")
+        print(f"\nTổng kết: Đã gửi {sent:,}/{len(df):,} tin nhắn | Số điểm bất thường: {anomaly_sent:,}")
 
-
-# ============================================================
-# MAIN
-# ============================================================
 
 if __name__ == "__main__":
-    # --- Argument Parser ---
-    parser = argparse.ArgumentParser(
-        description="Smart Meter File Producer — Giả lập streaming"
-    )
-    parser.add_argument(
-        "--speed",
-        type=float,
-        default=1.0,
-        help="Tốc độ gửi (giây/message). Mặc định: 1.0"
-    )
-    parser.add_argument(
-        "--limit",
-        type=int,
-        default=0,
-        help="Giới hạn số message gửi (0 = gửi hết). Mặc định: 0"
-    )
-    parser.add_argument(
-        "--skip",
-        type=int,
-        default=0,
-        help="Bỏ qua N mẫu đầu tiên (dùng khi Resume/Tiếp tục chạy)"
-    )
-    parser.add_argument(
-        "--append",
-        action="store_true",
-        help="Ghi tiếp vào file thay vì ghi đè từ đầu"
-    )
+    parser = argparse.ArgumentParser(description="Producer phát luồng dữ liệu Smart Meter")
+    parser.add_argument("--speed", type=float, default=1.0, help="Tốc độ gửi (giây/tin nhắn)")
+    parser.add_argument("--limit", type=int, default=0, help="Giới hạn số tin nhắn")
+    parser.add_argument("--skip", type=int, default=0, help="Bỏ qua N tin nhắn đầu")
+    parser.add_argument("--append", action="store_true", help="Ghi tiếp vào file hiện tại")
 
     args = parser.parse_args()
-    SEND_INTERVAL = args.speed
-
-    print()
-    print("📡 SMART METER ANOMALY DETECTION — FILE PRODUCER")
-    print("=" * 60)
-    print(f"   Tốc độ   : {SEND_INTERVAL}s / message")
-    print(f"   Bỏ qua   : {args.skip} mẫu đầu")
-    print(f"   Ghi file : {'APPEND (nối tiếp)' if args.append else 'OVERWRITE (mới)'}")
-    print("=" * 60)
-    print()
-
-    # --- Đọc dữ liệu ---
     df = load_demo_with_anomalies()
-    print(f"   ✅ Đọc xong: {len(df):,} mẫu "
-          f"({df['is_anomaly'].sum()} anomalies)\n")
 
-    # Bỏ qua args.skip mẫu đầu nếu có
-    if args.skip > 0 and args.skip < len(df):
+    if 0 < args.skip < len(df):
         df = df.iloc[args.skip:]
-        print(f"   ⏩ Đã tiếp tục từ vị trí mẫu thứ {args.skip + 1}\n")
 
-    # Giới hạn số message nếu có --limit
     if args.limit > 0:
         df = df.head(args.limit)
-        print(f"   ⚡ Giới hạn: chỉ gửi {len(df)} messages\n")
 
-    # --- Chạy Producer ---
-    run_file_producer(df, append=args.append)
-
-    print("\n🎉 Producer hoàn tất!")
-    print("   → Mở terminal khác chạy: streamlit run src/05_dashboard.py")
-    print()
+    run_file_producer(df, interval=args.speed, append=args.append)

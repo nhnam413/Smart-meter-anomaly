@@ -2,7 +2,8 @@
 ============================================================
 style.css — Smart Meter Anomaly Detection Dashboard Styles
 ============================================================
-Theme: Light Theme (Ocean Blue & Deep Navy Accent)
+Theme: Light — Purple (#6B4CE6) & Orange (#EF7D32) Brand
+Background: #FAFAFA | Surface: #FFFFFF | Text: #1F2937
 Typography: Inter (Google Fonts)
 ============================================================
 */
@@ -10,17 +11,40 @@ Typography: Inter (Google Fonts)
 /* ───── IMPORT GOOGLE FONT ───── */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+/* ───── CSS CUSTOM PROPERTIES ───── */
+:root {
+    --bg: #FAFAFA;
+    --surface: #FFFFFF;
+    --text: #1F2937;
+    --text-secondary: #6B7280;
+    --text-muted: #9CA3AF;
+    --border: #E5E7EB;
+    --primary: #6B4CE6;
+    --primary-dark: #5338B5;
+    --primary-light: #F3F0FF;
+    --accent: #EF7D32;
+    --accent-light: #FFF4EB;
+    --danger: #EF4444;
+    --success: #10B981;
+    --warning: #F59E0B;
+    --radius: 10px;
+    --radius-lg: 14px;
+    --shadow-sm: 0 1px 3px rgba(31,41,55,0.04);
+    --shadow-md: 0 2px 8px rgba(31,41,55,0.06);
+    --transition: 180ms ease;
+}
+
 /* ───── GLOBAL TYPOGRAPHY & BODY ───── */
 .stApp {
-    background-color: #FFFFFF !important;
+    background-color: var(--bg) !important;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-    color: #0F172A !important;
+    color: var(--text) !important;
 }
 .stApp * {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
 
-/* ───── CONTRAST FIX ───── */
+/* ───── TEXT CONTRAST ───── */
 .stApp .stMarkdown p,
 .stApp .stMarkdown li,
 .stApp .stMarkdown span,
@@ -29,65 +53,51 @@ Typography: Inter (Google Fonts)
 .stApp .stSlider label,
 .stApp .stDateInput label,
 .stApp div[data-baseweb="select"] span {
-    color: #0F172A !important;
+    color: var(--text) !important;
     font-weight: 500 !important;
 }
 .stApp .stMarkdown h1,
 .stApp .stMarkdown h2,
 .stApp .stMarkdown h3,
 .stApp .stMarkdown h4 {
-    color: #0F172A !important;
+    color: var(--text) !important;
     font-weight: 700 !important;
     letter-spacing: -0.3px !important;
 }
 .stApp .stTabs [data-baseweb="tab"] {
-    color: #334155 !important;
+    color: var(--text-secondary) !important;
     font-weight: 600 !important;
 }
 .stApp .stTabs [aria-selected="true"] {
-    color: #2563EB !important;
+    color: var(--primary) !important;
     font-weight: 700 !important;
-    border-bottom-color: #2563EB !important;
+    border-bottom-color: var(--primary) !important;
 }
 
-/* ───── NÚT BẤM HOÀN TOÀN TĨNH (FLAT STYLING) ───── */
-.stApp button,
+/* ───── BUTTONS — FLAT STATIC STYLING ───── */
 div.stButton > button {
     width: 100% !important;
-    min-height: 46px !important;
+    min-height: 42px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    border-radius: 9999px !important;
-    font-weight: 700 !important;
-    font-size: 0.92em !important;
-    padding: 10px 20px !important;
-    transition: none !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    font-size: 0.88em !important;
+    padding: 8px 16px !important;
+    transition: background var(--transition), border-color var(--transition) !important;
     transform: none !important;
     box-shadow: none !important;
     outline: none !important;
-    opacity: 1 !important;
-    visibility: visible !important;
     -webkit-tap-highlight-color: transparent !important;
 }
-
-.stApp button:focus,
-.stApp button:focus-visible,
-.stApp button:active,
 div.stButton > button:focus,
 div.stButton > button:focus-visible,
-div.stButton > button:active,
-.stApp button:hover,
-div.stButton > button:hover {
+div.stButton > button:active {
     outline: none !important;
     box-shadow: none !important;
     transform: none !important;
-    transition: none !important;
-    -webkit-tap-highlight-color: transparent !important;
 }
-
-/* Ép thẻ con bên trong button kế thừa màu chữ */
-.stApp button *,
 div.stButton > button *,
 div.stButton > button p,
 div.stButton > button span,
@@ -96,306 +106,462 @@ div.stButton > button div {
     background: transparent !important;
 }
 
-/* Primary Active Button (Nút được chọn: Nền Xanh, Chữ Trắng Tĩnh) */
+/* Primary Button — Tím nền */
 div.stButton > button[kind="primary"]:not(:disabled),
 div.stButton > button[kind="primary"]:not(:disabled):hover {
-    background: #2563EB !important;
-    background-color: #2563EB !important;
+    background: var(--primary) !important;
+    background-color: var(--primary) !important;
     color: #FFFFFF !important;
-    border: 1.5px solid #2563EB !important;
+    border: 1.5px solid var(--primary) !important;
     box-shadow: none !important;
-    transform: none !important;
 }
 
-/* Secondary Inactive Button (Nút chưa chọn: Nền Trắng, Chữ Navy Tĩnh) */
+/* Secondary Button — Viền tím nhẹ */
 div.stButton > button[kind="secondary"]:not(:disabled),
 div.stButton > button[kind="secondary"]:not(:disabled):hover {
-    background: #FFFFFF !important;
-    background-color: #FFFFFF !important;
-    color: #0F172A !important;
-    border: 1.5px solid #CBD5E1 !important;
+    background: var(--surface) !important;
+    background-color: var(--surface) !important;
+    color: var(--text) !important;
+    border: 1.5px solid var(--border) !important;
     box-shadow: none !important;
-    transform: none !important;
 }
 
-/* Disabled State (Nút ngắt logic: Nền Xám, Chữ Ghi Tĩnh) */
-.stApp button:disabled,
+/* Disabled Button */
 div.stButton > button:disabled,
 div.stButton > button[disabled],
-.stApp button:disabled:hover,
 div.stButton > button:disabled:hover {
-    background: #F1F5F9 !important;
-    background-color: #F1F5F9 !important;
-    color: #94A3B8 !important;
-    border: 1.5px solid #E2E8F0 !important;
+    background: #F3F4F6 !important;
+    background-color: #F3F4F6 !important;
+    color: var(--text-muted) !important;
+    border: 1.5px solid var(--border) !important;
     cursor: not-allowed !important;
-    opacity: 0.8 !important;
+    opacity: 0.7 !important;
     box-shadow: none !important;
-    transform: none !important;
 }
 
-/* ───── HEADER ───── */
+/* ───── STREAMLIT HEADER & SIDEBAR TOGGLE BUTTON (NÚT VUÔNG NAVY GÓC TRÁI) ───── */
+/* ───── TOP CONTROL CARD (Khu vực điều khiển duy nhất ở trên cùng) ───── */
+.top-control-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
+}
+
+/* ───── HIDE SIDEBAR & DEFAULT HEADER COMPLETELY ───── */
+section[data-testid="stSidebar"],
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="stSidebarCollapseButton"],
 header[data-testid="stHeader"] {
-    background-color: #FFFFFF !important;
-    border-bottom: 1px solid #E2E8F0 !important;
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    visibility: hidden !important;
 }
 
-/* ───── SIDEBAR ───── */
-section[data-testid="stSidebar"] {
-    background-color: #EFF6FF !important;
-    border-right: 1px solid #BFDBFE !important;
+[data-testid="stAppViewContainer"] > section:first-child {
+    padding-top: 1.2rem !important;
 }
 section[data-testid="stSidebar"] p,
 section[data-testid="stSidebar"] li {
-    color: #1E3A8A !important;
-    font-size: 0.88em !important;
+    color: var(--text-secondary) !important;
+    font-size: 0.86em !important;
     line-height: 1.6 !important;
 }
 section[data-testid="stSidebar"] label {
-    color: #0F172A !important;
-    font-size: 0.88em !important;
-    font-weight: 700 !important;
+    color: var(--text) !important;
+    font-size: 0.86em !important;
+    font-weight: 600 !important;
 }
 section[data-testid="stSidebar"] hr {
-    border-color: #BFDBFE !important;
+    border-color: var(--border) !important;
 }
 
-/* SIDEBAR TITLE CARD (MIDNIGHT NAVY GRADIENT) */
+/* SIDEBAR TITLE CARD — Tím gradient */
 .sidebar-title-block,
 section[data-testid="stSidebar"] .sidebar-title-block {
-    background: #07132B !important;
-    background: linear-gradient(135deg, #050C1E 0%, #0E2452 100%) !important;
-    border-radius: 16px !important;
-    padding: 22px 16px !important;
+    background: linear-gradient(135deg, #5338B5 0%, #6B4CE6 50%, #8B6CF6 100%) !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 20px 16px !important;
     margin: -10px 0 18px 0 !important;
     text-align: center !important;
-    box-shadow: 0 6px 20px rgba(5, 12, 30, 0.4) !important;
-    border: 1.5px solid #1D4ED8 !important;
+    box-shadow: 0 4px 16px rgba(107, 76, 230, 0.25) !important;
+    border: none !important;
 }
 .sidebar-title-block h3,
 .sidebar-title-block .sidebar-title-text,
 section[data-testid="stSidebar"] .sidebar-title-block h3,
 section[data-testid="stSidebar"] .sidebar-title-block .sidebar-title-text {
     margin: 0 !important;
-    font-size: 1.15em !important;
+    font-size: 1.05em !important;
     font-weight: 800 !important;
     color: #FFFFFF !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.8px !important;
+    letter-spacing: 0.6px !important;
 }
 .sidebar-title-block span,
 .sidebar-title-block .sidebar-subtitle-text,
 section[data-testid="stSidebar"] .sidebar-title-block span,
 section[data-testid="stSidebar"] .sidebar-title-block .sidebar-subtitle-text {
-    font-size: 0.82em !important;
-    color: #38BDF8 !important;
-    font-weight: 600 !important;
-    margin-top: 6px !important;
+    font-size: 0.78em !important;
+    color: rgba(255,255,255,0.75) !important;
+    font-weight: 500 !important;
+    margin-top: 4px !important;
     display: block !important;
-    letter-spacing: 0.3px !important;
+    letter-spacing: 0.2px !important;
 }
 
-/* ───── METRIC CARD ───── */
-.metric-card {
-    background: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    border-radius: 16px;
-    padding: 20px 16px;
-    text-align: center;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
-}
-.metric-value {
-    font-size: 1.8em;
-    font-weight: 700;
-    line-height: 1.2;
-    margin-bottom: 4px;
-    letter-spacing: -0.5px;
-}
-.metric-label {
-    font-size: 0.75em;
-    color: #475569;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    font-weight: 600;
-}
-.metric-delta {
-    font-size: 0.75em;
-    margin-top: 4px;
-    font-weight: 600;
+/* Sidebar section label */
+.sidebar-section-label {
+    font-size: 0.7em !important;
+    font-weight: 700 !important;
+    color: var(--text-muted) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    margin: 16px 0 8px 0 !important;
+    padding: 0 !important;
 }
 
-/* ───── METRIC CARD COLOR VARIANTS ───── */
-.metric-card-red {
-    background: #EF4444 !important;
-    border-color: #EF4444 !important;
-}
-.metric-card-red .metric-value,
-.metric-card-red .metric-label,
-.metric-card-red div,
-.metric-card-red span {
-    color: #FFFFFF !important;
-}
-
-.metric-card-green {
-    background: #10B981 !important;
-    border-color: #10B981 !important;
-}
-.metric-card-green .metric-value,
-.metric-card-green .metric-label,
-.metric-card-green div,
-.metric-card-green span {
-    color: #FFFFFF !important;
-}
-
-.metric-card-blue {
-    background: #2563EB !important;
-    border-color: #2563EB !important;
-}
-.metric-card-blue .metric-value {
-    color: #FACC15 !important;
-}
-.metric-card-blue .metric-label {
-    color: #FEF08A !important;
-}
-
-/* ───── ALERT BAR ───── */
-@keyframes pulse-border {
-    0%, 100% { border-color: #EF4444; box-shadow: 0 0 0 0 rgba(239,68,68,0.15); }
-    50% { border-color: #DC2626; box-shadow: 0 0 12px 3px rgba(239,68,68,0.2); }
-}
-.anomaly-alert-bar {
-    background: #FEF2F2;
-    border: 1.5px solid #EF4444;
-    border-radius: 16px;
-    padding: 14px 20px;
-    margin: 8px 0 16px 0;
-    animation: pulse-border 2s ease-in-out infinite;
-}
-.alert-title {
-    font-weight: 700;
-    color: #991B1B;
-    font-size: 0.9em;
-    margin-bottom: 3px;
-    letter-spacing: 0.3px;
-}
-.alert-detail {
-    color: #334155;
-    font-size: 0.85em;
-}
-
-/* ───── CONTAINER CARDS & TOP BAR ───── */
-.section-card {
-    background: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    border-radius: 16px;
-    padding: 8px;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
-    margin-bottom: 16px;
-}
-.top-bar {
-    background: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    border-radius: 16px;
-    padding: 16px 28px;
-    margin-bottom: 20px;
+/* ───── DASHBOARD TITLE (Main area — top-left) ───── */
+.dashboard-title {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+    gap: 10px;
+    padding: 0 0 16px 0;
 }
-.top-bar-title {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+.dashboard-title h1 {
+    font-size: 1.15em !important;
+    font-weight: 700 !important;
+    color: var(--text) !important;
+    margin: 0 !important;
+    letter-spacing: -0.3px !important;
 }
-.top-bar-title h1 {
-    font-size: 1.25em;
+.dashboard-title .title-badge {
+    background: var(--primary-light);
+    color: var(--primary);
+    border: 1px solid rgba(107,76,230,0.2);
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 0.65em;
     font-weight: 700;
-    color: #0F172A !important;
-    margin: 0;
-    letter-spacing: -0.3px;
+    letter-spacing: 0.5px;
 }
-.top-bar-badge {
-    background: #EFF6FF;
-    color: #2563EB;
-    border: 1px solid #BFDBFE;
-    padding: 4px 12px;
-    border-radius: 9999px;
-    font-size: 0.72em;
+.dashboard-title .title-badge-rt {
+    background: var(--accent-light);
+    color: var(--accent);
+    border: 1px solid rgba(239,125,50,0.2);
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 0.65em;
     font-weight: 700;
     letter-spacing: 0.5px;
 }
 
-/* ───── DATE INPUT & POP-UP STYLING ───── */
+/* ───── METRIC CARD ───── */
+.metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px 14px;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow var(--transition);
+}
+.metric-card:hover {
+    box-shadow: var(--shadow-md);
+}
+.metric-value {
+    font-size: 1.7em;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 4px;
+    letter-spacing: -0.5px;
+    color: var(--text);
+}
+.metric-label {
+    font-size: 0.72em;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+.metric-delta {
+    font-size: 0.72em;
+    margin-top: 4px;
+    font-weight: 600;
+}
+
+/* ───── METRIC CARD VARIANTS ───── */
+
+/* Accent — Cam viền trái nổi bật (KPI chính) */
+.metric-card-accent {
+    border-left: 3px solid var(--accent) !important;
+}
+.metric-card-accent .metric-value {
+    color: var(--accent) !important;
+}
+
+/* Primary — Tím viền trái */
+.metric-card-primary {
+    border-left: 3px solid var(--primary) !important;
+}
+.metric-card-primary .metric-value {
+    color: var(--primary) !important;
+}
+
+/* Danger — Đỏ nền nhạt (anomaly count) */
+.metric-card-red {
+    background: var(--surface) !important;
+    border-left: 3px solid var(--danger) !important;
+    border-color: var(--border) !important;
+    border-left-color: var(--danger) !important;
+}
+.metric-card-red .metric-value {
+    color: var(--danger) !important;
+}
+.metric-card-red .metric-label {
+    color: var(--text-secondary) !important;
+}
+
+/* Success — Xanh viền trái (tỷ lệ) */
+.metric-card-green {
+    background: var(--surface) !important;
+    border-left: 3px solid var(--success) !important;
+    border-color: var(--border) !important;
+    border-left-color: var(--success) !important;
+}
+.metric-card-green .metric-value {
+    color: var(--success) !important;
+}
+.metric-card-green .metric-label {
+    color: var(--text-secondary) !important;
+}
+
+/* Blue variant → remap to primary (tím) */
+.metric-card-blue {
+    background: var(--surface) !important;
+    border-left: 3px solid var(--primary) !important;
+    border-color: var(--border) !important;
+    border-left-color: var(--primary) !important;
+}
+.metric-card-blue .metric-value {
+    color: var(--primary) !important;
+}
+.metric-card-blue .metric-label {
+    color: var(--text-secondary) !important;
+}
+
+/* ───── ALERT BAR — Cam accent ───── */
+@keyframes pulse-accent {
+    0%, 100% { border-color: var(--accent); box-shadow: 0 0 0 0 rgba(239,125,50,0.1); }
+    50% { border-color: #D46A28; box-shadow: 0 0 10px 2px rgba(239,125,50,0.15); }
+}
+.anomaly-alert-bar {
+    background: var(--accent-light);
+    border: 1.5px solid var(--accent);
+    border-radius: var(--radius-lg);
+    padding: 12px 18px;
+    margin: 8px 0 16px 0;
+    animation: pulse-accent 2.5s ease-in-out infinite;
+}
+.alert-title {
+    font-weight: 700;
+    color: #92400E;
+    font-size: 0.85em;
+    margin-bottom: 2px;
+    letter-spacing: 0.3px;
+}
+.alert-detail {
+    color: var(--text);
+    font-size: 0.82em;
+}
+
+/* ───── SECTION CARD (chart/table container) ───── */
+.section-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 8px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 12px;
+    overflow: visible;
+    position: relative;
+    z-index: 0;
+}
+
+/* Fix đè chữ trong expander chứa chart */
+.stExpander .section-card {
+    overflow: hidden;
+}
+.stExpander [data-testid="stExpanderDetails"] {
+    overflow: visible !important;
+}
+
+/* ───── ANOMALY TABLE WRAPPER ───── */
+.anomaly-table-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.anomaly-table-header h4 {
+    margin: 0 !important;
+    font-size: 0.95em !important;
+    font-weight: 700 !important;
+    color: var(--text) !important;
+}
+.anomaly-table-header .table-count {
+    background: var(--primary-light);
+    color: var(--primary);
+    font-size: 0.72em;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+}
+
+/* ───── STATUS DOTS ───── */
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 5px;
+}
+.status-dot.online { background: var(--success); }
+.status-dot.offline { background: var(--text-muted); }
+
+/* ───── DATE INPUT STYLING (Bình thường, hiển thị đầy đủ ngày/tháng/năm) ───── */
 div[data-testid="stDateInput"] {
     width: 100% !important;
 }
 div[data-testid="stDateInput"] label,
 div[data-testid="stDateInput"] label p,
 div[data-testid="stDateInput"] label span {
-    color: #0F172A !important;
-    font-weight: 700 !important;
-    font-size: 0.92em !important;
-    margin-bottom: 6px !important;
+    color: var(--text) !important;
+    font-weight: 600 !important;
+    font-size: 0.88em !important;
+    margin-bottom: 4px !important;
 }
 div[data-testid="stDateInput"] div[data-baseweb="input"] {
     background-color: #FFFFFF !important;
-    border: 1.5px solid #CBD5E1 !important;
-    border-radius: 9999px !important;
-    padding: 4px 16px !important;
+    border: 1px solid #D1D5DB !important;
+    border-radius: 8px !important;
+    min-height: 40px !important;
+    padding: 0 10px !important;
+    box-shadow: none !important;
 }
 div[data-testid="stDateInput"] input {
-    color: #0F172A !important;
-    font-weight: 700 !important;
-    font-size: 0.95em !important;
-    background-color: transparent !important;
+    color: #1F2937 !important;
+    font-weight: 500 !important;
+    font-size: 0.9em !important;
+    background: transparent !important;
+    cursor: pointer !important;
 }
 div[data-testid="stDateInput"] svg {
-    fill: #2563EB !important;
-}
-div[data-baseweb="popover"],
-div[data-baseweb="popover"] * {
-    color: #0F172A !important;
-}
-div[data-baseweb="calendar"] {
-    background-color: #FFFFFF !important;
-    border: 1px solid #E2E8F0 !important;
-    border-radius: 16px !important;
+    fill: #6B4CE6 !important;
 }
 
-/* ───── INPUT FIELDS & STATUS DOTS ───── */
+/* Popover Lịch - Nền trắng sáng 100% chuẩn native */
+div[data-baseweb="popover"] {
+    z-index: 999999 !important;
+}
+div[data-baseweb="popover"],
+div[data-baseweb="popover"] > div,
+div[data-baseweb="calendar"],
+div[data-baseweb="calendar"] * {
+    background-color: #FFFFFF !important;
+    color: #1F2937 !important;
+}
+div[data-baseweb="calendar"] {
+    border: 1px solid #E5E7EB !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+    padding: 8px !important;
+}
+div[data-baseweb="calendar"] [aria-selected="true"] {
+    background-color: #6B4CE6 !important;
+    color: #FFFFFF !important;
+    border-radius: 50% !important;
+}
+div[data-baseweb="calendar"] [aria-selected="true"] * {
+    background-color: transparent !important;
+    color: #FFFFFF !important;
+}
+div[data-baseweb="calendar"] [aria-disabled="true"],
+div[data-baseweb="calendar"] [aria-disabled="true"] * {
+    color: #9CA3AF !important;
+    opacity: 0.4 !important;
+}
+
+/* ───── INPUT FIELDS ───── */
 .stApp input[type="text"],
 .stApp input[type="number"],
 .stApp div[data-baseweb="input"] {
-    border-radius: 9999px !important;
-    border-color: #CBD5E1 !important;
-    color: #0F172A !important;
+    border-radius: 8px !important;
+    border-color: #D1D5DB !important;
+    color: #1F2937 !important;
+    background-color: #FFFFFF !important;
 }
-.status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    display: inline-block;
-    margin-right: 6px;
-}
-.status-dot.online { background: #10B981; }
-.status-dot.offline { background: #94A3B8; }
 
+/* ───── NUMBER INPUT STYLING (Ô Cập nhật giây - Mode Real-time) ───── */
+div[data-testid="stNumberInput"] {
+    width: 100% !important;
+}
+div[data-testid="stNumberInput"] label,
+div[data-testid="stNumberInput"] label p,
+div[data-testid="stNumberInput"] label span {
+    color: #1F2937 !important;
+    font-weight: 600 !important;
+    font-size: 0.88em !important;
+    margin-bottom: 4px !important;
+}
+div[data-testid="stNumberInput"] div[data-baseweb="input"] {
+    background-color: #FFFFFF !important;
+    border: none !important;
+    border-radius: 8px !important;
+    min-height: 40px !important;
+    box-shadow: none !important;
+}
+div[data-testid="stNumberInput"] input {
+    color: #1F2937 !important;
+    font-weight: 600 !important;
+    font-size: 0.9em !important;
+    background-color: #FFFFFF !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+div[data-testid="stNumberInput"] button {
+    background-color: #F3F4F6 !important;
+    color: #1F2937 !important;
+    border: none !important;
+}
+div[data-testid="stNumberInput"] button * {
+    color: #1F2937 !important;
+    fill: #1F2937 !important;
+}
+
+/* ───── DATAFRAME ───── */
 .stDataFrame {
-    border-radius: 12px;
+    border-radius: var(--radius) !important;
     overflow: hidden;
-    border: 1px solid #E2E8F0;
+    border: 1px solid var(--border);
 }
 
-/* ───── HIDE STREAMLIT DEFAULT UI ───── */
+/* ───── SLIDER TRACK — Tím ───── */
+.stApp div[data-baseweb="slider"] div[role="slider"] {
+    background: var(--primary) !important;
+}
+
+/* ───── HIDE STREAMLIT DEFAULT UI (giữ header cho sidebar toggle) ───── */
 #MainMenu,
 footer,
-header[data-testid="stHeader"],
 .stDeployButton,
 [data-testid="stToolbar"],
 [data-testid="stHeaderActionElements"],
 [data-testid="stToolbarActions"],
-button[data-testid="baseButton-header"],
 button[data-testid="baseButton-headerNoPadding"],
 div[data-testid="stDecoration"] {
     display: none !important;
