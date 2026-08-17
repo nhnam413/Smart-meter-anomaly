@@ -282,11 +282,11 @@ def save_metrics_csv(metrics: dict, per_type: pd.DataFrame):
     os.makedirs(EVAL_DIR, exist_ok=True)
 
     summary = pd.DataFrame([
-        {"Metric": "Precision", "Value": f"{metrics['precision']:.4f}"},
-        {"Metric": "Recall", "Value": f"{metrics['recall']:.4f}"},
-        {"Metric": "F1-Score", "Value": f"{metrics['f1']:.4f}"},
-        {"Metric": "ROC-AUC", "Value": f"{metrics['roc_auc']:.4f}"},
-        {"Metric": "PR-AUC", "Value": f"{metrics['avg_precision']:.4f}"},
+        {"Metric": "Precision", "Value": f"{metrics['precision']:.2f}"},
+        {"Metric": "Recall", "Value": f"{metrics['recall']:.2f}"},
+        {"Metric": "F1-Score", "Value": f"{metrics['f1']:.2f}"},
+        {"Metric": "ROC-AUC", "Value": f"{metrics['roc_auc']:.2f}"},
+        {"Metric": "PR-AUC", "Value": f"{metrics['avg_precision']:.2f}"},
         {"Metric": "True Positives", "Value": str(metrics['tp'])},
         {"Metric": "False Positives", "Value": str(metrics['fp'])},
         {"Metric": "True Negatives", "Value": str(metrics['tn'])},

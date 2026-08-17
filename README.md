@@ -105,9 +105,11 @@ Mô hình **Isolation Forest** được huấn luyện trên các đặc trưng 
    - `power_lag_1h`, `power_diff_1h` (Vi phân công suất tức thời giúp bắt lỗi *Power Surge*).
    - `voltage_lag_1h`, `voltage_diff_1h` (Vi phân sụt áp giúp bắt lỗi *Voltage Drop*).
    - `power_lag_24h` (So sánh công suất cùng giờ ngày hôm trước).
-3. **Thống kê cuộn (Rolling 6h)**: `power_rolling_mean_6h`, `power_rolling_std_6h`, `voltage_rolling_mean_6h`, `voltage_rolling_std_6h`.
-4. **Ngữ cảnh giờ đêm**: `night_power_spike` (Độ lệch công suất giờ đêm từ 1h - 5h AM).
-5. **Loại bỏ đa cộng tuyến**: Loại bỏ `Global_intensity` ($r = +0.9992$ với `Global_active_power`) để tránh làm nhiễu cây quyết định của Isolation Forest.
+3. **Z-Score chuẩn hóa (Rolling 6h)**: `power_zscore_6h`, `voltage_zscore_6h` — Chuẩn hóa vô thứ nguyên, Z > 3 gần chắc chắn bất thường.
+4. **Reactive Power Ratio**: `reactive_ratio = Global_reactive_power / Global_active_power` — Phát hiện thiết bị bất thường cắm vào hệ thống (clip ±10).
+5. **Deviation tương đối 24h**: `power_deviation_24h` — Chênh lệch phần trăm so với cùng giờ hôm qua, loại FP do thói quen sinh hoạt.
+6. **Ngữ cảnh giờ đêm**: `is_night` (Binary 1h-5h AM) + `power_hourly_diff` (Độ lệch so với trung bình giờ).
+7. **Loại bỏ đa cộng tuyến**: Loại bỏ `Global_intensity` ($r = +0.9992$ với `Global_active_power`) để tránh làm nhiễu cây quyết định của Isolation Forest.
 
 ---
 
@@ -117,11 +119,16 @@ Mô hình **Isolation Forest** được huấn luyện trên các đặc trưng 
 - **Phân tích lịch sử mượt mà**:
   - Tự động load đầy đủ dữ liệu demo từ **28/06/2010 đến 26/11/2010** (3,417 mẫu).
   - Hỗ trợ các nút **Chọn nhanh mốc thời gian 1-click**: `[Toàn bộ]`, `[T7/2010]`, `[T8/2010]`, `[T9/2010]`, `[T10/2010]`, `[T11/2010]`.
-  - Ô chọn lịch tùy chỉnh định dạng `DD/MM/YYYY` với giao diện sáng (Light Mode), hiển thị số ngày rõ nét 100%.
+  - Ô chọn lịch tùy chỉnh định dạng `DD/MM/YYYY` với giao diện sáng (Light Mode).
 - **Giám sát thời gian thực (Real-time)**:
   - Tích hợp bộ điều khiển Producer trực tiếp trên giao diện (`Khởi động`, `Dừng`, `Tiếp tục`).
-  - Ô chỉnh thời gian cập nhật giây gọn gàng với thiết kế phẳng viền trắng tinh tế.
   - Thanh cảnh báo đỏ nhấp nháy ngay khi phát hiện điểm bất thường mới nhất.
+- **Explainable AI**:
+  - **Phân loại tự động** bất thường bằng rule-based classifier (`classify.py`): Power Surge / Voltage Drop / Night Spike.
+  - **Giải thích nguyên nhân** từng điểm anomaly qua Top 3 feature contributions (hiển thị trong bảng).
+  - **Anomaly Timeline Heatmap**: Biểu đồ 2D (Giờ × Ngày) cho thấy pattern bất thường theo thời gian.
+  - **Model Performance Summary**: Hiển thị Precision, Recall, F1, ROC-AUC và Detection Rate trực tiếp trên dashboard.
+  - **Xuất báo cáo CSV**: Nút đơn giản xuất toàn bộ danh sách anomaly ra file CSV.
 
 ---
 
@@ -132,6 +139,7 @@ smart-meter-anomaly/
 ├── src/
 │   ├── config.py               # Cấu hình tập trung (Đường dẫn, Hyperparameters, Bảng màu)
 │   ├── features.py             # Feature Engineering (Single Source of Truth)
+│   ├── classify.py             # Phân loại bất thường (Rule-based) & Giải thích AI
 │   ├── 01_prepare_data.py      # Tiền xử lý dữ liệu UCI & Phân tích EDA
 │   ├── 02_train_model.py       # Huấn luyện Isolation Forest & RobustScaler
 │   ├── 03_inject_anomalies.py  # Giả lập bơm lỗi (Power Surge, Voltage Drop, Night Spike)

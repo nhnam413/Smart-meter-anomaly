@@ -21,7 +21,11 @@ from config import (
     COLORS, MAX_DISPLAY_POINTS, BUFFER_SIZE, SENSOR_COLUMNS,
     PROJECT_DIR,
 )
-from features import create_features, create_features_realtime
+from features import create_features, create_features_realtime, ENGINEERED_FEATURE_NAMES
+from classify import (
+    classify_anomaly_type, classify_batch, explain_batch,
+    compute_feature_stats, TYPE_LABELS,
+)
 
 
 # --- Cache & Data Loader ---
@@ -204,45 +208,45 @@ def build_voltage_chart(display_data) -> go.Figure:
     return fig
 
 
-def build_anomaly_pie(df: pd.DataFrame) -> go.Figure:
-    if df.empty or "anomaly_type" not in df.columns:
+def build_anomaly_timeline_heatmap(df: pd.DataFrame) -> go.Figure:
+    """Heatmap 2D: trục X = ngày, trục Y = giờ, màu = số anomaly detected."""
+    if df.empty or "predicted_anomaly" not in df.columns:
         fig = go.Figure()
-        fig.update_layout(**CHART_LAYOUT, height=320)
+        fig.update_layout(**CHART_LAYOUT, height=350)
         return fig
 
-    counts = df["anomaly_type"].value_counts()
-    color_map = {
-        "normal": "#C8D6E5",
-        "power_surge": COLORS["danger"],
-        "voltage_drop": COLORS["warning"],
-        "night_spike": "#7B1FA2",
-    }
-    colors = [color_map.get(name, "#999") for name in counts.index]
-    label_map = {
-        "normal": "Bình thường",
-        "power_surge": "Đột biến công suất",
-        "voltage_drop": "Sụt áp",
-        "night_spike": "Đột biến đêm",
-    }
-    labels = [label_map.get(name, name) for name in counts.index]
+    df_copy = df.copy()
+    df_copy["date"] = df_copy.index.date
+    df_copy["hour"] = df_copy.index.hour
 
-    fig = go.Figure(data=[go.Pie(
-        labels=labels,
-        values=counts.values,
-        hole=0.5,
-        marker=dict(colors=colors, line=dict(color="white", width=2)),
-        textinfo="percent",
-        textposition="inside",
-        textfont=dict(size=11, color="#FFFFFF"),
-        hovertemplate="%{label}: %{value} mẫu (%{percent})<extra></extra>",
-    )])
+    pivot = df_copy.pivot_table(
+        index="hour", columns="date",
+        values="predicted_anomaly", aggfunc="sum"
+    ).fillna(0).sort_index()
 
-    pie_layout = {k: v for k, v in CHART_LAYOUT.items() if k != "legend"}
+    date_labels = [d.strftime("%d/%m") for d in pivot.columns]
+
+    fig = go.Figure(data=go.Heatmap(
+        z=pivot.values,
+        x=date_labels,
+        y=pivot.index,
+        colorscale=[
+            [0, "#F8F6FF"],
+            [0.25, "#E0D7FA"],
+            [0.5, COLORS["primary"]],
+            [0.75, COLORS["accent"]],
+            [1, COLORS["danger"]],
+        ],
+        colorbar=dict(title="Anomaly", tickfont=dict(size=10)),
+        hovertemplate="Ngày %{x}<br>Giờ %{y}h<br>Số bất thường: %{z}<extra></extra>",
+        xgap=1, ygap=1,
+    ))
+
     fig.update_layout(
-        **pie_layout, height=320,
-        title=dict(text="Phân bổ loại bất thường", font=dict(size=13, color=COLORS["text_primary"]), x=0, xanchor="left"),
-        showlegend=True,
-        legend=dict(orientation="h", yanchor="top", y=-0.05, xanchor="center", x=0.5, font=dict(size=10, color=COLORS["text_secondary"])),
+        **CHART_LAYOUT, height=380,
+        title=dict(text="Phân bố bất thường theo Giờ × Ngày", font=dict(size=14, color=COLORS["text_primary"]), x=0, xanchor="left"),
+        xaxis=dict(title=dict(text="Ngày", font=dict(size=12, color="#1F2937")), tickangle=-45, **AXIS_STYLE),
+        yaxis=dict(title=dict(text="Giờ", font=dict(size=12, color="#1F2937")), dtick=2, autorange="reversed", **AXIS_STYLE),
     )
     return fig
 
@@ -291,18 +295,28 @@ def spacer(px: int = 12):
     st.markdown(f"<div style='height:{px}px;'></div>", unsafe_allow_html=True)
 
 
-def render_metric_card(value: str, label: str, color: str = "#0F172A", delta: str = None, delta_color: str = "#10B981", variant: str = None):
-    delta_html = f'<div class="metric-delta" style="color:{delta_color};">{delta}</div>' if delta else ""
-    variant_class = f" {variant}" if variant else ""
-    val_color = f' style="color:{color} !important;"' if color and not variant else ''
+def render_metric_card(
+    value: str,
+    label: str,
+    variant: str = "metric-card-primary",
+    pill_text: str = None,
+    pill_type: str = "purple",
+    progress_pct: float = None,
+    delta: str = None,
+    delta_color: str = "#10B981"
+):
+    pill_html = f'<span class="metric-pill metric-pill-{pill_type}">{pill_text}</span>' if pill_text else ''
+    delta_html = f'<div class="metric-delta" style="color:{delta_color};">{delta}</div>' if delta else ''
 
-    st.markdown(f"""
-    <div class="metric-card{variant_class}">
-        <div class="metric-value"{val_color}>{value}</div>
-        <div class="metric-label">{label}</div>
-        {delta_html}
-    </div>
-    """, unsafe_allow_html=True)
+    progress_html = ""
+    if progress_pct is not None:
+        pct = max(0.0, min(100.0, float(progress_pct)))
+        bar_color = "#6B4CE6" if pill_type == "purple" else "#EF4444" if pill_type == "red" else "#EF7D32" if pill_type == "orange" else "#10B981"
+        progress_html = f'<div class="metric-progress-container"><div class="metric-progress-bar" style="width: {pct:.1f}%; background-color: {bar_color};"></div></div>'
+
+    card_html = f'<div class="metric-card {variant}"><div class="metric-card-header"><span class="metric-label">{label}</span>{pill_html}</div><div class="metric-value">{value}</div>{delta_html}{progress_html}</div>'
+
+    st.markdown(card_html, unsafe_allow_html=True)
 
 
 def render_alert_bar(anomaly_type: str, timestamp: str, power: float, voltage: float, score: float):
@@ -314,17 +328,13 @@ def render_alert_bar(anomaly_type: str, timestamp: str, power: float, voltage: f
     }
     label = type_labels.get(anomaly_type, "Bất thường")
 
-    st.markdown(f"""
-    <div class="anomaly-alert-bar">
-        <div class="alert-title">CẢNH BÁO — {label.upper()}</div>
-        <div class="alert-detail">
-            Thời điểm: <b>{timestamp}</b> &nbsp;·&nbsp;
-            Công suất: <b>{power:.3f} kW</b> &nbsp;·&nbsp;
-            Điện áp: <b>{voltage:.1f}V</b> &nbsp;·&nbsp;
-            Score: <b>{score:.4f}</b>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="anomaly-alert-bar">'
+        f'<div class="alert-title">CẢNH BÁO — {label.upper()}</div>'
+        f'<div class="alert-detail">Thời điểm: <b>{timestamp}</b> &nbsp;·&nbsp; Công suất: <b>{power:.3f} kW</b> &nbsp;·&nbsp; Điện áp: <b>{voltage:.1f}V</b> &nbsp;·&nbsp; Score: <b>{score:.4f}</b></div>'
+        f'</div>',
+        unsafe_allow_html=True
+    )
 
 
 # --- Process Management ---
@@ -375,12 +385,13 @@ def render_top_control_bar(df_full=None):
     with t_col1:
         badge_class = "title-badge" if st.session_state.active_mode == "history" else "title-badge-rt"
         badge_text = "HISTORY" if st.session_state.active_mode == "history" else "REAL-TIME"
-        st.markdown(f"""
-        <div class="dashboard-title" style="padding:0; margin:0;">
-            <h1>Smart Meter Anomaly Detection</h1>
-            <span class="{badge_class}">{badge_text}</span>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="dashboard-title" style="padding:0; margin:0;">'
+            f'<h1>Smart Meter Anomaly Detection</h1>'
+            f'<span class="{badge_class}">{badge_text}</span>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
 
     with t_col2:
         if st.button("Phân tích lịch sử", key="btn_history", use_container_width=True, type="primary" if st.session_state.active_mode == "history" else "secondary"):
@@ -534,83 +545,204 @@ def render_history_tab(model, scaler, feature_names):
         df_predict.loc[common_idx, "anomaly_type"] = df_filtered.loc[common_idx, "anomaly_type"]
         df_predict.loc[common_idx, "is_anomaly_gt"] = df_filtered.loc[common_idx, "is_anomaly"]
 
+    # Phân loại bất thường (rule-based) cho tất cả predicted anomalies
+    anomaly_mask = df_predict["predicted_anomaly"]
+    df_predict["classified_type"] = "normal"
+    if anomaly_mask.any():
+        df_predict.loc[anomaly_mask, "classified_type"] = classify_batch(df_predict.loc[anomaly_mask])
+
+    # Tính baseline stats từ dữ liệu bình thường để giải thích anomaly
+    feat_cols = [c for c in feature_names if c in df_predict.columns]
+    normal_data = df_predict[~anomaly_mask]
+    medians, iqrs = compute_feature_stats(normal_data, feat_cols) if len(normal_data) > 0 else ({}, {})
+
+    # Tính explanation cho anomalies
+    df_predict["explanation"] = "—"
+    if anomaly_mask.any() and medians:
+        df_predict.loc[anomaly_mask, "explanation"] = explain_batch(
+            df_predict.loc[anomaly_mask], feat_cols, medians, iqrs
+        )
+
     total = len(df_predict)
-    n_pred_anomaly = df_predict["predicted_anomaly"].sum()
+    n_pred_anomaly = anomaly_mask.sum()
     n_gt_anomaly = int(df_predict.get("is_anomaly_gt", pd.Series(dtype=int)).sum())
     avg_power = df_predict["Global_active_power"].mean()
     anomaly_rate = (n_pred_anomaly / total * 100) if total > 0 else 0
 
-    c1, c2, c3, c4, c5 = st.columns(5)
-    with c1:
-        render_metric_card(f"{total:,}", "Tổng mẫu", variant="metric-card-primary")
-    with c2:
-        render_metric_card(f"{n_pred_anomaly:,}", "Model phát hiện", variant="metric-card-red")
-    with c3:
-        render_metric_card(f"{n_gt_anomaly}", "Nhãn thật (GT)", variant="metric-card-accent")
-    with c4:
-        render_metric_card(f"{avg_power:.2f} kW", "Công suất TB", variant="metric-card-primary")
-    with c5:
-        render_metric_card(f"{anomaly_rate:.1f}%", "Tỷ lệ bất thường", variant="metric-card-green")
+    # --- 2-COLUMN DASHBOARD LAYOUT ---
+    col_left, col_right = st.columns([1.85, 1.15])
 
-    spacer(12)
-
-    date_range_str = f"({start_date.strftime('%d/%m/%Y')} → {end_date.strftime('%d/%m/%Y')})"
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.plotly_chart(build_main_power_chart(df_predict, title_suffix=date_range_str), width="stretch", key="hist_power")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    anomaly_rows = df_predict[df_predict["predicted_anomaly"]].copy()
-    n_anomaly_display = len(anomaly_rows)
-
-    st.markdown(f"""
-    <div class="anomaly-table-header">
-        <h4>Chi tiết các điểm bất thường</h4>
-        <span class="table-count">{n_anomaly_display} điểm</span>
-    </div>
-    """, unsafe_allow_html=True)
-
-    if not anomaly_rows.empty:
-        display_cols = {
-            "Global_active_power": "Công suất (kW)",
-            "Voltage": "Điện áp (V)",
-            "Global_intensity": "Dòng điện (A)",
-            "anomaly_score": "Score",
-        }
-        if "anomaly_type" in anomaly_rows.columns:
-            display_cols["anomaly_type"] = "Loại (GT)"
-
-        existing_cols = {k: v for k, v in display_cols.items() if k in anomaly_rows.columns}
-        table_df = anomaly_rows[list(existing_cols.keys())].copy()
-        table_df = table_df.rename(columns=existing_cols)
-        table_df.index = table_df.index.strftime("%d/%m/%Y %H:%M")
-        table_df.index.name = "Thời gian"
-
-        for col in ["Công suất (kW)", "Điện áp (V)", "Dòng điện (A)"]:
-            if col in table_df.columns:
-                table_df[col] = table_df[col].round(3)
-        if "Score" in table_df.columns:
-            table_df["Score"] = table_df["Score"].round(4)
-
-        st.dataframe(table_df.head(100), width="stretch", height=450)
-    else:
-        st.success("Không phát hiện bất thường trong khoảng thời gian này.")
-
-    spacer(12)
-
-    col_left, col_right = st.columns(2)
     with col_left:
+        # 1. Main Power Chart
+        date_range_str = f"({start_date.strftime('%d/%m/%Y')} → {end_date.strftime('%d/%m/%Y')})"
+        st.markdown('<div class="section-card">', unsafe_allow_html=True)
+        st.plotly_chart(build_main_power_chart(df_predict, title_suffix=date_range_str), width="stretch", key="hist_power")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # 2. Voltage Chart
         st.markdown('<div class="section-card">', unsafe_allow_html=True)
         st.plotly_chart(build_voltage_chart(df_predict), width="stretch", key="hist_voltage")
         st.markdown('</div>', unsafe_allow_html=True)
+
+        # 3. Anomaly Table + Smart Filter Bar
+        anomaly_rows = df_predict[df_predict["predicted_anomaly"]].copy()
+        n_anomaly_display = len(anomaly_rows)
+
+        st.markdown(f"""
+        <div class="anomaly-table-header">
+            <h4>Chi tiết các điểm bất thường</h4>
+            <span class="table-count">{n_anomaly_display} điểm</span>
+        </div>
+        """, unsafe_allow_html=True)
+
+        if not anomaly_rows.empty:
+            filter_option = st.radio(
+                "Lọc theo loại bất thường:",
+                ["Tất cả", "⚡ Đột biến công suất", "📉 Sụt áp điện", "🌙 Đột biến đêm", "❓ Chưa xác định"],
+                horizontal=True,
+                key="hist_anomaly_filter"
+            )
+
+            filter_map = {
+                "⚡ Đột biến công suất": "power_surge",
+                "📉 Sụt áp điện": "voltage_drop",
+                "🌙 Đột biến đêm": "night_spike",
+                "❓ Chưa xác định": "unknown",
+            }
+            if filter_option in filter_map:
+                target_type = filter_map[filter_option]
+                anomaly_rows = anomaly_rows[anomaly_rows["classified_type"] == target_type]
+
+            display_cols = {
+                "Global_active_power": "Công suất (kW)",
+                "Voltage": "Điện áp (V)",
+                "anomaly_score": "Score",
+                "classified_type": "Loại (AI)",
+                "explanation": "Nguyên nhân chính",
+            }
+            if "anomaly_type" in anomaly_rows.columns:
+                display_cols["anomaly_type"] = "Loại (GT)"
+
+            existing_cols = {k: v for k, v in display_cols.items() if k in anomaly_rows.columns}
+            table_df = anomaly_rows[list(existing_cols.keys())].copy()
+
+            if "classified_type" in table_df.columns:
+                table_df["classified_type"] = table_df["classified_type"].map(
+                    lambda x: TYPE_LABELS.get(x, x)
+                )
+
+            table_df = table_df.rename(columns=existing_cols)
+            table_df.index = table_df.index.strftime("%d/%m/%Y %H:%M")
+            table_df.index.name = "Thời gian"
+
+            for col in ["Công suất (kW)", "Điện áp (V)"]:
+                if col in table_df.columns:
+                    table_df[col] = table_df[col].round(3)
+            if "Score" in table_df.columns:
+                table_df["Score"] = table_df["Score"].round(4)
+
+            st.dataframe(table_df.head(100), width="stretch", height=420)
+
+            csv_data = table_df.to_csv(encoding="utf-8-sig")
+            st.download_button(
+                label="📥 Xuất báo cáo CSV",
+                data=csv_data,
+                file_name=f"anomaly_report_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.csv",
+                mime="text/csv",
+                key="btn_export_csv",
+            )
+        else:
+            st.success("Không phát hiện bất thường trong khoảng thời gian này.")
+
     with col_right:
+        # KPI Grid 2x2
+        k1, k2 = st.columns(2)
+        with k1:
+            render_metric_card(
+                f"{total:,}", "Tổng mẫu",
+                variant="metric-card-primary",
+                pill_text="DỮ LIỆU", pill_type="purple",
+                progress_pct=100.0
+            )
+        with k2:
+            render_metric_card(
+                f"{n_pred_anomaly:,}", "Model phát hiện",
+                variant="metric-card-red",
+                pill_text="ANOMALY", pill_type="red",
+                progress_pct=min(100.0, anomaly_rate * 5)
+            )
+
+        k3, k4 = st.columns(2)
+        with k3:
+            render_metric_card(
+                f"{avg_power:.2f} kW", "Công suất TB",
+                variant="metric-card-primary",
+                pill_text="TRUNG BÌNH", pill_type="purple",
+                progress_pct=min(100.0, (avg_power / 5.0) * 100)
+            )
+        with k4:
+            render_metric_card(
+                f"{anomaly_rate:.1f}%", "Tỷ lệ anomaly",
+                variant="metric-card-green",
+                pill_text="TỶ LỆ %", pill_type="green",
+                progress_pct=min(100.0, anomaly_rate * 5)
+            )
+
+        spacer(6)
+
+        # Anomaly Timeline Heatmap
+        st.markdown('<div class="section-card">', unsafe_allow_html=True)
+        st.plotly_chart(build_anomaly_timeline_heatmap(df_predict), width="stretch", key="hist_heatmap")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # Hourly Heatmap / Chart
         st.markdown('<div class="section-card">', unsafe_allow_html=True)
         st.plotly_chart(build_hourly_heatmap(df_predict), width="stretch", key="hist_hourly")
         st.markdown('</div>', unsafe_allow_html=True)
 
-    if "anomaly_type" in df_predict.columns:
-        st.markdown('<div class="section-card">', unsafe_allow_html=True)
-        st.plotly_chart(build_anomaly_pie(df_predict), width="stretch", key="hist_pie")
-        st.markdown('</div>', unsafe_allow_html=True)
+        # Model Performance Summary
+        _render_performance_summary()
+
+
+def _render_performance_summary():
+    """Hiển thị tóm tắt hiệu năng mô hình từ reports/."""
+    metrics_path = os.path.join(PROJECT_DIR, "reports", "metrics_summary.csv")
+    per_type_path = os.path.join(PROJECT_DIR, "reports", "metrics_per_type.csv")
+
+    if not os.path.exists(metrics_path):
+        return
+
+    st.markdown(
+        f'<div class="anomaly-table-header" style="margin-top:16px;">'
+        f'<h4> Hiệu năng mô hình (Evaluation)</h4>'
+        f'<span class="table-count">Isolation Forest</span>'
+        f'</div>',
+        unsafe_allow_html=True
+    )
+
+    metrics_df = pd.read_csv(metrics_path)
+    metrics_map = dict(zip(metrics_df["Metric"], metrics_df["Value"]))
+
+    def _fmt2(val):
+        try:
+            return f"{float(val):.2f}"
+        except (ValueError, TypeError):
+            return str(val)
+
+    mc1, mc2, mc3, mc4 = st.columns(4)
+    with mc1:
+        render_metric_card(_fmt2(metrics_map.get("Precision", "—")), "Precision", variant="metric-card-primary")
+    with mc2:
+        render_metric_card(_fmt2(metrics_map.get("Recall", "—")), "Recall", variant="metric-card-primary")
+    with mc3:
+        render_metric_card(_fmt2(metrics_map.get("F1-Score", "—")), "F1-Score", variant="metric-card-accent")
+    with mc4:
+        render_metric_card(_fmt2(metrics_map.get("ROC-AUC", "—")), "ROC-AUC", variant="metric-card-green")
+
+    if os.path.exists(per_type_path):
+        spacer(8)
+        per_type_df = pd.read_csv(per_type_path)
+        st.dataframe(per_type_df, width="stretch", hide_index=True, height=180)
 
 
 def render_realtime_tab(model, scaler, feature_names):
@@ -656,15 +788,21 @@ def render_realtime_tab(model, scaler, feature_names):
         if predicted_anomaly:
             st.session_state.rt_anomalies += 1
 
+        # Phân loại bất thường real-time
+        classified = "normal"
+        if predicted_anomaly and features is not None:
+            classified = classify_anomaly_type(features)
+
         point = {
             "timestamp": msg["timestamp"],
             "power": float(msg["Global_active_power"]),
             "voltage": float(msg["Voltage"]),
-            "intensity": float(msg["Global_intensity"]),
+            "intensity": float(msg.get("Global_intensity", 0)),
             "predicted_anomaly": predicted_anomaly,
             "anomaly_score": anomaly_score,
             "ground_truth": msg.get("is_anomaly", 0) == 1,
             "anomaly_type": msg.get("anomaly_type", "normal"),
+            "classified_type": classified,
         }
         st.session_state.rt_display.append(point)
 
@@ -675,50 +813,78 @@ def render_realtime_tab(model, scaler, feature_names):
         if predicted_anomaly:
             st.session_state.rt_last_anomaly = point
 
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        render_metric_card(
-            f"{st.session_state.rt_total:,}", "Tổng nhận",
-            variant="metric-card-primary",
-            delta=f"+{len(new_messages)}" if new_messages else None,
-            delta_color=COLORS["success"]
-        )
-    with c2:
-        render_metric_card(f"{st.session_state.rt_anomalies}", "Anomaly", variant="metric-card-red")
-    with c3:
-        rate = (st.session_state.rt_anomalies / st.session_state.rt_total * 100 if st.session_state.rt_total > 0 else 0)
-        render_metric_card(f"{rate:.1f}%", "Tỷ lệ anomaly", variant="metric-card-accent")
-    with c4:
-        latest_power = st.session_state.rt_display[-1]["power"] if st.session_state.rt_display else 0
-        render_metric_card(f"{latest_power:.3f}", "Công suất (kW)", variant="metric-card-primary")
+    col_left, col_right = st.columns([1.85, 1.15])
 
-    spacer(8)
+    with col_left:
+        if st.session_state.rt_last_anomaly:
+            a = st.session_state.rt_last_anomaly
+            alert_type = a.get("classified_type", a["anomaly_type"])
+            render_alert_bar(alert_type, a["timestamp"], a["power"], a["voltage"], a["anomaly_score"])
 
-    if st.session_state.rt_last_anomaly:
-        a = st.session_state.rt_last_anomaly
-        render_alert_bar(a["anomaly_type"], a["timestamp"], a["power"], a["voltage"], a["anomaly_score"])
+        st.markdown('<div class="section-card">', unsafe_allow_html=True)
+        st.plotly_chart(build_main_power_chart(st.session_state.rt_display, title_suffix="— Thời gian thực"), width="stretch", key="rt_power")
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.plotly_chart(build_main_power_chart(st.session_state.rt_display, title_suffix="— Thời gian thực"), width="stretch", key="rt_power")
-    st.markdown('</div>', unsafe_allow_html=True)
+        anomaly_logs = [d for d in st.session_state.rt_display if d["predicted_anomaly"]]
+        n_logs = len(anomaly_logs)
 
-    anomaly_logs = [d for d in st.session_state.rt_display if d["predicted_anomaly"]]
-    n_logs = len(anomaly_logs)
+        st.markdown(f"""
+        <div class="anomaly-table-header">
+            <h4>Log Anomaly gần nhất</h4>
+            <span class="table-count">{n_logs} điểm</span>
+        </div>
+        """, unsafe_allow_html=True)
 
-    st.markdown(f"""
-    <div class="anomaly-table-header">
-        <h4>Log Anomaly gần nhất</h4>
-        <span class="table-count">{n_logs} điểm</span>
-    </div>
-    """, unsafe_allow_html=True)
+        if anomaly_logs:
+            log_df = pd.DataFrame(anomaly_logs[-30:][::-1])
+            log_cols = ["timestamp", "power", "voltage", "anomaly_score", "classified_type"]
+            log_cols = [c for c in log_cols if c in log_df.columns]
+            log_df = log_df[log_cols]
+            col_rename = {"timestamp": "Thời gian", "power": "Công suất (kW)", "voltage": "Điện áp (V)", "anomaly_score": "Score", "classified_type": "Loại (AI)"}
+            log_df = log_df.rename(columns={k: v for k, v in col_rename.items() if k in log_df.columns})
+            if "Loại (AI)" in log_df.columns:
+                log_df["Loại (AI)"] = log_df["Loại (AI)"].map(lambda x: TYPE_LABELS.get(x, x))
+            st.dataframe(log_df, width="stretch", hide_index=True, height=380)
+        else:
+            st.info("Chưa phát hiện anomaly. Đang giám sát...")
 
-    if anomaly_logs:
-        log_df = pd.DataFrame(anomaly_logs[-30:][::-1])
-        log_df = log_df[["timestamp", "power", "voltage", "anomaly_score", "anomaly_type"]]
-        log_df.columns = ["Thời gian", "Công suất (kW)", "Điện áp (V)", "Score", "Loại"]
-        st.dataframe(log_df, width="stretch", hide_index=True, height=400)
-    else:
-        st.info("Chưa phát hiện anomaly. Đang giám sát...")
+    with col_right:
+        rc1, rc2 = st.columns(2)
+        with rc1:
+            render_metric_card(
+                f"{st.session_state.rt_total:,}", "Tổng nhận",
+                variant="metric-card-primary",
+                pill_text="REALTIME", pill_type="purple",
+                delta=f"+{len(new_messages)}" if new_messages else None,
+                delta_color=COLORS["success"]
+            )
+        with rc2:
+            render_metric_card(
+                f"{st.session_state.rt_anomalies}", "Anomaly",
+                variant="metric-card-red",
+                pill_text="BẤT THƯỜNG", pill_type="red"
+            )
+
+        rc3, rc4 = st.columns(2)
+        with rc3:
+            rate = (st.session_state.rt_anomalies / st.session_state.rt_total * 100 if st.session_state.rt_total > 0 else 0)
+            render_metric_card(
+                f"{rate:.1f}%", "Tỷ lệ anomaly",
+                variant="metric-card-accent",
+                pill_text="TỶ LỆ %", pill_type="orange",
+                progress_pct=min(100.0, rate * 5)
+            )
+        with rc4:
+            latest_power = st.session_state.rt_display[-1]["power"] if st.session_state.rt_display else 0
+            render_metric_card(
+                f"{latest_power:.3f} kW", "Công suất",
+                variant="metric-card-primary",
+                pill_text="HIỆN TẠI", pill_type="purple",
+                progress_pct=min(100.0, (latest_power / 5.0) * 100)
+            )
+
+        spacer(6)
+        _render_performance_summary()
 
     if producer_is_running:
         time.sleep(refresh_rate)

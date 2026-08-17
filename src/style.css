@@ -2,36 +2,43 @@
 ============================================================
 style.css — Smart Meter Anomaly Detection Dashboard Styles
 ============================================================
-Theme: Light — Purple (#6B4CE6) & Orange (#EF7D32) Brand
-Background: #FAFAFA | Surface: #FFFFFF | Text: #1F2937
+Theme: Light Glassmorphism — Purple (#6B4CE6) & Orange (#EF7D32) Brand
+Background: #FAFAFA | Surface: rgba(255, 255, 255, 0.85)
 Typography: Inter (Google Fonts)
 ============================================================
 */
 
 /* ───── IMPORT GOOGLE FONT ───── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 /* ───── CSS CUSTOM PROPERTIES ───── */
 :root {
-    --bg: #FAFAFA;
-    --surface: #FFFFFF;
-    --text: #1F2937;
-    --text-secondary: #6B7280;
-    --text-muted: #9CA3AF;
-    --border: #E5E7EB;
+    --bg: #F8FAFC;
+    --surface: rgba(255, 255, 255, 0.90);
+    --surface-glass: rgba(255, 255, 255, 0.85);
+    --text: #0F172A;
+    --text-secondary: #475569;
+    --text-muted: #94A3B8;
+    --border: #E2E8F0;
+    --border-light: rgba(226, 232, 240, 0.7);
     --primary: #6B4CE6;
     --primary-dark: #5338B5;
     --primary-light: #F3F0FF;
     --accent: #EF7D32;
     --accent-light: #FFF4EB;
     --danger: #EF4444;
+    --danger-light: #FEF2F2;
     --success: #10B981;
+    --success-light: #ECFDF5;
     --warning: #F59E0B;
+    --warning-light: #FFFBEB;
+    --radius-sm: 6px;
     --radius: 10px;
-    --radius-lg: 14px;
-    --shadow-sm: 0 1px 3px rgba(31,41,55,0.04);
-    --shadow-md: 0 2px 8px rgba(31,41,55,0.06);
-    --transition: 180ms ease;
+    --radius-lg: 16px;
+    --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.03);
+    --shadow-md: 0 10px 25px -5px rgba(107, 76, 230, 0.07), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+    --shadow-lg: 0 20px 30px -10px rgba(107, 76, 230, 0.12);
+    --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ───── GLOBAL TYPOGRAPHY & BODY ───── */
@@ -62,92 +69,72 @@ Typography: Inter (Google Fonts)
 .stApp .stMarkdown h4 {
     color: var(--text) !important;
     font-weight: 700 !important;
-    letter-spacing: -0.3px !important;
-}
-.stApp .stTabs [data-baseweb="tab"] {
-    color: var(--text-secondary) !important;
-    font-weight: 600 !important;
-}
-.stApp .stTabs [aria-selected="true"] {
-    color: var(--primary) !important;
-    font-weight: 700 !important;
-    border-bottom-color: var(--primary) !important;
+    letter-spacing: -0.4px !important;
 }
 
-/* ───── BUTTONS — FLAT STATIC STYLING ───── */
+/* ───── BUTTONS STYLING ───── */
 div.stButton > button {
     width: 100% !important;
-    min-height: 42px !important;
+    min-height: 40px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    border-radius: 8px !important;
+    border-radius: var(--radius) !important;
     font-weight: 600 !important;
-    font-size: 0.88em !important;
+    font-size: 0.86em !important;
     padding: 8px 16px !important;
-    transition: background var(--transition), border-color var(--transition) !important;
+    transition: all var(--transition) !important;
     transform: none !important;
-    box-shadow: none !important;
+    box-shadow: var(--shadow-sm) !important;
     outline: none !important;
     -webkit-tap-highlight-color: transparent !important;
 }
-div.stButton > button:focus,
-div.stButton > button:focus-visible,
-div.stButton > button:active {
-    outline: none !important;
-    box-shadow: none !important;
-    transform: none !important;
-}
-div.stButton > button *,
-div.stButton > button p,
-div.stButton > button span,
-div.stButton > button div {
-    color: inherit !important;
-    background: transparent !important;
+div.stButton > button:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: var(--shadow-md) !important;
 }
 
-/* Primary Button — Tím nền */
-div.stButton > button[kind="primary"]:not(:disabled),
-div.stButton > button[kind="primary"]:not(:disabled):hover {
-    background: var(--primary) !important;
-    background-color: var(--primary) !important;
+/* Primary Button — Tím thương hiệu */
+div.stButton > button[kind="primary"]:not(:disabled) {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%) !important;
     color: #FFFFFF !important;
-    border: 1.5px solid var(--primary) !important;
-    box-shadow: none !important;
+    border: none !important;
 }
 
-/* Secondary Button — Viền tím nhẹ */
-div.stButton > button[kind="secondary"]:not(:disabled),
-div.stButton > button[kind="secondary"]:not(:disabled):hover {
-    background: var(--surface) !important;
-    background-color: var(--surface) !important;
+/* Secondary Button — Glassmorphism viền nhẹ */
+div.stButton > button[kind="secondary"]:not(:disabled) {
+    background: var(--surface-glass) !important;
     color: var(--text) !important;
-    border: 1.5px solid var(--border) !important;
-    box-shadow: none !important;
+    border: 1px solid var(--border) !important;
+    backdrop-filter: blur(8px) !important;
 }
 
 /* Disabled Button */
 div.stButton > button:disabled,
-div.stButton > button[disabled],
-div.stButton > button:disabled:hover {
-    background: #F3F4F6 !important;
-    background-color: #F3F4F6 !important;
+div.stButton > button[disabled] {
+    background: #F1F5F9 !important;
     color: var(--text-muted) !important;
-    border: 1.5px solid var(--border) !important;
+    border: 1px solid var(--border) !important;
     cursor: not-allowed !important;
-    opacity: 0.7 !important;
+    opacity: 0.6 !important;
+    transform: none !important;
     box-shadow: none !important;
 }
 
-/* ───── STREAMLIT HEADER & SIDEBAR TOGGLE BUTTON (NÚT VUÔNG NAVY GÓC TRÁI) ───── */
-/* ───── TOP CONTROL CARD (Khu vực điều khiển duy nhất ở trên cùng) ───── */
+/* ───── TOP CONTROL CARD ───── */
 .top-control-card {
-    background: var(--surface);
+    background: var(--surface-glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    padding: 16px 20px;
+    padding: 16px 22px;
     margin-bottom: 20px;
     box-shadow: var(--shadow-sm);
+    transition: box-shadow var(--transition);
+}
+.top-control-card:hover {
+    box-shadow: var(--shadow-md);
 }
 
 /* ───── HIDE SIDEBAR & DEFAULT HEADER COMPLETELY ───── */
@@ -163,65 +150,8 @@ header[data-testid="stHeader"] {
 
 [data-testid="stAppViewContainer"] > section:first-child {
     padding-top: 1.2rem !important;
-}
-section[data-testid="stSidebar"] p,
-section[data-testid="stSidebar"] li {
-    color: var(--text-secondary) !important;
-    font-size: 0.86em !important;
-    line-height: 1.6 !important;
-}
-section[data-testid="stSidebar"] label {
-    color: var(--text) !important;
-    font-size: 0.86em !important;
-    font-weight: 600 !important;
-}
-section[data-testid="stSidebar"] hr {
-    border-color: var(--border) !important;
-}
-
-/* SIDEBAR TITLE CARD — Tím gradient */
-.sidebar-title-block,
-section[data-testid="stSidebar"] .sidebar-title-block {
-    background: linear-gradient(135deg, #5338B5 0%, #6B4CE6 50%, #8B6CF6 100%) !important;
-    border-radius: var(--radius-lg) !important;
-    padding: 20px 16px !important;
-    margin: -10px 0 18px 0 !important;
-    text-align: center !important;
-    box-shadow: 0 4px 16px rgba(107, 76, 230, 0.25) !important;
-    border: none !important;
-}
-.sidebar-title-block h3,
-.sidebar-title-block .sidebar-title-text,
-section[data-testid="stSidebar"] .sidebar-title-block h3,
-section[data-testid="stSidebar"] .sidebar-title-block .sidebar-title-text {
-    margin: 0 !important;
-    font-size: 1.05em !important;
-    font-weight: 800 !important;
-    color: #FFFFFF !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.6px !important;
-}
-.sidebar-title-block span,
-.sidebar-title-block .sidebar-subtitle-text,
-section[data-testid="stSidebar"] .sidebar-title-block span,
-section[data-testid="stSidebar"] .sidebar-title-block .sidebar-subtitle-text {
-    font-size: 0.78em !important;
-    color: rgba(255,255,255,0.75) !important;
-    font-weight: 500 !important;
-    margin-top: 4px !important;
-    display: block !important;
-    letter-spacing: 0.2px !important;
-}
-
-/* Sidebar section label */
-.sidebar-section-label {
-    font-size: 0.7em !important;
-    font-weight: 700 !important;
-    color: var(--text-muted) !important;
-    text-transform: uppercase !important;
-    letter-spacing: 1px !important;
-    margin: 16px 0 8px 0 !important;
-    padding: 0 !important;
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
 }
 
 /* ───── DASHBOARD TITLE (Main area — top-left) ───── */
@@ -229,134 +159,122 @@ section[data-testid="stSidebar"] .sidebar-title-block .sidebar-subtitle-text {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 0 0 16px 0;
 }
 .dashboard-title h1 {
-    font-size: 1.15em !important;
-    font-weight: 700 !important;
+    font-size: 1.25em !important;
+    font-weight: 800 !important;
     color: var(--text) !important;
     margin: 0 !important;
-    letter-spacing: -0.3px !important;
+    letter-spacing: -0.4px !important;
 }
 .dashboard-title .title-badge {
     background: var(--primary-light);
     color: var(--primary);
-    border: 1px solid rgba(107,76,230,0.2);
-    padding: 3px 10px;
-    border-radius: 6px;
-    font-size: 0.65em;
+    border: 1px solid rgba(107, 76, 230, 0.25);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.68em;
     font-weight: 700;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
 }
 .dashboard-title .title-badge-rt {
     background: var(--accent-light);
     color: var(--accent);
-    border: 1px solid rgba(239,125,50,0.2);
-    padding: 3px 10px;
-    border-radius: 6px;
-    font-size: 0.65em;
+    border: 1px solid rgba(239, 125, 50, 0.25);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.68em;
     font-weight: 700;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
 }
 
-/* ───── METRIC CARD ───── */
+/* ───── ENHANCED METRIC CARD ───── */
 .metric-card {
-    background: var(--surface);
+    background: var(--surface-glass);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    padding: 18px 14px;
-    text-align: center;
+    padding: 16px 18px;
     box-shadow: var(--shadow-sm);
-    transition: box-shadow var(--transition);
+    transition: transform var(--transition), box-shadow var(--transition);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 12px;
 }
 .metric-card:hover {
+    transform: translateY(-2px);
     box-shadow: var(--shadow-md);
 }
-.metric-value {
-    font-size: 1.7em;
-    font-weight: 700;
-    line-height: 1.2;
-    margin-bottom: 4px;
-    letter-spacing: -0.5px;
-    color: var(--text);
+
+.metric-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
 }
+
 .metric-label {
-    font-size: 0.72em;
+    font-size: 0.75em;
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-weight: 600;
-}
-.metric-delta {
-    font-size: 0.72em;
-    margin-top: 4px;
-    font-weight: 600;
+    letter-spacing: 0.6px;
+    font-weight: 700;
 }
 
-/* ───── METRIC CARD VARIANTS ───── */
+.metric-pill {
+    font-size: 0.68em;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+.metric-pill-purple { background: var(--primary-light); color: var(--primary); }
+.metric-pill-red { background: var(--danger-light); color: var(--danger); }
+.metric-pill-orange { background: var(--accent-light); color: var(--accent); }
+.metric-pill-green { background: var(--success-light); color: var(--success); }
 
-/* Accent — Cam viền trái nổi bật (KPI chính) */
-.metric-card-accent {
-    border-left: 3px solid var(--accent) !important;
-}
-.metric-card-accent .metric-value {
-    color: var(--accent) !important;
-}
-
-/* Primary — Tím viền trái */
-.metric-card-primary {
-    border-left: 3px solid var(--primary) !important;
-}
-.metric-card-primary .metric-value {
-    color: var(--primary) !important;
-}
-
-/* Danger — Đỏ nền nhạt (anomaly count) */
-.metric-card-red {
-    background: var(--surface) !important;
-    border-left: 3px solid var(--danger) !important;
-    border-color: var(--border) !important;
-    border-left-color: var(--danger) !important;
-}
-.metric-card-red .metric-value {
-    color: var(--danger) !important;
-}
-.metric-card-red .metric-label {
-    color: var(--text-secondary) !important;
+.metric-value {
+    font-size: 1.65em;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 6px;
+    letter-spacing: -0.6px;
+    color: var(--text);
 }
 
-/* Success — Xanh viền trái (tỷ lệ) */
-.metric-card-green {
-    background: var(--surface) !important;
-    border-left: 3px solid var(--success) !important;
-    border-color: var(--border) !important;
-    border-left-color: var(--success) !important;
+.metric-progress-container {
+    width: 100%;
+    height: 4px;
+    background: #E2E8F0;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 8px;
 }
-.metric-card-green .metric-value {
-    color: var(--success) !important;
-}
-.metric-card-green .metric-label {
-    color: var(--text-secondary) !important;
-}
-
-/* Blue variant → remap to primary (tím) */
-.metric-card-blue {
-    background: var(--surface) !important;
-    border-left: 3px solid var(--primary) !important;
-    border-color: var(--border) !important;
-    border-left-color: var(--primary) !important;
-}
-.metric-card-blue .metric-value {
-    color: var(--primary) !important;
-}
-.metric-card-blue .metric-label {
-    color: var(--text-secondary) !important;
+.metric-progress-bar {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 400ms ease;
 }
 
-/* ───── ALERT BAR — Cam accent ───── */
+/* Card Variants Left Borders */
+.metric-card-primary { border-left: 4px solid var(--primary) !important; }
+.metric-card-primary .metric-value { color: var(--primary) !important; }
+
+.metric-card-red { border-left: 4px solid var(--danger) !important; }
+.metric-card-red .metric-value { color: var(--danger) !important; }
+
+.metric-card-accent { border-left: 4px solid var(--accent) !important; }
+.metric-card-accent .metric-value { color: var(--accent) !important; }
+
+.metric-card-green { border-left: 4px solid var(--success) !important; }
+.metric-card-green .metric-value { color: var(--success) !important; }
+
+/* ───── ALERT BAR ───── */
 @keyframes pulse-accent {
     0%, 100% { border-color: var(--accent); box-shadow: 0 0 0 0 rgba(239,125,50,0.1); }
-    50% { border-color: #D46A28; box-shadow: 0 0 10px 2px rgba(239,125,50,0.15); }
+    50% { border-color: #D46A28; box-shadow: 0 0 12px 3px rgba(239,125,50,0.2); }
 }
 .anomaly-alert-bar {
     background: var(--accent-light);
@@ -367,49 +285,46 @@ section[data-testid="stSidebar"] .sidebar-title-block .sidebar-subtitle-text {
     animation: pulse-accent 2.5s ease-in-out infinite;
 }
 .alert-title {
-    font-weight: 700;
+    font-weight: 800;
     color: #92400E;
     font-size: 0.85em;
     margin-bottom: 2px;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.4px;
 }
 .alert-detail {
     color: var(--text);
-    font-size: 0.82em;
+    font-size: 0.83em;
 }
 
 /* ───── SECTION CARD (chart/table container) ───── */
 .section-card {
-    background: var(--surface);
+    background: var(--surface-glass);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    padding: 8px;
+    padding: 12px 16px;
     box-shadow: var(--shadow-sm);
-    margin-bottom: 12px;
-    overflow: visible;
-    position: relative;
-    z-index: 0;
+    margin-bottom: 16px;
+    transition: box-shadow var(--transition);
+}
+.section-card:hover {
+    box-shadow: var(--shadow-md);
 }
 
-/* Fix đè chữ trong expander chứa chart */
-.stExpander .section-card {
-    overflow: hidden;
-}
-.stExpander [data-testid="stExpanderDetails"] {
-    overflow: visible !important;
-}
-
-/* ───── ANOMALY TABLE WRAPPER ───── */
+/* ───── ANOMALY TABLE HEADER & FILTER BAR ───── */
 .anomaly-table-header {
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
     gap: 8px;
-    margin-bottom: 8px;
 }
 .anomaly-table-header h4 {
     margin: 0 !important;
-    font-size: 0.95em !important;
-    font-weight: 700 !important;
+    font-size: 0.98em !important;
+    font-weight: 800 !important;
     color: var(--text) !important;
 }
 .anomaly-table-header .table-count {
@@ -417,8 +332,8 @@ section[data-testid="stSidebar"] .sidebar-title-block .sidebar-subtitle-text {
     color: var(--primary);
     font-size: 0.72em;
     font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 6px;
+    padding: 3px 10px;
+    border-radius: 12px;
 }
 
 /* ───── STATUS DOTS ───── */
@@ -429,118 +344,18 @@ section[data-testid="stSidebar"] .sidebar-title-block .sidebar-subtitle-text {
     display: inline-block;
     margin-right: 5px;
 }
-.status-dot.online { background: var(--success); }
+.status-dot.online { background: var(--success); box-shadow: 0 0 6px var(--success); }
 .status-dot.offline { background: var(--text-muted); }
 
-/* ───── DATE INPUT STYLING (Bình thường, hiển thị đầy đủ ngày/tháng/năm) ───── */
-div[data-testid="stDateInput"] {
-    width: 100% !important;
-}
-div[data-testid="stDateInput"] label,
-div[data-testid="stDateInput"] label p,
-div[data-testid="stDateInput"] label span {
-    color: var(--text) !important;
-    font-weight: 600 !important;
-    font-size: 0.88em !important;
-    margin-bottom: 4px !important;
-}
+/* ───── DATE & INPUT FIELDS STYLING ───── */
 div[data-testid="stDateInput"] div[data-baseweb="input"] {
     background-color: #FFFFFF !important;
-    border: 1px solid #D1D5DB !important;
+    border: 1px solid var(--border) !important;
     border-radius: 8px !important;
-    min-height: 40px !important;
-    padding: 0 10px !important;
-    box-shadow: none !important;
-}
-div[data-testid="stDateInput"] input {
-    color: #1F2937 !important;
-    font-weight: 500 !important;
-    font-size: 0.9em !important;
-    background: transparent !important;
-    cursor: pointer !important;
+    min-height: 38px !important;
 }
 div[data-testid="stDateInput"] svg {
-    fill: #6B4CE6 !important;
-}
-
-/* Popover Lịch - Nền trắng sáng 100% chuẩn native */
-div[data-baseweb="popover"] {
-    z-index: 999999 !important;
-}
-div[data-baseweb="popover"],
-div[data-baseweb="popover"] > div,
-div[data-baseweb="calendar"],
-div[data-baseweb="calendar"] * {
-    background-color: #FFFFFF !important;
-    color: #1F2937 !important;
-}
-div[data-baseweb="calendar"] {
-    border: 1px solid #E5E7EB !important;
-    border-radius: 12px !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
-    padding: 8px !important;
-}
-div[data-baseweb="calendar"] [aria-selected="true"] {
-    background-color: #6B4CE6 !important;
-    color: #FFFFFF !important;
-    border-radius: 50% !important;
-}
-div[data-baseweb="calendar"] [aria-selected="true"] * {
-    background-color: transparent !important;
-    color: #FFFFFF !important;
-}
-div[data-baseweb="calendar"] [aria-disabled="true"],
-div[data-baseweb="calendar"] [aria-disabled="true"] * {
-    color: #9CA3AF !important;
-    opacity: 0.4 !important;
-}
-
-/* ───── INPUT FIELDS ───── */
-.stApp input[type="text"],
-.stApp input[type="number"],
-.stApp div[data-baseweb="input"] {
-    border-radius: 8px !important;
-    border-color: #D1D5DB !important;
-    color: #1F2937 !important;
-    background-color: #FFFFFF !important;
-}
-
-/* ───── NUMBER INPUT STYLING (Ô Cập nhật giây - Mode Real-time) ───── */
-div[data-testid="stNumberInput"] {
-    width: 100% !important;
-}
-div[data-testid="stNumberInput"] label,
-div[data-testid="stNumberInput"] label p,
-div[data-testid="stNumberInput"] label span {
-    color: #1F2937 !important;
-    font-weight: 600 !important;
-    font-size: 0.88em !important;
-    margin-bottom: 4px !important;
-}
-div[data-testid="stNumberInput"] div[data-baseweb="input"] {
-    background-color: #FFFFFF !important;
-    border: none !important;
-    border-radius: 8px !important;
-    min-height: 40px !important;
-    box-shadow: none !important;
-}
-div[data-testid="stNumberInput"] input {
-    color: #1F2937 !important;
-    font-weight: 600 !important;
-    font-size: 0.9em !important;
-    background-color: #FFFFFF !important;
-    border: none !important;
-    outline: none !important;
-    box-shadow: none !important;
-}
-div[data-testid="stNumberInput"] button {
-    background-color: #F3F4F6 !important;
-    color: #1F2937 !important;
-    border: none !important;
-}
-div[data-testid="stNumberInput"] button * {
-    color: #1F2937 !important;
-    fill: #1F2937 !important;
+    fill: var(--primary) !important;
 }
 
 /* ───── DATAFRAME ───── */
@@ -548,14 +363,10 @@ div[data-testid="stNumberInput"] button * {
     border-radius: var(--radius) !important;
     overflow: hidden;
     border: 1px solid var(--border);
+    background: #FFFFFF !important;
 }
 
-/* ───── SLIDER TRACK — Tím ───── */
-.stApp div[data-baseweb="slider"] div[role="slider"] {
-    background: var(--primary) !important;
-}
-
-/* ───── HIDE STREAMLIT DEFAULT UI (giữ header cho sidebar toggle) ───── */
+/* ───── HIDE STREAMLIT DEFAULT UI ───── */
 #MainMenu,
 footer,
 .stDeployButton,
