@@ -128,95 +128,91 @@ def _extract_chart_data(display_data: Union[pd.DataFrame, list[dict]], value_col
     return timestamps, values, is_anomaly
 
 
-def build_main_power_chart(display_data: Union[pd.DataFrame, list[dict]], title_suffix: str = "") -> go.Figure:
-    """Xây dựng biểu đồ đường thể hiện công suất tiêu thụ điện và điểm bất thường."""
+def _build_sensor_chart(
+    display_data: Union[pd.DataFrame, list[dict]],
+    val_key: str,
+    df_col: str,
+    title: str,
+    y_title: str,
+    height: int = 350,
+    line_name: str = "",
+    add_hrect: bool = False
+) -> go.Figure:
+    """Helper chung xây dựng biểu đồ chuỗi thời gian kèm các điểm bất thường."""
     if display_data is None or (isinstance(display_data, pd.DataFrame) and display_data.empty):
         fig = go.Figure()
-        fig.update_layout(**CHART_LAYOUT, height=400, title="Chưa có dữ liệu...")
+        fig.update_layout(**CHART_LAYOUT, height=height, title="Chưa có dữ liệu...")
         return fig
 
-    timestamps, powers, is_anomaly = _extract_chart_data(display_data, "power", "Global_active_power")
-    scores = display_data["anomaly_score"] if isinstance(display_data, pd.DataFrame) else [d["anomaly_score"] for d in display_data]
-
+    timestamps, values, is_anomaly = _extract_chart_data(display_data, val_key, df_col)
     fig = go.Figure()
+
+    if add_hrect:
+        fig.add_hrect(
+            y0=220, y1=250, fillcolor="rgba(16, 185, 129, 0.06)", line_width=0,
+            annotation_text="Vùng an toàn (220–250V)",
+            annotation_position="top left",
+            annotation_font=dict(color=COLORS["success"], size=10),
+        )
+
+    fill_opt = "tozeroy" if val_key == "power" else None
+    fill_color = "rgba(107, 76, 230, 0.06)" if val_key == "power" else None
+    hover_fmt = f"<b>%{{x}}</b><br>{line_name}: %{{y:.3f}}<extra></extra>"
+
     fig.add_trace(go.Scatter(
-        x=timestamps, y=powers, mode="lines",
-        name="Công suất (kW)",
+        x=timestamps, y=values, mode="lines",
+        name=line_name,
         line=dict(color=COLORS["primary"], width=2),
-        fill="tozeroy", fillcolor="rgba(107, 76, 230, 0.06)",
-        hovertemplate="<b>%{x}</b><br>Công suất: %{y:.3f} kW<extra></extra>"
+        fill=fill_opt, fillcolor=fill_color,
+        hovertemplate=hover_fmt
     ))
 
     if isinstance(display_data, pd.DataFrame):
         anom_mask = display_data["predicted_anomaly"]
         anom_ts = display_data.index[anom_mask]
-        anom_pw = display_data.loc[anom_mask, "Global_active_power"]
-        anom_sc = display_data.loc[anom_mask, "anomaly_score"].values
+        anom_vals = display_data.loc[anom_mask, df_col]
+        anom_sc = display_data.loc[anom_mask, "anomaly_score"].values if "anomaly_score" in display_data.columns else None
     else:
         anom_ts = [t for t, a in zip(timestamps, is_anomaly) if a]
-        anom_pw = [p for p, a in zip(powers, is_anomaly) if a]
-        anom_sc = [s for s, a in zip(scores, is_anomaly) if a]
+        anom_vals = [v for v, a in zip(values, is_anomaly) if a]
+        anom_sc = [d["anomaly_score"] for d in display_data if d["predicted_anomaly"]] if display_data and "anomaly_score" in display_data[0] else None
 
     if len(anom_ts) > 0:
+        marker_size = 9 if val_key == "power" else 7
         fig.add_trace(go.Scatter(
-            x=anom_ts, y=anom_pw, mode="markers",
-            name="Bất thường (Anomaly)",
-            marker=dict(color=COLORS["accent"], size=9, symbol="circle", line=dict(width=1.5, color="white")),
+            x=anom_ts, y=anom_vals, mode="markers",
+            name="Bất thường (Anomaly)" if val_key == "power" else "Bất thường",
+            marker=dict(color=COLORS["accent"], size=marker_size, symbol="circle", line=dict(width=1.2, color="white")),
             customdata=anom_sc,
-            hovertemplate="<b>BẤT THƯỜNG</b><br>Thời điểm: %{x}<br>Công suất: %{y:.3f} kW<br>Score: %{customdata:.4f}<extra></extra>",
+            hovertemplate="<b>BẤT THƯỜNG</b><br>Thời điểm: %{x}<br>Công suất: %{y:.3f} kW<br>Score: %{customdata:.4f}<extra></extra>" if val_key == "power" else "<b>BẤT THƯỜNG</b><br>Thời điểm: %{x}<br>Điện áp: %{y:.1f}V<extra></extra>",
         ))
 
     fig.update_layout(
-        **CHART_LAYOUT, height=400,
-        title=dict(text=f"Biểu đồ công suất tiêu thụ điện năng {title_suffix}", font=dict(size=14, color="#0F172A"), x=0, xanchor="left"),
+        **CHART_LAYOUT, height=height,
+        title=dict(text=title, font=dict(size=14 if val_key == "power" else 13, color="#0F172A"), x=0, xanchor="left"),
         xaxis=dict(title=dict(text="Thời gian", font=dict(size=11, color="#0F172A")), showgrid=True, **AXIS_STYLE),
-        yaxis=dict(title=dict(text="Global Active Power (kW)", font=dict(size=11, color="#0F172A")), showgrid=True, zeroline=True, zerolinecolor="#CBD5E1", **AXIS_STYLE),
+        yaxis=dict(title=dict(text=y_title, font=dict(size=11, color="#0F172A")), showgrid=True, zeroline=True, zerolinecolor="#CBD5E1", **AXIS_STYLE),
     )
     return fig
+
+
+def build_main_power_chart(display_data: Union[pd.DataFrame, list[dict]], title_suffix: str = "") -> go.Figure:
+    """Xây dựng biểu đồ đường thể hiện công suất tiêu thụ điện và điểm bất thường."""
+    return _build_sensor_chart(
+        display_data, "power", "Global_active_power",
+        title=f"Biểu đồ công suất tiêu thụ điện năng {title_suffix}",
+        y_title="Global Active Power (kW)", height=400, line_name="Công suất (kW)"
+    )
 
 
 def build_voltage_chart(display_data: Union[pd.DataFrame, list[dict]]) -> go.Figure:
     """Xây dựng biểu đồ giám sát điện áp và vùng an toàn (220-250V)."""
-    if display_data is None or (isinstance(display_data, pd.DataFrame) and display_data.empty):
-        fig = go.Figure()
-        fig.update_layout(**CHART_LAYOUT, height=300)
-        return fig
-
-    timestamps, voltages, is_anomaly = _extract_chart_data(display_data, "voltage", "Voltage")
-
-    fig = go.Figure()
-    fig.add_hrect(
-        y0=220, y1=250, fillcolor="rgba(16, 185, 129, 0.06)", line_width=0,
-        annotation_text="Vùng an toàn (220–250V)",
-        annotation_position="top left",
-        annotation_font=dict(color=COLORS["success"], size=10),
+    return _build_sensor_chart(
+        display_data, "voltage", "Voltage",
+        title="Điện áp (Voltage)", y_title="Voltage (V)",
+        height=300, line_name="Điện áp (V)", add_hrect=True
     )
-    fig.add_trace(go.Scatter(
-        x=timestamps, y=voltages, mode="lines",
-        name="Điện áp (V)", line=dict(color=COLORS["primary"], width=2),
-    ))
 
-    if isinstance(display_data, pd.DataFrame):
-        anom_mask = display_data["predicted_anomaly"]
-        anom_ts = display_data.index[anom_mask]
-        anom_v = display_data.loc[anom_mask, "Voltage"]
-    else:
-        anom_ts = [t for t, a in zip(timestamps, is_anomaly) if a]
-        anom_v = [v for v, a in zip(voltages, is_anomaly) if a]
-
-    if len(anom_ts) > 0:
-        fig.add_trace(go.Scatter(
-            x=anom_ts, y=anom_v, mode="markers", name="Bất thường",
-            marker=dict(color=COLORS["accent"], size=7, symbol="circle", line=dict(width=1.2, color="white")),
-        ))
-
-    fig.update_layout(
-        **CHART_LAYOUT, height=300,
-        title=dict(text="Điện áp (Voltage)", font=dict(size=13, color="#0F172A"), x=0, xanchor="left"),
-        xaxis=dict(title=dict(text="Thời gian", font=dict(size=11, color="#0F172A")), **AXIS_STYLE),
-        yaxis=dict(title=dict(text="Voltage (V)", font=dict(size=11, color="#0F172A")), **AXIS_STYLE),
-    )
-    return fig
 
 
 def build_anomaly_timeline_heatmap(df: pd.DataFrame) -> go.Figure:
@@ -336,13 +332,8 @@ def render_metric_card(
 
 def render_alert_bar(anomaly_type: str, timestamp: str, power: float, voltage: float, score: float) -> None:
     """Hiển thị thanh cảnh báo tức thời khi phát hiện bất thường."""
-    type_labels = {
-        "power_surge": "Đột biến công suất",
-        "voltage_drop": "Sụt áp điện",
-        "night_spike": "Bất thường ban đêm",
-        "normal": "Bất thường phát hiện",
-    }
-    label = type_labels.get(anomaly_type, "Bất thường")
+    label = TYPE_LABELS.get(anomaly_type, "Bất thường")
+
 
     st.markdown(
         f'<div class="anomaly-alert-bar">'

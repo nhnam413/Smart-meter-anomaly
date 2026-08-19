@@ -14,7 +14,7 @@ NIGHT_SPIKE_ZSCORE = 1.0         # power_zscore_6h (1h - 5h)
 # ── Nhãn hiển thị ─────────────────────────────────────────────────
 TYPE_LABELS = {
     "power_surge": "Đột biến công suất",
-    "voltage_drop": "Sụt áp điện",
+    "voltage_drop": "Sụt điện áp",
     "night_spike": "Đột biến đêm",
     "unknown": "Chưa xác định",
     "normal": "Bình thường",
@@ -29,9 +29,9 @@ FEATURE_LABELS = {
     "voltage_diff_1h": "Vi phân điện áp",
     "power_hourly_diff": "Lệch TB giờ",
     "is_night": "Giờ đêm",
-    "power_lag_1h": "CS trước 1h",
-    "power_lag_24h": "CS hôm qua",
-    "voltage_lag_1h": "ĐA trước 1h",
+    "power_lag_1h": "Công suất trước 1h",
+    "power_lag_24h": "Công suất hôm qua",
+    "voltage_lag_1h": "Điện áp trước 1h",
     "hour_sin": "Chu kỳ giờ (sin)",
     "hour_cos": "Chu kỳ giờ (cos)",
 }

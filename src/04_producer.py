@@ -10,14 +10,9 @@ import argparse
 from datetime import datetime
 import pandas as pd
 
-if sys.platform == "win32":
-    try:
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-    except Exception:
-        pass
+from config import DEMO_DIR, STREAM_FILE, SEND_INTERVAL, setup_encoding
 
-from config import DEMO_DIR, STREAM_FILE, SEND_INTERVAL
+setup_encoding()
 
 
 def load_demo_with_anomalies() -> pd.DataFrame:
@@ -32,19 +27,16 @@ def load_demo_with_anomalies() -> pd.DataFrame:
 
 def row_to_json(row: pd.Series, timestamp: str) -> dict:
     """Chuyển đổi một dòng dữ liệu thành cấu trúc JSON message."""
-    return {
-        "timestamp": timestamp,
-        "Global_active_power": round(float(row["Global_active_power"]), 4),
-        "Global_reactive_power": round(float(row["Global_reactive_power"]), 4),
-        "Voltage": round(float(row["Voltage"]), 4),
-        "Global_intensity": round(float(row["Global_intensity"]), 4),
-        "Sub_metering_1": round(float(row["Sub_metering_1"]), 4),
-        "Sub_metering_2": round(float(row["Sub_metering_2"]), 4),
-        "Sub_metering_3": round(float(row["Sub_metering_3"]), 4),
-        "is_anomaly": int(row["is_anomaly"]),
-        "anomaly_type": str(row["anomaly_type"]),
-        "sent_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    }
+    msg = {"timestamp": timestamp}
+    for col, val in row.items():
+        if col in ("is_anomaly", "anomaly_type"):
+            continue
+        msg[col] = round(float(val), 4)
+    msg["is_anomaly"] = int(row["is_anomaly"])
+    msg["anomaly_type"] = str(row["anomaly_type"])
+    msg["sent_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return msg
+
 
 
 def run_file_producer(df: pd.DataFrame, interval: float = SEND_INTERVAL, append: bool = False) -> None:

@@ -6,17 +6,13 @@ import os
 import sys
 import pandas as pd
 
-if sys.platform == "win32":
-    try:
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-    except Exception:
-        pass
-
 from config import (
     RAW_DATA_PATH, PROCESSED_DIR, DEMO_DIR, TARGET_COL,
-    CONTAMINATION_FILE,
+    CONTAMINATION_FILE, setup_encoding,
 )
+
+setup_encoding()
+
 
 
 def load_raw_data(file_path: str) -> pd.DataFrame:

@@ -7,22 +7,19 @@ import sys
 import joblib
 import pandas as pd
 
-if sys.platform == "win32":
-    try:
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-    except Exception:
-        pass
-
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import RobustScaler
 
 from config import (
     PROCESSED_DIR, MODELS_DIR,
     CONTAMINATION_FILE, CONTAMINATION_TARGET, CONTAMINATION_MIN, CONTAMINATION_MAX,
-    N_ESTIMATORS, MAX_SAMPLES, MAX_FEATURES, RANDOM_STATE,
+    N_ESTIMATORS, MAX_SAMPLES, MAX_FEATURES, RANDOM_STATE, setup_encoding,
 )
+
+setup_encoding()
+
 from features import create_features
+
 
 os.makedirs(MODELS_DIR, exist_ok=True)
 

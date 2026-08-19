@@ -70,59 +70,11 @@ def create_features_realtime(buffer_df: pd.DataFrame) -> Optional[pd.Series]:
     """Tạo đặc trưng cho điểm dữ liệu mới nhất trong luồng Real-Time."""
     if len(buffer_df) < 25:
         return None
+    feat_df = create_features(buffer_df)
+    if feat_df.empty:
+        return None
+    return feat_df.iloc[-1]
 
-    latest = buffer_df.iloc[-1].copy()
-    hour = buffer_df.index[-1].hour
-
-    # Loại bỏ các cột dư thừa
-    for col in ["Global_intensity", "Sub_metering_1", "Sub_metering_2", "Sub_metering_3"]:
-        if col in latest.index:
-            latest = latest.drop(labels=[col])
-
-    latest["hour_sin"] = np.sin(2 * np.pi * hour / 24)
-    latest["hour_cos"] = np.cos(2 * np.pi * hour / 24)
-
-    latest["power_lag_1h"] = buffer_df[TARGET_COL].iloc[-2]
-    latest["power_diff_1h"] = latest[TARGET_COL] - latest["power_lag_1h"]
-    latest["power_lag_24h"] = buffer_df[TARGET_COL].iloc[-25]
-
-    # Power Deviation tương đối so với cùng giờ hôm qua
-    lag_24h_val = latest["power_lag_24h"]
-    latest["power_deviation_24h"] = (latest[TARGET_COL] - lag_24h_val) / (abs(lag_24h_val) + _EPS)
-
-    # Z-Score cục bộ 6h — Power
-    last_6 = buffer_df[TARGET_COL].iloc[-6:]
-    p_mean = last_6.mean()
-    p_std = last_6.std()
-    if pd.isna(p_std):
-        p_std = 0.0
-    latest["power_zscore_6h"] = (latest[TARGET_COL] - p_mean) / (p_std + _EPS)
-
-    # Voltage features — Z-Score
-    latest["voltage_lag_1h"] = buffer_df["Voltage"].iloc[-2]
-    latest["voltage_diff_1h"] = latest["Voltage"] - latest["voltage_lag_1h"]
-    last_6v = buffer_df["Voltage"].iloc[-6:]
-    v_mean = last_6v.mean()
-    v_std = last_6v.std()
-    if pd.isna(v_std):
-        v_std = 0.0
-    latest["voltage_zscore_6h"] = (latest["Voltage"] - v_mean) / (v_std + _EPS)
-
-    # Reactive Power Ratio
-    if "Global_reactive_power" in latest.index:
-        latest["reactive_ratio"] = np.clip(
-            latest["Global_reactive_power"] / (abs(latest[TARGET_COL]) + _EPS),
-            -10, 10
-        )
-        latest = latest.drop(labels=["Global_reactive_power"])
-
-    # Baseline giờ & Ngữ cảnh ban đêm
-    same_hour_mask = buffer_df.index.hour == hour
-    hourly_avg = buffer_df.loc[same_hour_mask, TARGET_COL].mean()
-    latest["power_hourly_diff"] = latest[TARGET_COL] - hourly_avg
-    latest["is_night"] = 1 if (1 <= hour <= 5) else 0
-
-    return latest
 
 
 ENGINEERED_FEATURE_NAMES = [

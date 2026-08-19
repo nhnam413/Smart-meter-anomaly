@@ -3,6 +3,18 @@ config.py — Cấu hình tập trung cho hệ thống phát hiện bất thư�
 """
 
 import os
+import sys
+
+
+def setup_encoding() -> None:
+    """Thiết lập encoding UTF-8 cho stdout/stderr trên Windows."""
+    if sys.platform == "win32":
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
 
 # --- Đường dẫn hệ thống ---
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
