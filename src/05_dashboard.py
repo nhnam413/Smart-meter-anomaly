@@ -9,19 +9,20 @@ import json
 import time
 import signal
 import subprocess
+from datetime import datetime
+from typing import Optional, Union
+
 import joblib
-import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from datetime import datetime, timedelta
 import streamlit as st
 
 from config import (
     MODELS_DIR, STREAM_FILE, DEMO_CSV, CSS_FILE,
     COLORS, MAX_DISPLAY_POINTS, BUFFER_SIZE, SENSOR_COLUMNS,
-    PROJECT_DIR,
+    PROJECT_DIR, REPORTS_DIR,
 )
-from features import create_features, create_features_realtime, ENGINEERED_FEATURE_NAMES
+from features import create_features, create_features_realtime
 from classify import (
     classify_anomaly_type, classify_batch, explain_batch,
     compute_feature_stats, TYPE_LABELS,
@@ -32,6 +33,7 @@ from classify import (
 
 @st.cache_resource
 def load_model():
+    """Tải mô hình, scaler và danh sách đặc trưng đã lưu."""
     model = joblib.load(os.path.join(MODELS_DIR, "isolation_forest_model.pkl"))
     scaler = joblib.load(os.path.join(MODELS_DIR, "scaler.pkl"))
     feature_names = joblib.load(os.path.join(MODELS_DIR, "feature_names.pkl"))
@@ -40,6 +42,7 @@ def load_model():
 
 @st.cache_data
 def load_full_demo_data() -> pd.DataFrame:
+    """Tải toàn bộ tập dữ liệu demo (có nhãn bất thường)."""
     if not os.path.exists(DEMO_CSV):
         return pd.DataFrame()
     return pd.read_csv(DEMO_CSV, index_col="datetime", parse_dates=True)
@@ -47,7 +50,8 @@ def load_full_demo_data() -> pd.DataFrame:
 
 # --- Inference Helpers ---
 
-def predict_batch(df: pd.DataFrame, model, scaler, feature_names) -> pd.DataFrame:
+def predict_batch(df: pd.DataFrame, model, scaler, feature_names: list[str]) -> pd.DataFrame:
+    """Dự đoán nhãn bất thường cho cả batch dữ liệu."""
     df_feat = create_features(df)
     sensor_and_feat_cols = [c for c in feature_names if c in df_feat.columns]
 
@@ -59,15 +63,17 @@ def predict_batch(df: pd.DataFrame, model, scaler, feature_names) -> pd.DataFram
     return df_feat
 
 
-def predict_single(features, model, scaler, feature_names):
+def predict_single(features: pd.Series, model, scaler, feature_names: list[str]) -> tuple[bool, float]:
+    """Dự đoán cho một điểm dữ liệu thời gian thực."""
     X = features[feature_names].values.reshape(1, -1)
     X_scaled = scaler.transform(X)
     prediction = model.predict(X_scaled)[0]
-    score = model.decision_function(X_scaled)[0]
+    score = float(model.decision_function(X_scaled)[0])
     return prediction == -1, score
 
 
-def read_new_messages(last_position: int) -> tuple:
+def read_new_messages(last_position: int) -> tuple[list[dict], int]:
+    """Đọc các bản tin mới nhất từ stream buffer JSONL."""
     messages = []
     if not os.path.exists(STREAM_FILE):
         return messages, last_position
@@ -89,27 +95,28 @@ def read_new_messages(last_position: int) -> tuple:
 
 CHART_LAYOUT = dict(
     template="plotly_white",
-    font=dict(family="Inter, -apple-system, sans-serif", color="#1F2937"),
-    paper_bgcolor="#FAFAFA",
+    font=dict(family="Inter, -apple-system, sans-serif", color="#0F172A"),
+    paper_bgcolor="#FFFFFF",
     plot_bgcolor="#FFFFFF",
-    margin=dict(l=50, r=20, t=50, b=50),
+    margin=dict(l=45, r=15, t=35, b=35),
     hovermode="x unified",
     legend=dict(
         orientation="h",
         yanchor="bottom", y=1.02,
         xanchor="right", x=1,
-        font=dict(size=11, color="#1F2937")
+        font=dict(size=11, color="#0F172A")
     ),
 )
 
 AXIS_STYLE = dict(
-    gridcolor="#E5E7EB",
-    tickfont=dict(color="#1F2937"),
-    linecolor="#D1D5DB",
+    gridcolor="#E2E8F0",
+    tickfont=dict(color="#0F172A"),
+    linecolor="#CBD5E1",
 )
 
 
-def _extract_chart_data(display_data, value_col, df_col):
+def _extract_chart_data(display_data: Union[pd.DataFrame, list[dict]], value_col: str, df_col: str):
+    """Trích xuất danh sách timestamp, giá trị và cờ bất thường cho biểu đồ."""
     if isinstance(display_data, pd.DataFrame):
         timestamps = display_data.index
         values = display_data[df_col]
@@ -121,10 +128,11 @@ def _extract_chart_data(display_data, value_col, df_col):
     return timestamps, values, is_anomaly
 
 
-def build_main_power_chart(display_data, title_suffix="") -> go.Figure:
+def build_main_power_chart(display_data: Union[pd.DataFrame, list[dict]], title_suffix: str = "") -> go.Figure:
+    """Xây dựng biểu đồ đường thể hiện công suất tiêu thụ điện và điểm bất thường."""
     if display_data is None or (isinstance(display_data, pd.DataFrame) and display_data.empty):
         fig = go.Figure()
-        fig.update_layout(**CHART_LAYOUT, height=420, title="Chưa có dữ liệu...")
+        fig.update_layout(**CHART_LAYOUT, height=400, title="Chưa có dữ liệu...")
         return fig
 
     timestamps, powers, is_anomaly = _extract_chart_data(display_data, "power", "Global_active_power")
@@ -141,7 +149,8 @@ def build_main_power_chart(display_data, title_suffix="") -> go.Figure:
 
     if isinstance(display_data, pd.DataFrame):
         anom_mask = display_data["predicted_anomaly"]
-        anom_ts, anom_pw = display_data.index[anom_mask], display_data.loc[anom_mask, "Global_active_power"]
+        anom_ts = display_data.index[anom_mask]
+        anom_pw = display_data.loc[anom_mask, "Global_active_power"]
         anom_sc = display_data.loc[anom_mask, "anomaly_score"].values
     else:
         anom_ts = [t for t, a in zip(timestamps, is_anomaly) if a]
@@ -152,24 +161,25 @@ def build_main_power_chart(display_data, title_suffix="") -> go.Figure:
         fig.add_trace(go.Scatter(
             x=anom_ts, y=anom_pw, mode="markers",
             name="Bất thường (Anomaly)",
-            marker=dict(color=COLORS["accent"], size=10, symbol="circle", line=dict(width=2, color="white")),
+            marker=dict(color=COLORS["accent"], size=9, symbol="circle", line=dict(width=1.5, color="white")),
             customdata=anom_sc,
             hovertemplate="<b>BẤT THƯỜNG</b><br>Thời điểm: %{x}<br>Công suất: %{y:.3f} kW<br>Score: %{customdata:.4f}<extra></extra>",
         ))
 
     fig.update_layout(
-        **CHART_LAYOUT, height=420,
-        title=dict(text=f"Biểu đồ công suất tiêu thụ điện năng {title_suffix}", font=dict(size=15, color=COLORS["text_primary"]), x=0, xanchor="left"),
-        xaxis=dict(title=dict(text="Thời gian", font=dict(size=12, color="#1F2937")), showgrid=True, **AXIS_STYLE),
-        yaxis=dict(title=dict(text="Global Active Power (kW)", font=dict(size=12, color="#1F2937")), showgrid=True, zeroline=True, zerolinecolor="#D1D5DB", **AXIS_STYLE),
+        **CHART_LAYOUT, height=400,
+        title=dict(text=f"Biểu đồ công suất tiêu thụ điện năng {title_suffix}", font=dict(size=14, color="#0F172A"), x=0, xanchor="left"),
+        xaxis=dict(title=dict(text="Thời gian", font=dict(size=11, color="#0F172A")), showgrid=True, **AXIS_STYLE),
+        yaxis=dict(title=dict(text="Global Active Power (kW)", font=dict(size=11, color="#0F172A")), showgrid=True, zeroline=True, zerolinecolor="#CBD5E1", **AXIS_STYLE),
     )
     return fig
 
 
-def build_voltage_chart(display_data) -> go.Figure:
+def build_voltage_chart(display_data: Union[pd.DataFrame, list[dict]]) -> go.Figure:
+    """Xây dựng biểu đồ giám sát điện áp và vùng an toàn (220-250V)."""
     if display_data is None or (isinstance(display_data, pd.DataFrame) and display_data.empty):
         fig = go.Figure()
-        fig.update_layout(**CHART_LAYOUT, height=320)
+        fig.update_layout(**CHART_LAYOUT, height=300)
         return fig
 
     timestamps, voltages, is_anomaly = _extract_chart_data(display_data, "voltage", "Voltage")
@@ -188,7 +198,8 @@ def build_voltage_chart(display_data) -> go.Figure:
 
     if isinstance(display_data, pd.DataFrame):
         anom_mask = display_data["predicted_anomaly"]
-        anom_ts, anom_v = display_data.index[anom_mask], display_data.loc[anom_mask, "Voltage"]
+        anom_ts = display_data.index[anom_mask]
+        anom_v = display_data.loc[anom_mask, "Voltage"]
     else:
         anom_ts = [t for t, a in zip(timestamps, is_anomaly) if a]
         anom_v = [v for v, a in zip(voltages, is_anomaly) if a]
@@ -196,14 +207,14 @@ def build_voltage_chart(display_data) -> go.Figure:
     if len(anom_ts) > 0:
         fig.add_trace(go.Scatter(
             x=anom_ts, y=anom_v, mode="markers", name="Bất thường",
-            marker=dict(color=COLORS["accent"], size=8, symbol="circle", line=dict(width=1.5, color="white")),
+            marker=dict(color=COLORS["accent"], size=7, symbol="circle", line=dict(width=1.2, color="white")),
         ))
 
     fig.update_layout(
-        **CHART_LAYOUT, height=320,
-        title=dict(text="Điện áp (Voltage)", font=dict(size=14, color=COLORS["text_primary"]), x=0, xanchor="left"),
-        xaxis=dict(title=dict(text="Thời gian", font=dict(size=12, color="#1F2937")), **AXIS_STYLE),
-        yaxis=dict(title=dict(text="Voltage (V)", font=dict(size=12, color="#1F2937")), **AXIS_STYLE),
+        **CHART_LAYOUT, height=300,
+        title=dict(text="Điện áp (Voltage)", font=dict(size=13, color="#0F172A"), x=0, xanchor="left"),
+        xaxis=dict(title=dict(text="Thời gian", font=dict(size=11, color="#0F172A")), **AXIS_STYLE),
+        yaxis=dict(title=dict(text="Voltage (V)", font=dict(size=11, color="#0F172A")), **AXIS_STYLE),
     )
     return fig
 
@@ -212,7 +223,7 @@ def build_anomaly_timeline_heatmap(df: pd.DataFrame) -> go.Figure:
     """Heatmap 2D: trục X = ngày, trục Y = giờ, màu = số anomaly detected."""
     if df.empty or "predicted_anomaly" not in df.columns:
         fig = go.Figure()
-        fig.update_layout(**CHART_LAYOUT, height=350)
+        fig.update_layout(**CHART_LAYOUT, height=340)
         return fig
 
     df_copy = df.copy()
@@ -237,24 +248,25 @@ def build_anomaly_timeline_heatmap(df: pd.DataFrame) -> go.Figure:
             [0.75, COLORS["accent"]],
             [1, COLORS["danger"]],
         ],
-        colorbar=dict(title="Anomaly", tickfont=dict(size=10)),
+        colorbar=dict(title="Anomaly", tickfont=dict(size=10, color="#0F172A")),
         hovertemplate="Ngày %{x}<br>Giờ %{y}h<br>Số bất thường: %{z}<extra></extra>",
         xgap=1, ygap=1,
     ))
 
     fig.update_layout(
-        **CHART_LAYOUT, height=380,
-        title=dict(text="Phân bố bất thường theo Giờ × Ngày", font=dict(size=14, color=COLORS["text_primary"]), x=0, xanchor="left"),
-        xaxis=dict(title=dict(text="Ngày", font=dict(size=12, color="#1F2937")), tickangle=-45, **AXIS_STYLE),
-        yaxis=dict(title=dict(text="Giờ", font=dict(size=12, color="#1F2937")), dtick=2, autorange="reversed", **AXIS_STYLE),
+        **CHART_LAYOUT, height=340,
+        title=dict(text="Phân bố bất thường theo Giờ × Ngày", font=dict(size=13, color="#0F172A"), x=0, xanchor="left"),
+        xaxis=dict(title=dict(text="Ngày", font=dict(size=11, color="#0F172A")), tickangle=-45, **AXIS_STYLE),
+        yaxis=dict(title=dict(text="Giờ", font=dict(size=11, color="#0F172A")), dtick=2, autorange="reversed", **AXIS_STYLE),
     )
     return fig
 
 
 def build_hourly_heatmap(df: pd.DataFrame) -> go.Figure:
+    """Biểu đồ cột thể hiện mức tiêu thụ trung bình theo từng giờ trong ngày."""
     if df.empty:
         fig = go.Figure()
-        fig.update_layout(**CHART_LAYOUT, height=320)
+        fig.update_layout(**CHART_LAYOUT, height=300)
         return fig
 
     df_copy = df.copy()
@@ -274,10 +286,10 @@ def build_hourly_heatmap(df: pd.DataFrame) -> go.Figure:
     )])
 
     fig.update_layout(
-        **CHART_LAYOUT, height=320,
-        title=dict(text="Trung bình công suất theo giờ", font=dict(size=14, color=COLORS["text_primary"]), x=0, xanchor="left"),
-        xaxis=dict(title=dict(text="Giờ", font=dict(size=12, color="#1F2937")), dtick=2, **AXIS_STYLE),
-        yaxis=dict(title=dict(text="Power (kW)", font=dict(size=12, color="#1F2937")), **AXIS_STYLE),
+        **CHART_LAYOUT, height=300,
+        title=dict(text="Trung bình công suất theo giờ", font=dict(size=13, color="#0F172A"), x=0, xanchor="left"),
+        xaxis=dict(title=dict(text="Giờ", font=dict(size=11, color="#0F172A")), dtick=2, **AXIS_STYLE),
+        yaxis=dict(title=dict(text="Power (kW)", font=dict(size=11, color="#0F172A")), **AXIS_STYLE),
         bargap=0.15,
     )
     return fig
@@ -285,13 +297,15 @@ def build_hourly_heatmap(df: pd.DataFrame) -> go.Figure:
 
 # --- UI Utilities & Components ---
 
-def load_css():
+def load_css() -> None:
+    """Nạp file CSS tùy chỉnh."""
     if os.path.exists(CSS_FILE):
         with open(CSS_FILE, "r", encoding="utf-8") as f:
             st.markdown(f"<style>\n{f.read()}\n</style>", unsafe_allow_html=True)
 
 
-def spacer(px: int = 12):
+def spacer(px: int = 8) -> None:
+    """Tạo khoảng đệm chiều dọc."""
     st.markdown(f"<div style='height:{px}px;'></div>", unsafe_allow_html=True)
 
 
@@ -299,14 +313,15 @@ def render_metric_card(
     value: str,
     label: str,
     variant: str = "metric-card-primary",
-    pill_text: str = None,
+    pill_text: Optional[str] = None,
     pill_type: str = "purple",
-    progress_pct: float = None,
-    delta: str = None,
+    progress_pct: Optional[float] = None,
+    delta: Optional[str] = None,
     delta_color: str = "#10B981"
-):
+) -> None:
+    """Hiển thị một thẻ KPI gọn gàng, độ tương phản cao."""
     pill_html = f'<span class="metric-pill metric-pill-{pill_type}">{pill_text}</span>' if pill_text else ''
-    delta_html = f'<div class="metric-delta" style="color:{delta_color};">{delta}</div>' if delta else ''
+    delta_html = f'<div class="metric-delta" style="color:{delta_color}; font-size:0.75em; font-weight:600;">{delta}</div>' if delta else ''
 
     progress_html = ""
     if progress_pct is not None:
@@ -319,7 +334,8 @@ def render_metric_card(
     st.markdown(card_html, unsafe_allow_html=True)
 
 
-def render_alert_bar(anomaly_type: str, timestamp: str, power: float, voltage: float, score: float):
+def render_alert_bar(anomaly_type: str, timestamp: str, power: float, voltage: float, score: float) -> None:
+    """Hiển thị thanh cảnh báo tức thời khi phát hiện bất thường."""
     type_labels = {
         "power_surge": "Đột biến công suất",
         "voltage_drop": "Sụt áp điện",
@@ -339,7 +355,8 @@ def render_alert_bar(anomaly_type: str, timestamp: str, power: float, voltage: f
 
 # --- Process Management ---
 
-def _is_producer_pid_alive(pid) -> bool:
+def _is_producer_pid_alive(pid: Optional[int]) -> bool:
+    """Kiểm tra tiến trình producer có đang chạy hay không."""
     if not pid or pid <= 0:
         return False
     if sys.platform == "win32":
@@ -356,7 +373,8 @@ def _is_producer_pid_alive(pid) -> bool:
             return False
 
 
-def _stop_producer_pid(pid):
+def _stop_producer_pid(pid: Optional[int]) -> None:
+    """Dừng dứt điểm tiến trình producer."""
     if sys.platform == "win32":
         if pid and pid > 0:
             try:
@@ -377,33 +395,21 @@ def _stop_producer_pid(pid):
 
 # --- Top Control Bar ---
 
-def render_top_control_bar(df_full=None):
-    st.markdown('<div class="top-control-card">', unsafe_allow_html=True)
+def render_top_control_bar(df_full: Optional[pd.DataFrame] = None) -> None:
+    """Hiển thị thanh điều hướng chế độ và bộ lọc ngày/tiến trình."""
+    mode_col1, mode_col2 = st.columns(2)
 
-    t_col1, t_col2, t_col3 = st.columns([2.5, 1, 1])
-
-    with t_col1:
-        badge_class = "title-badge" if st.session_state.active_mode == "history" else "title-badge-rt"
-        badge_text = "HISTORY" if st.session_state.active_mode == "history" else "REAL-TIME"
-        st.markdown(
-            f'<div class="dashboard-title" style="padding:0; margin:0;">'
-            f'<h1>Smart Meter Anomaly Detection</h1>'
-            f'<span class="{badge_class}">{badge_text}</span>'
-            f'</div>',
-            unsafe_allow_html=True
-        )
-
-    with t_col2:
+    with mode_col1:
         if st.button("Phân tích lịch sử", key="btn_history", use_container_width=True, type="primary" if st.session_state.active_mode == "history" else "secondary"):
             st.session_state.active_mode = "history"
             st.rerun()
 
-    with t_col3:
+    with mode_col2:
         if st.button("Giám sát thời gian thực", key="btn_realtime", use_container_width=True, type="primary" if st.session_state.active_mode == "realtime" else "secondary"):
             st.session_state.active_mode = "realtime"
             st.rerun()
 
-    spacer(12)
+    spacer(6)
 
     if st.session_state.active_mode == "history":
         if df_full is not None and not df_full.empty:
@@ -415,8 +421,6 @@ def render_top_control_bar(df_full=None):
             if "history_end" not in st.session_state:
                 st.session_state["history_end"] = max_date
 
-            st.markdown('<p style="font-size:0.75em; font-weight:700; color:#6B7280; text-transform:uppercase; margin:0 0 6px 0;">Chọn nhanh mốc thời gian:</p>', unsafe_allow_html=True)
-
             presets = [
                 ("Toàn bộ", "pre_all", min_date, max_date),
                 ("T7/2010", "pre_jul", datetime(2010, 7, 1).date(), datetime(2010, 7, 31).date()),
@@ -426,7 +430,7 @@ def render_top_control_bar(df_full=None):
                 ("T11/2010", "pre_nov", datetime(2010, 11, 1).date(), min(datetime(2010, 11, 30).date(), max_date)),
             ]
 
-            p_cols = st.columns([1, 1, 1, 1, 1, 1, 2])
+            p_cols = st.columns([1, 1, 1, 1, 1, 1, 1.4, 1.4])
             for idx, (label, key_name, s_date, e_date) in enumerate(presets):
                 with p_cols[idx]:
                     if st.button(label, key=key_name, use_container_width=True):
@@ -435,21 +439,9 @@ def render_top_control_bar(df_full=None):
                         st.rerun()
 
             with p_cols[6]:
-                st.markdown(f"""
-                <div style="padding-top:8px; color:#4B5563; font-size:0.82em; font-weight:600; text-align:right;">
-                    Khoảng thời gian: <span style="color:#6B4CE6;">{st.session_state['history_start'].strftime('%d/%m/%Y')}</span> → <span style="color:#6B4CE6;">{st.session_state['history_end'].strftime('%d/%m/%Y')}</span>
-                </div>
-                """, unsafe_allow_html=True)
-
-            spacer(8)
-
-            d_col1, d_col2, d_col3 = st.columns([1.3, 1.3, 2.1])
-            with d_col1:
-                st.date_input("Từ ngày:", min_value=min_date, max_value=max_date, format="DD/MM/YYYY", key="history_start")
-            with d_col2:
-                st.date_input("Đến ngày:", min_value=min_date, max_value=max_date, format="DD/MM/YYYY", key="history_end")
-            with d_col3:
-                st.markdown('<div style="padding-top:28px; color:#6B7280; font-size:0.85em; font-weight:500;">Chọn mốc thời gian xem dữ liệu quá khứ.</div>', unsafe_allow_html=True)
+                st.date_input("Từ ngày", min_value=min_date, max_value=max_date, format="DD/MM/YYYY", key="history_start", label_visibility="collapsed")
+            with p_cols[7]:
+                st.date_input("Đến ngày", min_value=min_date, max_value=max_date, format="DD/MM/YYYY", key="history_end", label_visibility="collapsed")
     else:
         if "producer_pid" not in st.session_state:
             st.session_state.producer_pid = None
@@ -502,22 +494,23 @@ def render_top_control_bar(df_full=None):
 
         with r_col4:
             if producer_is_running:
-                st.markdown(f'<div style="display:flex; align-items:center; gap:6px; padding-top:10px;"><span class="status-dot online"></span><span style="color:#10B981; font-weight:600; font-size:0.85em;">Producer đang chạy (PID: {st.session_state.producer_pid})</span></div>', unsafe_allow_html=True)
+                st.markdown(f'<div style="display:flex; align-items:center; gap:6px; padding-top:6px;"><span class="status-dot online"></span><span style="color:#10B981; font-weight:600; font-size:0.85em;">Producer đang chạy (PID: {st.session_state.producer_pid})</span></div>', unsafe_allow_html=True)
             else:
                 has_data = st.session_state.get("rt_total", 0) > 0
                 sub_text = f"Dừng ({st.session_state.get('rt_total', 0):,} mẫu)" if has_data else "Chưa chạy"
-                st.markdown(f'<div style="display:flex; align-items:center; gap:6px; padding-top:10px;"><span class="status-dot offline"></span><span style="color:#9CA3AF; font-size:0.85em; font-weight:500;">{sub_text}</span></div>', unsafe_allow_html=True)
+                st.markdown(f'<div style="display:flex; align-items:center; gap:6px; padding-top:6px;"><span class="status-dot offline"></span><span style="color:#64748B; font-size:0.85em; font-weight:500;">{sub_text}</span></div>', unsafe_allow_html=True)
 
         with r_col5:
             refresh_rate = st.number_input("Cập nhật (s):", min_value=1, max_value=10, value=st.session_state.get("refresh_rate", 2), step=1, key="num_rf")
             st.session_state.refresh_rate = refresh_rate
 
-    st.markdown('</div>', unsafe_allow_html=True)
+    spacer(8)
 
 
 # --- View Renderers ---
 
-def render_history_tab(model, scaler, feature_names):
+def render_history_tab(model, scaler, feature_names: list[str]) -> None:
+    """Hiển thị tab phân tích dữ liệu lịch sử."""
     df_full = load_full_demo_data()
 
     if df_full.empty:
@@ -545,7 +538,7 @@ def render_history_tab(model, scaler, feature_names):
         df_predict.loc[common_idx, "anomaly_type"] = df_filtered.loc[common_idx, "anomaly_type"]
         df_predict.loc[common_idx, "is_anomaly_gt"] = df_filtered.loc[common_idx, "is_anomaly"]
 
-    # Phân loại bất thường (rule-based) cho tất cả predicted anomalies
+    # Phân loại bất thường (rule-based)
     anomaly_mask = df_predict["predicted_anomaly"]
     df_predict["classified_type"] = "normal"
     if anomaly_mask.any():
@@ -565,9 +558,8 @@ def render_history_tab(model, scaler, feature_names):
 
     total = len(df_predict)
     n_pred_anomaly = anomaly_mask.sum()
-    n_gt_anomaly = int(df_predict.get("is_anomaly_gt", pd.Series(dtype=int)).sum())
-    avg_power = df_predict["Global_active_power"].mean()
-    anomaly_rate = (n_pred_anomaly / total * 100) if total > 0 else 0
+    avg_power = float(df_predict["Global_active_power"].mean())
+    anomaly_rate = (n_pred_anomaly / total * 100) if total > 0 else 0.0
 
     # --- 2-COLUMN DASHBOARD LAYOUT ---
     col_left, col_right = st.columns([1.85, 1.15])
@@ -575,14 +567,10 @@ def render_history_tab(model, scaler, feature_names):
     with col_left:
         # 1. Main Power Chart
         date_range_str = f"({start_date.strftime('%d/%m/%Y')} → {end_date.strftime('%d/%m/%Y')})"
-        st.markdown('<div class="section-card">', unsafe_allow_html=True)
         st.plotly_chart(build_main_power_chart(df_predict, title_suffix=date_range_str), width="stretch", key="hist_power")
-        st.markdown('</div>', unsafe_allow_html=True)
 
         # 2. Voltage Chart
-        st.markdown('<div class="section-card">', unsafe_allow_html=True)
         st.plotly_chart(build_voltage_chart(df_predict), width="stretch", key="hist_voltage")
-        st.markdown('</div>', unsafe_allow_html=True)
 
         # 3. Anomaly Table + Smart Filter Bar
         anomaly_rows = df_predict[df_predict["predicted_anomaly"]].copy()
@@ -641,11 +629,11 @@ def render_history_tab(model, scaler, feature_names):
             if "Score" in table_df.columns:
                 table_df["Score"] = table_df["Score"].round(4)
 
-            st.dataframe(table_df.head(100), width="stretch", height=420)
+            st.dataframe(table_df.head(100), width="stretch", height=400)
 
             csv_data = table_df.to_csv(encoding="utf-8-sig")
             st.download_button(
-                label="📥 Xuất báo cáo CSV",
+                label="Xuất báo cáo CSV",
                 data=csv_data,
                 file_name=f"anomaly_report_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.csv",
                 mime="text/csv",
@@ -688,33 +676,29 @@ def render_history_tab(model, scaler, feature_names):
                 progress_pct=min(100.0, anomaly_rate * 5)
             )
 
-        spacer(6)
+        spacer(4)
 
         # Anomaly Timeline Heatmap
-        st.markdown('<div class="section-card">', unsafe_allow_html=True)
         st.plotly_chart(build_anomaly_timeline_heatmap(df_predict), width="stretch", key="hist_heatmap")
-        st.markdown('</div>', unsafe_allow_html=True)
 
         # Hourly Heatmap / Chart
-        st.markdown('<div class="section-card">', unsafe_allow_html=True)
         st.plotly_chart(build_hourly_heatmap(df_predict), width="stretch", key="hist_hourly")
-        st.markdown('</div>', unsafe_allow_html=True)
 
         # Model Performance Summary
         _render_performance_summary()
 
 
-def _render_performance_summary():
+def _render_performance_summary() -> None:
     """Hiển thị tóm tắt hiệu năng mô hình từ reports/."""
-    metrics_path = os.path.join(PROJECT_DIR, "reports", "metrics_summary.csv")
-    per_type_path = os.path.join(PROJECT_DIR, "reports", "metrics_per_type.csv")
+    metrics_path = os.path.join(REPORTS_DIR, "metrics_summary.csv")
+    per_type_path = os.path.join(REPORTS_DIR, "metrics_per_type.csv")
 
     if not os.path.exists(metrics_path):
         return
 
     st.markdown(
-        f'<div class="anomaly-table-header" style="margin-top:16px;">'
-        f'<h4> Hiệu năng mô hình (Evaluation)</h4>'
+        f'<div class="anomaly-table-header">'
+        f'<h4>Hiệu năng mô hình (Evaluation)</h4>'
         f'<span class="table-count">Isolation Forest</span>'
         f'</div>',
         unsafe_allow_html=True
@@ -740,12 +724,13 @@ def _render_performance_summary():
         render_metric_card(_fmt2(metrics_map.get("ROC-AUC", "—")), "ROC-AUC", variant="metric-card-green")
 
     if os.path.exists(per_type_path):
-        spacer(8)
+        spacer(4)
         per_type_df = pd.read_csv(per_type_path)
         st.dataframe(per_type_df, width="stretch", hide_index=True, height=180)
 
 
-def render_realtime_tab(model, scaler, feature_names):
+def render_realtime_tab(model, scaler, feature_names: list[str]) -> None:
+    """Hiển thị tab giám sát luồng thời gian thực."""
     refresh_rate = st.session_state.get("refresh_rate", 2)
     producer_is_running = _is_producer_pid_alive(st.session_state.get("producer_pid"))
 
@@ -821,9 +806,7 @@ def render_realtime_tab(model, scaler, feature_names):
             alert_type = a.get("classified_type", a["anomaly_type"])
             render_alert_bar(alert_type, a["timestamp"], a["power"], a["voltage"], a["anomaly_score"])
 
-        st.markdown('<div class="section-card">', unsafe_allow_html=True)
         st.plotly_chart(build_main_power_chart(st.session_state.rt_display, title_suffix="— Thời gian thực"), width="stretch", key="rt_power")
-        st.markdown('</div>', unsafe_allow_html=True)
 
         anomaly_logs = [d for d in st.session_state.rt_display if d["predicted_anomaly"]]
         n_logs = len(anomaly_logs)
@@ -844,7 +827,7 @@ def render_realtime_tab(model, scaler, feature_names):
             log_df = log_df.rename(columns={k: v for k, v in col_rename.items() if k in log_df.columns})
             if "Loại (AI)" in log_df.columns:
                 log_df["Loại (AI)"] = log_df["Loại (AI)"].map(lambda x: TYPE_LABELS.get(x, x))
-            st.dataframe(log_df, width="stretch", hide_index=True, height=380)
+            st.dataframe(log_df, width="stretch", hide_index=True, height=360)
         else:
             st.info("Chưa phát hiện anomaly. Đang giám sát...")
 
@@ -883,7 +866,7 @@ def render_realtime_tab(model, scaler, feature_names):
                 progress_pct=min(100.0, (latest_power / 5.0) * 100)
             )
 
-        spacer(6)
+        spacer(4)
         _render_performance_summary()
 
     if producer_is_running:
@@ -894,6 +877,7 @@ def render_realtime_tab(model, scaler, feature_names):
 # --- Main Application Entry ---
 
 def main():
+    """Hàm khởi tạo ứng dụng chính."""
     st.set_page_config(
         page_title="Smart Meter Anomaly Detection",
         page_icon="",
@@ -902,6 +886,8 @@ def main():
     )
 
     load_css()
+
+    st.markdown('<div class="dashboard-main-title">Smart meter anomaly</div>', unsafe_allow_html=True)
 
     if "active_mode" not in st.session_state:
         st.session_state.active_mode = "history"
@@ -924,7 +910,7 @@ def main():
 
 if __name__ == "__main__":
     if not st.runtime.exists():
-        print("Please run this dashboard using Streamlit CLI: streamlit run src/05_dashboard.py")
+        print("Please run this dashboard using Streamlit CLI: python -m streamlit run Smart-meter-anomaly/src/05_dashboard.py")
         sys.exit(0)
     else:
         main()

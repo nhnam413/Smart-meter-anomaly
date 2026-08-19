@@ -7,8 +7,8 @@ import sys
 import json
 import time
 import argparse
-import pandas as pd
 from datetime import datetime
+import pandas as pd
 
 if sys.platform == "win32":
     try:
@@ -47,7 +47,7 @@ def row_to_json(row: pd.Series, timestamp: str) -> dict:
     }
 
 
-def run_file_producer(df: pd.DataFrame, interval: float, append: bool = False) -> None:
+def run_file_producer(df: pd.DataFrame, interval: float = SEND_INTERVAL, append: bool = False) -> None:
     """Ghi tin nhắn dạng luồng vào file JSONL theo từng khoảng thời gian."""
     file_mode = "a" if append else "w"
     print(f"Đang phát luồng dữ liệu ({len(df):,} tin nhắn) tới {STREAM_FILE}:")
@@ -80,18 +80,18 @@ def run_file_producer(df: pd.DataFrame, interval: float, append: bool = False) -
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Producer phát luồng dữ liệu Smart Meter")
-    parser.add_argument("--speed", type=float, default=1.0, help="Tốc độ gửi (giây/tin nhắn)")
+    parser.add_argument("--speed", type=float, default=SEND_INTERVAL, help="Tốc độ gửi (giây/tin nhắn)")
     parser.add_argument("--limit", type=int, default=0, help="Giới hạn số tin nhắn")
     parser.add_argument("--skip", type=int, default=0, help="Bỏ qua N tin nhắn đầu")
     parser.add_argument("--append", action="store_true", help="Ghi tiếp vào file hiện tại")
 
     args = parser.parse_args()
-    df = load_demo_with_anomalies()
+    demo_df = load_demo_with_anomalies()
 
-    if 0 < args.skip < len(df):
-        df = df.iloc[args.skip:]
+    if 0 < args.skip < len(demo_df):
+        demo_df = demo_df.iloc[args.skip:]
 
     if args.limit > 0:
-        df = df.head(args.limit)
+        demo_df = demo_df.head(args.limit)
 
-    run_file_producer(df, interval=args.speed, append=args.append)
+    run_file_producer(demo_df, interval=args.speed, append=args.append)

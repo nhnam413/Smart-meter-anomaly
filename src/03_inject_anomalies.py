@@ -4,8 +4,8 @@
 
 import os
 import sys
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 if sys.platform == "win32":
     try:
@@ -102,12 +102,12 @@ def save_demo_with_anomalies(df: pd.DataFrame) -> None:
 
 
 if __name__ == "__main__":
-    rng = np.random.default_rng(RANDOM_SEED)
+    rng_gen = np.random.default_rng(RANDOM_SEED)
 
-    df = load_demo_data()
+    df_demo = load_demo_data()
     print("2. Tiến hành giả lập các loại bất thường:")
-    df = inject_power_surge(df, rng)
-    df = inject_voltage_drop(df, rng)
-    df = inject_night_spike(df, rng)
-    save_demo_with_anomalies(df)
+    df_demo = inject_power_surge(df_demo, rng_gen)
+    df_demo = inject_voltage_drop(df_demo, rng_gen)
+    df_demo = inject_night_spike(df_demo, rng_gen)
+    save_demo_with_anomalies(df_demo)
     print("Hoàn tất bơm dữ liệu bất thường giả lập.")

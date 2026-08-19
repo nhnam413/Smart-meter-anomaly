@@ -4,9 +4,8 @@
 
 import os
 import sys
-import pandas as pd
-import numpy as np
 import joblib
+import pandas as pd
 
 if sys.platform == "win32":
     try:
@@ -33,7 +32,7 @@ def load_contamination() -> float:
     if not os.path.exists(CONTAMINATION_FILE):
         return CONTAMINATION_TARGET
 
-    with open(CONTAMINATION_FILE, "r") as f:
+    with open(CONTAMINATION_FILE, "r", encoding="utf-8") as f:
         raw = float(f.read().strip())
 
     return max(CONTAMINATION_MIN, min(CONTAMINATION_MAX, raw))
@@ -58,7 +57,7 @@ def run_feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
     return df_featured
 
 
-def train_isolation_forest(df: pd.DataFrame) -> tuple:
+def train_isolation_forest(df: pd.DataFrame) -> tuple[IsolationForest, RobustScaler, list[str]]:
     """Huấn luyện mô hình Isolation Forest với RobustScaler."""
     contamination = load_contamination()
     feature_names = df.columns.tolist()
@@ -79,13 +78,13 @@ def train_isolation_forest(df: pd.DataFrame) -> tuple:
     model.fit(X_scaled)
 
     y_pred = model.predict(X_scaled)
-    n_anomalies = (y_pred == -1).sum()
+    n_anomalies = int((y_pred == -1).sum())
     print(f"3. Huấn luyện IsolationForest thành công: {n_anomalies:,} mẫu bất thường ({n_anomalies/len(y_pred)*100:.1f}%)")
 
     return model, scaler, feature_names
 
 
-def save_artifacts(model, scaler, feature_names: list) -> None:
+def save_artifacts(model: IsolationForest, scaler: RobustScaler, feature_names: list[str]) -> None:
     """Lưu mô hình, bộ chuẩn hóa và danh sách tên đặc trưng."""
     joblib.dump(model, os.path.join(MODELS_DIR, "isolation_forest_model.pkl"))
     joblib.dump(scaler, os.path.join(MODELS_DIR, "scaler.pkl"))
@@ -96,6 +95,6 @@ def save_artifacts(model, scaler, feature_names: list) -> None:
 if __name__ == "__main__":
     df_train = load_train_data()
     df_featured = run_feature_engineering(df_train)
-    model, scaler, features = train_isolation_forest(df_featured)
-    save_artifacts(model, scaler, features)
+    trained_model, fitted_scaler, feat_names = train_isolation_forest(df_featured)
+    save_artifacts(trained_model, fitted_scaler, feat_names)
     print("Hoàn tất quá trình huấn luyện mô hình.")

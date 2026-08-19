@@ -2,6 +2,7 @@
 classify.py — Phân loại bất thường (Rule-based) & Giải thích đặc trưng đóng góp
 """
 
+from typing import Union
 import pandas as pd
 
 # ── Ngưỡng phân loại bất thường ──────────────────────────────────
@@ -36,7 +37,7 @@ FEATURE_LABELS = {
 }
 
 
-def classify_anomaly_type(row) -> str:
+def classify_anomaly_type(row: Union[pd.Series, dict]) -> str:
     """Phân loại loại bất thường dựa trên quy tắc chuyên ngành."""
     voltage_diff = row.get("voltage_diff_1h", 0)
     power_z = row.get("power_zscore_6h", 0)
@@ -60,7 +61,7 @@ def classify_batch(df: pd.DataFrame) -> pd.Series:
     return df.apply(classify_anomaly_type, axis=1)
 
 
-def compute_feature_stats(df: pd.DataFrame, feature_names: list) -> tuple:
+def compute_feature_stats(df: pd.DataFrame, feature_names: list[str]) -> tuple[dict[str, float], dict[str, float]]:
     """Tính median và IQR cho mỗi feature từ dữ liệu bình thường."""
     medians, iqrs = {}, {}
     for feat in feature_names:
@@ -71,7 +72,13 @@ def compute_feature_stats(df: pd.DataFrame, feature_names: list) -> tuple:
     return medians, iqrs
 
 
-def explain_anomaly(row, feature_names: list, medians: dict, iqrs: dict, top_n: int = 3) -> str:
+def explain_anomaly(
+    row: Union[pd.Series, dict],
+    feature_names: list[str],
+    medians: dict[str, float],
+    iqrs: dict[str, float],
+    top_n: int = 3
+) -> str:
     """Trả về chuỗi giải thích Top N đặc trưng đóng góp lớn nhất vào bất thường."""
     contributions = []
 
@@ -95,6 +102,12 @@ def explain_anomaly(row, feature_names: list, medians: dict, iqrs: dict, top_n: 
     return ", ".join(f"{label}={val:+.2f}" for label, val, _ in top) if top else "—"
 
 
-def explain_batch(df: pd.DataFrame, feature_names: list, medians: dict, iqrs: dict, top_n: int = 3) -> pd.Series:
+def explain_batch(
+    df: pd.DataFrame,
+    feature_names: list[str],
+    medians: dict[str, float],
+    iqrs: dict[str, float],
+    top_n: int = 3
+) -> pd.Series:
     """Giải thích hàng loạt cho DataFrame."""
     return df.apply(lambda row: explain_anomaly(row, feature_names, medians, iqrs, top_n), axis=1)

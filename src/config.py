@@ -4,27 +4,27 @@ config.py — Cấu hình tập trung cho hệ thống phát hiện bất thư�
 
 import os
 
-# Đường dẫn hệ thống
+# --- Đường dẫn hệ thống ---
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 RAW_DATA_PATH = os.path.join(PROJECT_DIR, "data", "raw", "household_power_consumption.txt")
 PROCESSED_DIR = os.path.join(PROJECT_DIR, "data", "processed")
 DEMO_DIR = os.path.join(PROJECT_DIR, "data", "demo")
 MODELS_DIR = os.path.join(PROJECT_DIR, "models")
+REPORTS_DIR = os.path.join(PROJECT_DIR, "reports")
 
 CONTAMINATION_FILE = os.path.join(PROCESSED_DIR, "contamination.txt")
 STREAM_FILE = os.path.join(DEMO_DIR, "stream_buffer.jsonl")
 DEMO_CSV = os.path.join(DEMO_DIR, "demo_with_anomalies.csv")
 CSS_FILE = os.path.join(PROJECT_DIR, "src", "style.css")
 
-# Data pipeline
+# --- Phân chia tập dữ liệu (Tỷ lệ) ---
 TRAIN_RATIO = 0.7
 TEST_RATIO = 0.2
 DEMO_RATIO = 0.1
 
-# Hyperparameters Isolation Forest
+# --- Siêu tham số mô hình Isolation Forest ---
 CONTAMINATION_TARGET = 0.08
-CONTAMINATION_DEFAULT = 0.08
 CONTAMINATION_MIN = 0.07
 CONTAMINATION_MAX = 0.12
 N_ESTIMATORS = 200
@@ -32,19 +32,19 @@ MAX_SAMPLES = 512
 MAX_FEATURES = 0.5
 RANDOM_STATE = 42
 
-# Anomaly injection ratios
+# --- Tỷ lệ giả lập các loại bất thường ---
 POWER_SURGE_RATIO = 0.03
 VOLTAGE_DROP_RATIO = 0.03
 NIGHT_SPIKE_RATIO = 0.02
 
-# Producer streaming
+# --- Cấu hình Producer Stream ---
 SEND_INTERVAL = 1.0
 
-# Dashboard settings
+# --- Cấu hình Dashboard ---
 MAX_DISPLAY_POINTS = 100
 BUFFER_SIZE = 30
 
-# Colors palette
+# --- Bảng màu hệ thống (Design Tokens) ---
 COLORS = {
     "primary": "#6B4CE6",
     "primary_dark": "#5338B5",
@@ -57,14 +57,15 @@ COLORS = {
     "success_light": "#ECFDF5",
     "warning": "#F59E0B",
     "warning_light": "#FFFBEB",
-    "text_primary": "#1F2937",
-    "text_secondary": "#6B7280",
-    "text_muted": "#9CA3AF",
-    "border": "#E5E7EB",
-    "background": "#FAFAFA",
+    "text_primary": "#0F172A",
+    "text_secondary": "#334155",
+    "text_muted": "#64748B",
+    "border": "#E2E8F0",
+    "background": "#F8FAFC",
     "surface": "#FFFFFF",
 }
 
+# --- Danh sách cột cảm biến ---
 SENSOR_COLUMNS = [
     "Global_active_power",
     "Global_reactive_power",

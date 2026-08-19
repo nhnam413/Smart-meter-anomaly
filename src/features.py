@@ -1,10 +1,11 @@
 """
 features.py — Module tạo đặc trưng (Feature Engineering)
 
-Phiên bản cải tiến: Z-Score chuẩn hóa, Reactive Power Ratio,
-Deviation tương đối 24h, và sửa lỗi Night Spike binary gating.
+Phiên bản tối ưu: Z-Score chuẩn hóa, Reactive Power Ratio,
+Deviation tương đối 24h, và phân tách ngữ cảnh ban đêm (is_night).
 """
 
+from typing import Optional
 import numpy as np
 import pandas as pd
 from config import TARGET_COL
@@ -18,7 +19,6 @@ def create_features(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
     # Loại bỏ các cột trùng lặp / dư thừa
-    # Giữ lại Global_reactive_power để tính reactive_ratio
     redundant_cols = ["Global_intensity", "Sub_metering_1", "Sub_metering_2", "Sub_metering_3"]
     for col in redundant_cols:
         if col in df.columns:
@@ -35,10 +35,10 @@ def create_features(df: pd.DataFrame) -> pd.DataFrame:
     df["power_diff_1h"] = df[TARGET_COL] - df["power_lag_1h"]
     df["power_lag_24h"] = df[TARGET_COL].shift(24)
 
-    # --- MỚI: Power Deviation tương đối so với cùng giờ hôm qua ---
+    # Power Deviation tương đối so với cùng giờ hôm qua
     df["power_deviation_24h"] = (df[TARGET_COL] - df["power_lag_24h"]) / (df["power_lag_24h"].abs() + _EPS)
 
-    # --- MỚI: Z-Score cục bộ 6h (thay thế rolling mean/std riêng lẻ) ---
+    # Z-Score cục bộ 6h
     power_rmean = df[TARGET_COL].rolling(window=6, min_periods=1).mean()
     power_rstd = df[TARGET_COL].rolling(window=6, min_periods=1).std().fillna(0)
     df["power_zscore_6h"] = (df[TARGET_COL] - power_rmean) / (power_rstd + _EPS)
@@ -50,26 +50,23 @@ def create_features(df: pd.DataFrame) -> pd.DataFrame:
     voltage_rstd = df["Voltage"].rolling(window=6, min_periods=1).std().fillna(0)
     df["voltage_zscore_6h"] = (df["Voltage"] - voltage_rmean) / (voltage_rstd + _EPS)
 
-    # --- MỚI: Reactive Power Ratio ---
+    # Reactive Power Ratio
     if "Global_reactive_power" in df.columns:
         df["reactive_ratio"] = np.clip(
             df["Global_reactive_power"] / (df[TARGET_COL].abs() + _EPS),
             -10, 10
         )
-        # Bỏ cột gốc sau khi đã trích feature
         df.drop(columns=["Global_reactive_power"], inplace=True)
 
-    # Baseline giờ & Ngữ cảnh ban đêm (sửa lỗi binary gating)
+    # Baseline giờ & Ngữ cảnh ban đêm
     hourly_mean = df.groupby(hour)[TARGET_COL].transform("mean")
     df["power_hourly_diff"] = df[TARGET_COL] - hourly_mean
-
-    # --- SỬA: Tách is_night binary thay vì night_power_spike nhân mask ---
     df["is_night"] = ((hour >= 1) & (hour <= 5)).astype(int)
 
     return df.dropna()
 
 
-def create_features_realtime(buffer_df: pd.DataFrame) -> pd.Series | None:
+def create_features_realtime(buffer_df: pd.DataFrame) -> Optional[pd.Series]:
     """Tạo đặc trưng cho điểm dữ liệu mới nhất trong luồng Real-Time."""
     if len(buffer_df) < 25:
         return None
@@ -77,7 +74,7 @@ def create_features_realtime(buffer_df: pd.DataFrame) -> pd.Series | None:
     latest = buffer_df.iloc[-1].copy()
     hour = buffer_df.index[-1].hour
 
-    # Loại bỏ các cột dư thừa (giữ lại Global_reactive_power tạm)
+    # Loại bỏ các cột dư thừa
     for col in ["Global_intensity", "Sub_metering_1", "Sub_metering_2", "Sub_metering_3"]:
         if col in latest.index:
             latest = latest.drop(labels=[col])
@@ -123,7 +120,6 @@ def create_features_realtime(buffer_df: pd.DataFrame) -> pd.Series | None:
     same_hour_mask = buffer_df.index.hour == hour
     hourly_avg = buffer_df.loc[same_hour_mask, TARGET_COL].mean()
     latest["power_hourly_diff"] = latest[TARGET_COL] - hourly_avg
-
     latest["is_night"] = 1 if (1 <= hour <= 5) else 0
 
     return latest

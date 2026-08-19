@@ -1,26 +1,23 @@
 /*
 ============================================================
 style.css — Smart Meter Anomaly Detection Dashboard Styles
-============================================================
-Theme: Light Glassmorphism — Purple (#6B4CE6) & Orange (#EF7D32) Brand
-Background: #FAFAFA | Surface: rgba(255, 255, 255, 0.85)
-Typography: Inter (Google Fonts)
+Fixed Light Theme (Dark Text), Minimalist & High Density
 ============================================================
 */
 
-/* ───── IMPORT GOOGLE FONT ───── */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-/* ───── CSS CUSTOM PROPERTIES ───── */
+/* ───── STRICT LIGHT THEME VARIABLES ───── */
 :root {
+    color-scheme: light !important;
     --bg: #F8FAFC;
-    --surface: rgba(255, 255, 255, 0.90);
-    --surface-glass: rgba(255, 255, 255, 0.85);
+    --surface: #FFFFFF;
+    --surface-subtle: #F1F5F9;
     --text: #0F172A;
-    --text-secondary: #475569;
-    --text-muted: #94A3B8;
+    --text-secondary: #334155;
+    --text-muted: #64748B;
     --border: #E2E8F0;
-    --border-light: rgba(226, 232, 240, 0.7);
+    --border-subtle: #CBD5E1;
     --primary: #6B4CE6;
     --primary-dark: #5338B5;
     --primary-light: #F3F0FF;
@@ -33,111 +30,20 @@ Typography: Inter (Google Fonts)
     --warning: #F59E0B;
     --warning-light: #FFFBEB;
     --radius-sm: 6px;
-    --radius: 10px;
-    --radius-lg: 16px;
-    --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.03);
-    --shadow-md: 0 10px 25px -5px rgba(107, 76, 230, 0.07), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
-    --shadow-lg: 0 20px 30px -10px rgba(107, 76, 230, 0.12);
-    --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    --radius: 8px;
+    --radius-lg: 10px;
+    --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
 }
 
-/* ───── GLOBAL TYPOGRAPHY & BODY ───── */
-.stApp {
-    background-color: var(--bg) !important;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-    color: var(--text) !important;
-}
-.stApp * {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-}
-
-/* ───── TEXT CONTRAST ───── */
-.stApp .stMarkdown p,
-.stApp .stMarkdown li,
-.stApp .stMarkdown span,
-.stApp label,
-.stApp .stRadio label,
-.stApp .stSlider label,
-.stApp .stDateInput label,
-.stApp div[data-baseweb="select"] span {
-    color: var(--text) !important;
-    font-weight: 500 !important;
-}
-.stApp .stMarkdown h1,
-.stApp .stMarkdown h2,
-.stApp .stMarkdown h3,
-.stApp .stMarkdown h4 {
-    color: var(--text) !important;
-    font-weight: 700 !important;
-    letter-spacing: -0.4px !important;
-}
-
-/* ───── BUTTONS STYLING ───── */
-div.stButton > button {
-    width: 100% !important;
-    min-height: 40px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    border-radius: var(--radius) !important;
-    font-weight: 600 !important;
-    font-size: 0.86em !important;
-    padding: 8px 16px !important;
-    transition: all var(--transition) !important;
-    transform: none !important;
-    box-shadow: var(--shadow-sm) !important;
-    outline: none !important;
-    -webkit-tap-highlight-color: transparent !important;
-}
-div.stButton > button:hover {
-    transform: translateY(-1px) !important;
-    box-shadow: var(--shadow-md) !important;
-}
-
-/* Primary Button — Tím thương hiệu */
-div.stButton > button[kind="primary"]:not(:disabled) {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%) !important;
-    color: #FFFFFF !important;
-    border: none !important;
-}
-
-/* Secondary Button — Glassmorphism viền nhẹ */
-div.stButton > button[kind="secondary"]:not(:disabled) {
-    background: var(--surface-glass) !important;
-    color: var(--text) !important;
-    border: 1px solid var(--border) !important;
-    backdrop-filter: blur(8px) !important;
-}
-
-/* Disabled Button */
-div.stButton > button:disabled,
-div.stButton > button[disabled] {
-    background: #F1F5F9 !important;
-    color: var(--text-muted) !important;
-    border: 1px solid var(--border) !important;
-    cursor: not-allowed !important;
-    opacity: 0.6 !important;
-    transform: none !important;
-    box-shadow: none !important;
-}
-
-/* ───── TOP CONTROL CARD ───── */
-.top-control-card {
-    background: var(--surface-glass);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 16px 22px;
-    margin-bottom: 20px;
-    box-shadow: var(--shadow-sm);
-    transition: box-shadow var(--transition);
-}
-.top-control-card:hover {
-    box-shadow: var(--shadow-md);
-}
-
-/* ───── HIDE SIDEBAR & DEFAULT HEADER COMPLETELY ───── */
+/* ───── HIDE STREAMLIT UNNECESSARY SHELL ───── */
+#MainMenu,
+footer,
+.stDeployButton,
+[data-testid="stToolbar"],
+[data-testid="stHeaderActionElements"],
+[data-testid="stToolbarActions"],
+button[data-testid="baseButton-headerNoPadding"],
+div[data-testid="stDecoration"],
 section[data-testid="stSidebar"],
 [data-testid="stSidebarCollapsedControl"],
 [data-testid="stSidebarCollapseButton"],
@@ -148,87 +54,146 @@ header[data-testid="stHeader"] {
     visibility: hidden !important;
 }
 
-[data-testid="stAppViewContainer"] > section:first-child {
-    padding-top: 1.2rem !important;
-    padding-left: 2rem !important;
-    padding-right: 2rem !important;
-}
-
-/* ───── DASHBOARD TITLE (Main area — top-left) ───── */
-.dashboard-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-.dashboard-title h1 {
-    font-size: 1.25em !important;
-    font-weight: 800 !important;
+/* ───── COMPACT VIEWPORT & SPACING OPTIMIZATION ───── */
+[data-testid="stAppViewContainer"] {
+    background-color: var(--bg) !important;
     color: var(--text) !important;
-    margin: 0 !important;
-    letter-spacing: -0.4px !important;
-}
-.dashboard-title .title-badge {
-    background: var(--primary-light);
-    color: var(--primary);
-    border: 1px solid rgba(107, 76, 230, 0.25);
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.68em;
-    font-weight: 700;
-    letter-spacing: 0.6px;
-}
-.dashboard-title .title-badge-rt {
-    background: var(--accent-light);
-    color: var(--accent);
-    border: 1px solid rgba(239, 125, 50, 0.25);
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.68em;
-    font-weight: 700;
-    letter-spacing: 0.6px;
+    color-scheme: light !important;
 }
 
-/* ───── ENHANCED METRIC CARD ───── */
-.metric-card {
-    background: var(--surface-glass);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 16px 18px;
-    box-shadow: var(--shadow-sm);
-    transition: transform var(--transition), box-shadow var(--transition);
-    position: relative;
-    overflow: hidden;
-    margin-bottom: 12px;
+[data-testid="stAppViewContainer"] > section:first-child {
+    padding-top: 0.75rem !important;
+    padding-left: 1.25rem !important;
+    padding-right: 1.25rem !important;
+    padding-bottom: 1.5rem !important;
+    max-width: 100% !important;
 }
-.metric-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+
+.stApp {
+    background-color: var(--bg) !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    color: var(--text) !important;
+}
+
+.stApp * {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+/* Force dark text for all streamlit typography */
+[data-testid="stMarkdownContainer"] p,
+[data-testid="stMarkdownContainer"] span,
+[data-testid="stMarkdownContainer"] div,
+[data-testid="stMarkdownContainer"] h1,
+[data-testid="stMarkdownContainer"] h2,
+[data-testid="stMarkdownContainer"] h3,
+[data-testid="stMarkdownContainer"] h4,
+[data-testid="stMarkdownContainer"] h5,
+[data-testid="stMarkdownContainer"] h6,
+[data-testid="stText"],
+label[data-testid="stWidgetLabel"],
+label[data-testid="stWidgetLabel"] p {
+    color: var(--text) !important;
+    font-weight: 500;
+}
+
+label[data-testid="stWidgetLabel"] {
+    font-size: 0.82em !important;
+    font-weight: 600 !important;
+    margin-bottom: 4px !important;
+}
+
+/* ───── CENTERED TITLE (CLEAN, NO SUBTEXT/ICONS) ───── */
+.dashboard-main-title {
+    text-align: center;
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text);
+    margin: 0 0 14px 0;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+}
+
+/* ───── BUTTONS STYLING ───── */
+div.stButton > button {
+    width: 100% !important;
+    min-height: 36px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: var(--radius) !important;
+    font-weight: 600 !important;
+    font-size: 0.84em !important;
+    padding: 6px 12px !important;
+    box-shadow: var(--shadow-sm) !important;
+    border: 1px solid var(--border) !important;
+    outline: none !important;
+    transition: background-color 150ms ease, border-color 150ms ease !important;
+}
+
+/* Primary Button */
+div.stButton > button[kind="primary"]:not(:disabled) {
+    background: var(--primary) !important;
+    color: #FFFFFF !important;
+    border-color: var(--primary-dark) !important;
+}
+div.stButton > button[kind="primary"]:hover:not(:disabled) {
+    background: var(--primary-dark) !important;
+    border-color: var(--primary-dark) !important;
+}
+
+/* Secondary Button */
+div.stButton > button[kind="secondary"]:not(:disabled) {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+}
+div.stButton > button[kind="secondary"]:hover:not(:disabled) {
+    background: var(--surface-subtle) !important;
+    border-color: var(--border-subtle) !important;
+}
+
+/* Disabled Button */
+div.stButton > button:disabled {
+    background: #F1F5F9 !important;
+    color: var(--text-muted) !important;
+    border-color: var(--border) !important;
+    cursor: not-allowed !important;
+    opacity: 0.7 !important;
+}
+
+/* ───── METRIC CARDS ───── */
+.metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 6px;
+    position: relative;
 }
 
 .metric-card-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 8px;
+    margin-bottom: 2px;
 }
 
 .metric-label {
-    font-size: 0.75em;
+    font-size: 0.72em;
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.5px;
     font-weight: 700;
 }
 
 .metric-pill {
-    font-size: 0.68em;
+    font-size: 0.65em;
     font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 12px;
+    padding: 1px 6px;
+    border-radius: 4px;
     text-transform: uppercase;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.3px;
 }
 .metric-pill-purple { background: var(--primary-light); color: var(--primary); }
 .metric-pill-red { background: var(--danger-light); color: var(--danger); }
@@ -236,104 +201,79 @@ header[data-testid="stHeader"] {
 .metric-pill-green { background: var(--success-light); color: var(--success); }
 
 .metric-value {
-    font-size: 1.65em;
+    font-size: 1.45em;
     font-weight: 800;
-    line-height: 1.2;
-    margin-bottom: 6px;
-    letter-spacing: -0.6px;
+    line-height: 1.15;
+    letter-spacing: -0.4px;
     color: var(--text);
 }
 
 .metric-progress-container {
     width: 100%;
-    height: 4px;
-    background: #E2E8F0;
+    height: 3px;
+    background: var(--border);
     border-radius: 2px;
     overflow: hidden;
-    margin-top: 8px;
+    margin-top: 5px;
 }
 .metric-progress-bar {
     height: 100%;
     border-radius: 2px;
-    transition: width 400ms ease;
 }
 
-/* Card Variants Left Borders */
-.metric-card-primary { border-left: 4px solid var(--primary) !important; }
-.metric-card-primary .metric-value { color: var(--primary) !important; }
+/* Card Borders */
+.metric-card-primary { border-left: 3px solid var(--primary) !important; }
+.metric-card-red { border-left: 3px solid var(--danger) !important; }
+.metric-card-accent { border-left: 3px solid var(--accent) !important; }
+.metric-card-green { border-left: 3px solid var(--success) !important; }
 
-.metric-card-red { border-left: 4px solid var(--danger) !important; }
-.metric-card-red .metric-value { color: var(--danger) !important; }
-
-.metric-card-accent { border-left: 4px solid var(--accent) !important; }
-.metric-card-accent .metric-value { color: var(--accent) !important; }
-
-.metric-card-green { border-left: 4px solid var(--success) !important; }
-.metric-card-green .metric-value { color: var(--success) !important; }
-
-/* ───── ALERT BAR ───── */
-@keyframes pulse-accent {
-    0%, 100% { border-color: var(--accent); box-shadow: 0 0 0 0 rgba(239,125,50,0.1); }
-    50% { border-color: #D46A28; box-shadow: 0 0 12px 3px rgba(239,125,50,0.2); }
-}
+/* ───── ALERT BAR (Compact & High Contrast) ───── */
 .anomaly-alert-bar {
-    background: var(--accent-light);
-    border: 1.5px solid var(--accent);
-    border-radius: var(--radius-lg);
-    padding: 12px 18px;
-    margin: 8px 0 16px 0;
-    animation: pulse-accent 2.5s ease-in-out infinite;
+    background: var(--danger-light);
+    border: 1px solid var(--danger);
+    border-left: 4px solid var(--danger);
+    border-radius: var(--radius);
+    padding: 8px 12px;
+    margin-bottom: 8px;
 }
 .alert-title {
     font-weight: 800;
-    color: #92400E;
-    font-size: 0.85em;
+    color: #991B1B;
+    font-size: 0.80em;
     margin-bottom: 2px;
     letter-spacing: 0.4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 .alert-detail {
     color: var(--text);
-    font-size: 0.83em;
+    font-size: 0.80em;
+    line-height: 1.35;
 }
 
-/* ───── SECTION CARD (chart/table container) ───── */
-.section-card {
-    background: var(--surface-glass);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 12px 16px;
-    box-shadow: var(--shadow-sm);
-    margin-bottom: 16px;
-    transition: box-shadow var(--transition);
-}
-.section-card:hover {
-    box-shadow: var(--shadow-md);
-}
-
-/* ───── ANOMALY TABLE HEADER & FILTER BAR ───── */
+/* ───── ANOMALY TABLE HEADER ───── */
 .anomaly-table-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 10px;
-    flex-wrap: wrap;
+    margin-bottom: 6px;
+    margin-top: 4px;
     gap: 8px;
 }
 .anomaly-table-header h4 {
     margin: 0 !important;
-    font-size: 0.98em !important;
+    font-size: 0.88em !important;
     font-weight: 800 !important;
     color: var(--text) !important;
 }
 .anomaly-table-header .table-count {
     background: var(--primary-light);
     color: var(--primary);
-    font-size: 0.72em;
+    font-size: 0.70em;
     font-weight: 700;
-    padding: 3px 10px;
-    border-radius: 12px;
+    padding: 2px 8px;
+    border-radius: 4px;
 }
 
 /* ───── STATUS DOTS ───── */
@@ -344,38 +284,37 @@ header[data-testid="stHeader"] {
     display: inline-block;
     margin-right: 5px;
 }
-.status-dot.online { background: var(--success); box-shadow: 0 0 6px var(--success); }
+.status-dot.online { background: var(--success); }
 .status-dot.offline { background: var(--text-muted); }
 
-/* ───── DATE & INPUT FIELDS STYLING ───── */
-div[data-testid="stDateInput"] div[data-baseweb="input"] {
+/* ───── FORM INPUTS & DATAFRAMES ───── */
+div[data-testid="stDateInput"] div[data-baseweb="input"],
+div[data-testid="stNumberInput"] div[data-baseweb="input"],
+div[data-testid="stTextInput"] div[data-baseweb="input"],
+div[data-testid="stSelectbox"] div[data-baseweb="select"] {
     background-color: #FFFFFF !important;
     border: 1px solid var(--border) !important;
-    border-radius: 8px !important;
-    min-height: 38px !important;
-}
-div[data-testid="stDateInput"] svg {
-    fill: var(--primary) !important;
+    border-radius: 6px !important;
+    min-height: 34px !important;
+    color: var(--text) !important;
 }
 
-/* ───── DATAFRAME ───── */
+div[data-testid="stDateInput"] input,
+div[data-testid="stNumberInput"] input,
+div[data-testid="stTextInput"] input {
+    color: var(--text) !important;
+    font-size: 0.85em !important;
+}
+
+/* Radio button text */
+div[data-testid="stRadio"] label span {
+    color: var(--text) !important;
+    font-size: 0.85em !important;
+}
+
 .stDataFrame {
     border-radius: var(--radius) !important;
     overflow: hidden;
     border: 1px solid var(--border);
     background: #FFFFFF !important;
-}
-
-/* ───── HIDE STREAMLIT DEFAULT UI ───── */
-#MainMenu,
-footer,
-.stDeployButton,
-[data-testid="stToolbar"],
-[data-testid="stHeaderActionElements"],
-[data-testid="stToolbarActions"],
-button[data-testid="baseButton-headerNoPadding"],
-div[data-testid="stDecoration"] {
-    display: none !important;
-    visibility: hidden !important;
-    height: 0 !important;
 }

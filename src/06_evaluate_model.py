@@ -1,5 +1,5 @@
 """
-06_evaluate_model.py — Model Evaluation & Performance Metrics
+06_evaluate_model.py — Đánh giá hiệu năng mô hình (Model Evaluation & Metrics)
 """
 
 import os
@@ -24,45 +24,43 @@ from sklearn.metrics import (
     average_precision_score,
 )
 
-from config import MODELS_DIR, DEMO_DIR, SENSOR_COLUMNS, PROJECT_DIR
+from config import MODELS_DIR, DEMO_DIR, SENSOR_COLUMNS, REPORTS_DIR
 from features import create_features
-
-EVAL_DIR = os.path.join(PROJECT_DIR, "reports")
 
 
 def load_model():
-    """Load model, scaler, and feature list."""
+    """Tải mô hình, bộ chuẩn hóa và danh sách đặc trưng."""
     model_path = os.path.join(MODELS_DIR, "isolation_forest_model.pkl")
     scaler_path = os.path.join(MODELS_DIR, "scaler.pkl")
     features_path = os.path.join(MODELS_DIR, "feature_names.pkl")
 
     for path in [model_path, scaler_path, features_path]:
         if not os.path.exists(path):
-            print(f"Error: file not found at {path}")
+            print(f"Lỗi: Không tìm thấy file tại {path}")
             sys.exit(1)
 
     model = joblib.load(model_path)
     scaler = joblib.load(scaler_path)
     feature_names = joblib.load(features_path)
 
-    print(f"[1/4] Load Artifacts: Model={type(model).__name__} | Scaler={type(scaler).__name__} | Features={len(feature_names)}")
+    print(f"[1/4] Tải Artifacts: Model={type(model).__name__} | Scaler={type(scaler).__name__} | Features={len(feature_names)}")
     return model, scaler, feature_names
 
 
 def load_demo_with_anomalies() -> pd.DataFrame:
-    """Load ground truth demo dataset."""
+    """Tải tập dữ liệu demo chứa ground truth bất thường."""
     demo_path = os.path.join(DEMO_DIR, "demo_with_anomalies.csv")
     if not os.path.exists(demo_path):
-        print(f"Error: file not found at {demo_path}")
+        print(f"Lỗi: Không tìm thấy file tại {demo_path}")
         sys.exit(1)
 
     df = pd.read_csv(demo_path, index_col="datetime", parse_dates=True)
-    print(f"  Demo Data: {len(df):,} samples | GT Anomalies: {df['is_anomaly'].sum():,} ({df['is_anomaly'].mean()*100:.1f}%)")
+    print(f"  Demo Data: {len(df):,} mẫu | GT Anomalies: {df['is_anomaly'].sum():,} ({df['is_anomaly'].mean()*100:.1f}%)")
     return df
 
 
-def run_prediction(df: pd.DataFrame, model, scaler, feature_names) -> pd.DataFrame:
-    """Predict anomalies using IsolationForest."""
+def run_prediction(df: pd.DataFrame, model, scaler, feature_names: list[str]) -> pd.DataFrame:
+    """Dự đoán nhãn bất thường sử dụng Isolation Forest."""
     df_feat = create_features(df[SENSOR_COLUMNS])
     available_cols = [c for c in feature_names if c in df_feat.columns]
 
@@ -80,12 +78,12 @@ def run_prediction(df: pd.DataFrame, model, scaler, feature_names) -> pd.DataFra
     df_feat["anomaly_type"] = df.loc[common_idx, "anomaly_type"]
 
     n_pred = df_feat["predicted_anomaly"].sum()
-    print(f"[2/4] Predictions: {len(df_feat):,} samples | Detected Anomalies: {n_pred:,} ({n_pred/len(df_feat)*100:.1f}%)")
+    print(f"[2/4] Dự đoán: {len(df_feat):,} mẫu | Phát hiện: {n_pred:,} ({n_pred/len(df_feat)*100:.1f}%)")
     return df_feat
 
 
 def compute_metrics(df: pd.DataFrame) -> dict:
-    """Compute overall performance metrics."""
+    """Tính toán toàn bộ các chỉ số đo lường hiệu năng."""
     y_true = df["is_anomaly"].values
     y_pred = df["predicted_anomaly"].values
     scores = df["anomaly_score"].values
@@ -130,7 +128,7 @@ def compute_metrics(df: pd.DataFrame) -> dict:
 
 
 def compute_per_type_metrics(df: pd.DataFrame) -> pd.DataFrame:
-    """Compute detection rate per anomaly type."""
+    """Tính tỷ lệ phát hiện theo từng loại bất thường."""
     results = []
     for atype in ["power_surge", "voltage_drop", "night_spike"]:
         mask = df["anomaly_type"] == atype
@@ -154,14 +152,14 @@ def compute_per_type_metrics(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def print_report(metrics: dict, per_type: pd.DataFrame, df: pd.DataFrame):
-    """Print performance summary report."""
-    print("\n--- MODEL PERFORMANCE METRICS ---")
-    print(f"Total Samples: {metrics['total']:,} | Ground Truth Anomalies: {metrics['total_gt_anomaly']:,} | Predicted Anomalies: {metrics['total_pred_anomaly']:,}")
+    """In báo cáo tóm tắt ra console."""
+    print("\n--- KẾT QUẢ ĐÁNH GIÁ MÔ HÌNH ---")
+    print(f"Tổng số mẫu: {metrics['total']:,} | Ground Truth: {metrics['total_gt_anomaly']:,} | Model phát hiện: {metrics['total_pred_anomaly']:,}")
     print(f"Confusion Matrix -> TN: {metrics['tn']:,} | FP: {metrics['fp']:,} | FN: {metrics['fn']:,} | TP: {metrics['tp']:,}")
-    print(f"Core Metrics     -> Precision: {metrics['precision']:.4f} | Recall: {metrics['recall']:.4f} | F1: {metrics['f1']:.4f} | ROC-AUC: {metrics['roc_auc']:.4f} | PR-AUC: {metrics['avg_precision']:.4f}")
-    print(f"Calibrated Threshold -> Score: {metrics['opt_thresh_score']:+.4f} | Opt Precision: {metrics['opt_precision']:.4f} | Opt Recall: {metrics['opt_recall']:.4f} | Opt F1: {metrics['opt_f1']:.4f}")
+    print(f"Chỉ số chính     -> Precision: {metrics['precision']:.4f} | Recall: {metrics['recall']:.4f} | F1: {metrics['f1']:.4f} | ROC-AUC: {metrics['roc_auc']:.4f} | PR-AUC: {metrics['avg_precision']:.4f}")
+    print(f"Ngưỡng tối ưu    -> Score: {metrics['opt_thresh_score']:+.4f} | Opt Precision: {metrics['opt_precision']:.4f} | Opt Recall: {metrics['opt_recall']:.4f} | Opt F1: {metrics['opt_f1']:.4f}")
 
-    print("\nDetection Rate by Anomaly Type:")
+    print("\nTỷ lệ phát hiện theo loại bất thường:")
     if not per_type.empty:
         print(per_type.to_string(index=False))
 
@@ -176,15 +174,15 @@ def print_report(metrics: dict, per_type: pd.DataFrame, df: pd.DataFrame):
 
 
 def save_evaluation_charts(df: pd.DataFrame, metrics: dict, per_type: pd.DataFrame):
-    """Generate evaluation figures and save to HTML report."""
+    """Tạo và lưu biểu đồ đánh giá ra file HTML."""
     try:
         import plotly.graph_objects as go
         from plotly.subplots import make_subplots
     except ImportError:
-        print("Note: Plotly not installed, skipping chart generation.")
+        print("Lưu ý: Plotly chưa cài đặt, bỏ qua tạo biểu đồ HTML.")
         return
 
-    os.makedirs(EVAL_DIR, exist_ok=True)
+    os.makedirs(REPORTS_DIR, exist_ok=True)
 
     fig = make_subplots(
         rows=2, cols=2,
@@ -272,14 +270,14 @@ def save_evaluation_charts(df: pd.DataFrame, metrics: dict, per_type: pd.DataFra
         showlegend=True,
     )
 
-    html_path = os.path.join(EVAL_DIR, "evaluation_report.html")
+    html_path = os.path.join(REPORTS_DIR, "evaluation_report.html")
     fig.write_html(html_path)
-    print(f"[3/4] Saved HTML Report: {html_path}")
+    print(f"[3/4] Đã lưu báo cáo HTML: {html_path}")
 
 
 def save_metrics_csv(metrics: dict, per_type: pd.DataFrame):
-    """Save metrics summary to CSV."""
-    os.makedirs(EVAL_DIR, exist_ok=True)
+    """Lưu tóm tắt chỉ số hiệu năng ra các file CSV."""
+    os.makedirs(REPORTS_DIR, exist_ok=True)
 
     summary = pd.DataFrame([
         {"Metric": "Precision", "Value": f"{metrics['precision']:.2f}"},
@@ -293,23 +291,23 @@ def save_metrics_csv(metrics: dict, per_type: pd.DataFrame):
         {"Metric": "False Negatives", "Value": str(metrics['fn'])},
     ])
 
-    summary_path = os.path.join(EVAL_DIR, "metrics_summary.csv")
+    summary_path = os.path.join(REPORTS_DIR, "metrics_summary.csv")
     summary.to_csv(summary_path, index=False)
 
     if not per_type.empty:
-        per_type_path = os.path.join(EVAL_DIR, "metrics_per_type.csv")
+        per_type_path = os.path.join(REPORTS_DIR, "metrics_per_type.csv")
         per_type.to_csv(per_type_path, index=False)
 
-    print(f"[4/4] Saved Metrics CSV: {summary_path}")
+    print(f"[4/4] Đã lưu bảng chỉ số CSV: {summary_path}")
 
 
 if __name__ == "__main__":
-    model, scaler, feature_names = load_model()
-    df_demo = load_demo_with_anomalies()
-    df_eval = run_prediction(df_demo, model, scaler, feature_names)
-    metrics = compute_metrics(df_eval)
-    per_type = compute_per_type_metrics(df_eval)
-    print_report(metrics, per_type, df_eval)
-    save_evaluation_charts(df_eval, metrics, per_type)
-    save_metrics_csv(metrics, per_type)
-    print("Done. Evaluation complete.")
+    trained_model, fitted_scaler, feature_list = load_model()
+    demo_data = load_demo_with_anomalies()
+    eval_df = run_prediction(demo_data, trained_model, fitted_scaler, feature_list)
+    overall_metrics = compute_metrics(eval_df)
+    breakdown_metrics = compute_per_type_metrics(eval_df)
+    print_report(overall_metrics, breakdown_metrics, eval_df)
+    save_evaluation_charts(eval_df, overall_metrics, breakdown_metrics)
+    save_metrics_csv(overall_metrics, breakdown_metrics)
+    print("Hoàn tất đánh giá mô hình.")

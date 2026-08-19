@@ -5,7 +5,6 @@
 import os
 import sys
 import pandas as pd
-import numpy as np
 
 if sys.platform == "win32":
     try:
@@ -74,11 +73,16 @@ def run_eda(df_hourly: pd.DataFrame) -> float:
 def save_contamination(contamination: float) -> None:
     """Lưu tỷ lệ contamination ra file text."""
     os.makedirs(PROCESSED_DIR, exist_ok=True)
-    with open(CONTAMINATION_FILE, "w") as f:
+    with open(CONTAMINATION_FILE, "w", encoding="utf-8") as f:
         f.write(str(contamination))
 
 
-def split_data(df: pd.DataFrame, train_ratio=0.7, test_ratio=0.2, demo_ratio=0.1) -> tuple:
+def split_data(
+    df: pd.DataFrame,
+    train_ratio: float = 0.7,
+    test_ratio: float = 0.2,
+    demo_ratio: float = 0.1
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Chia tập dữ liệu theo thứ tự thời gian."""
     n = len(df)
     train_end = int(n * train_ratio)
@@ -112,8 +116,8 @@ if __name__ == "__main__":
     df_raw = load_raw_data(raw_path)
     df_clean = handle_missing_values(df_raw)
     df_hourly = resample_hourly(df_clean)
-    contamination = run_eda(df_hourly)
-    save_contamination(contamination)
+    contamination_rate = run_eda(df_hourly)
+    save_contamination(contamination_rate)
     train, test, demo = split_data(df_hourly)
     save_datasets(train, test, demo)
     print("Hoàn tất tiền xử lý dữ liệu.")
