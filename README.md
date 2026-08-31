@@ -124,10 +124,11 @@ python src/01_data_prep.py
 
 Lệnh này sẽ đọc dữ liệu thô, làm sạch, resample 1 giờ, chia tập Train/Demo (80/20), giả lập tạo các dạng lỗi và xuất ra 2 file: data/train_hourly.csv và data/demo_stream.csv.
 
-### Bước 3: Huấn luyện mô hình
+### Bước 3: Huấn luyện mô hình và bơm lỗi
 
 ```bash
 python src/02_train.py
+python src/03_producer.py
 ```
 
 Lệnh này sẽ trích xuất 9 đặc trưng từ tập Train, huấn luyện mô hình Isolation Forest, tính thống kê baseline phục vụ XAI và lưu gói mô hình vào models/model_bundle.pkl.
