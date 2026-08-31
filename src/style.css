@@ -1,13 +1,7 @@
-/*
-============================================================
-style.css — Smart Meter Anomaly Detection Dashboard Styles
-Fixed Light Theme (Dark Text), Minimalist & High Density
-============================================================
-*/
+/* style.css - Style cho giao dien Smart Meter Anomaly Detection Dashboard */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-/* ───── STRICT LIGHT THEME VARIABLES ───── */
 :root {
     color-scheme: light !important;
     --bg: #F8FAFC;
@@ -18,24 +12,31 @@ Fixed Light Theme (Dark Text), Minimalist & High Density
     --text-muted: #64748B;
     --border: #E2E8F0;
     --border-subtle: #CBD5E1;
-    --primary: #6B4CE6;
-    --primary-dark: #5338B5;
-    --primary-light: #F3F0FF;
-    --accent: #EF7D32;
-    --accent-light: #FFF4EB;
+    --primary: #0066FF;
+    --primary-dark: #0050CC;
+    --primary-light: #EBF5FF;
+    --accent: #F59E0B;
+    --accent-light: #FFFBEB;
+    --accent-dark: #B45309;
     --danger: #EF4444;
     --danger-light: #FEF2F2;
+    --danger-dark: #991B1B;
+    --danger-border: #FCA5A5;
     --success: #10B981;
     --success-light: #ECFDF5;
+    --success-dark: #065F46;
+    --success-border: #A7F3D0;
     --warning: #F59E0B;
     --warning-light: #FFFBEB;
+    --warning-dark: #92400E;
+    --warning-border: #FDE68A;
     --radius-sm: 6px;
     --radius: 8px;
     --radius-lg: 10px;
     --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
 }
 
-/* ───── HIDE STREAMLIT UNNECESSARY SHELL ───── */
+/* An header va footer mac dinh cua Streamlit */
 #MainMenu,
 footer,
 .stDeployButton,
@@ -54,7 +55,6 @@ header[data-testid="stHeader"] {
     visibility: hidden !important;
 }
 
-/* ───── COMPACT VIEWPORT & SPACING OPTIMIZATION ───── */
 [data-testid="stAppViewContainer"] {
     background-color: var(--bg) !important;
     color: var(--text) !important;
@@ -79,7 +79,6 @@ header[data-testid="stHeader"] {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
 
-/* Force dark text for all streamlit typography */
 [data-testid="stMarkdownContainer"] p,
 [data-testid="stMarkdownContainer"] span,
 [data-testid="stMarkdownContainer"] div,
@@ -102,7 +101,7 @@ label[data-testid="stWidgetLabel"] {
     margin-bottom: 4px !important;
 }
 
-/* ───── CENTERED TITLE (CLEAN, NO SUBTEXT/ICONS) ───── */
+/* Tieu de chinh */
 .dashboard-main-title {
     text-align: center;
     font-size: 1.75rem;
@@ -113,7 +112,7 @@ label[data-testid="stWidgetLabel"] {
     line-height: 1.2;
 }
 
-/* ───── BUTTONS STYLING ───── */
+/* Nut bam */
 div.stButton > button {
     width: 100% !important;
     min-height: 36px !important;
@@ -130,7 +129,6 @@ div.stButton > button {
     transition: background-color 150ms ease, border-color 150ms ease !important;
 }
 
-/* Primary Button */
 div.stButton > button[kind="primary"]:not(:disabled) {
     background: var(--primary) !important;
     color: #FFFFFF !important;
@@ -141,7 +139,6 @@ div.stButton > button[kind="primary"]:hover:not(:disabled) {
     border-color: var(--primary-dark) !important;
 }
 
-/* Secondary Button */
 div.stButton > button[kind="secondary"]:not(:disabled) {
     background: var(--surface) !important;
     color: var(--text) !important;
@@ -152,16 +149,15 @@ div.stButton > button[kind="secondary"]:hover:not(:disabled) {
     border-color: var(--border-subtle) !important;
 }
 
-/* Disabled Button */
 div.stButton > button:disabled {
-    background: #F1F5F9 !important;
+    background: var(--surface-subtle) !important;
     color: var(--text-muted) !important;
     border-color: var(--border) !important;
     cursor: not-allowed !important;
     opacity: 0.7 !important;
 }
 
-/* ───── METRIC CARDS ───── */
+/* The KPI */
 .metric-card {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -187,18 +183,11 @@ div.stButton > button:disabled {
     font-weight: 700;
 }
 
-.metric-pill {
-    font-size: 0.65em;
-    font-weight: 700;
-    padding: 1px 6px;
-    border-radius: 4px;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
+.metric-subtext {
+    font-size: 0.75em;
+    color: var(--text-muted);
+    margin-top: 4px;
 }
-.metric-pill-purple { background: var(--primary-light); color: var(--primary); }
-.metric-pill-red { background: var(--danger-light); color: var(--danger); }
-.metric-pill-orange { background: var(--accent-light); color: var(--accent); }
-.metric-pill-green { background: var(--success-light); color: var(--success); }
 
 .metric-value {
     font-size: 1.45em;
@@ -208,51 +197,79 @@ div.stButton > button:disabled {
     color: var(--text);
 }
 
-.metric-progress-container {
-    width: 100%;
-    height: 3px;
-    background: var(--border);
-    border-radius: 2px;
-    overflow: hidden;
-    margin-top: 5px;
-}
-.metric-progress-bar {
-    height: 100%;
-    border-radius: 2px;
-}
-
-/* Card Borders */
 .metric-card-primary { border-left: 3px solid var(--primary) !important; }
 .metric-card-red { border-left: 3px solid var(--danger) !important; }
 .metric-card-accent { border-left: 3px solid var(--accent) !important; }
 .metric-card-green { border-left: 3px solid var(--success) !important; }
 
-/* ───── ALERT BAR (Compact & High Contrast) ───── */
-.anomaly-alert-bar {
-    background: var(--danger-light);
-    border: 1px solid var(--danger);
-    border-left: 4px solid var(--danger);
-    border-radius: var(--radius);
-    padding: 8px 12px;
-    margin-bottom: 8px;
-}
-.alert-title {
-    font-weight: 800;
-    color: #991B1B;
-    font-size: 0.80em;
-    margin-bottom: 2px;
-    letter-spacing: 0.4px;
+/* Thanh thong bao trang thai */
+.alert-bar-danger {
+    min-height: 48px;
     display: flex;
     align-items: center;
-    gap: 6px;
-}
-.alert-detail {
-    color: var(--text);
-    font-size: 0.80em;
-    line-height: 1.35;
+    justify-content: space-between;
+    padding: 8px 14px;
+    background: var(--danger-light);
+    border: 1px solid var(--danger-border);
+    border-radius: var(--radius);
+    font-size: 0.86em;
+    color: var(--danger-dark);
+    margin-bottom: 8px;
 }
 
-/* ───── ANOMALY TABLE HEADER ───── */
+.alert-bar-danger .alert-tag {
+    font-weight: 800;
+    color: var(--danger);
+    margin-right: 8px;
+}
+
+.alert-bar-danger .alert-xai {
+    font-weight: 600;
+    color: var(--danger-dark);
+    font-size: 0.88em;
+}
+
+.alert-bar-success {
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    padding: 8px 14px;
+    background: var(--success-light);
+    border: 1px solid var(--success-border);
+    border-radius: var(--radius);
+    font-size: 0.86em;
+    color: var(--success-dark);
+    margin-bottom: 8px;
+}
+
+.alert-bar-success .alert-tag {
+    font-weight: 700;
+    color: var(--success-dark);
+    margin-right: 8px;
+}
+
+/* Badge trang thai stream */
+.stream-status-playing {
+    padding: 6px 12px;
+    background: var(--success-light);
+    border: 1px solid var(--success);
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    color: var(--success-dark);
+    font-size: 0.85em;
+}
+
+.stream-status-paused {
+    padding: 6px 12px;
+    background: var(--warning-light);
+    border: 1px solid var(--warning);
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    color: var(--warning-dark);
+    font-size: 0.85em;
+}
+
+/* Header bang su co */
 .anomaly-table-header {
     display: flex;
     align-items: center;
@@ -276,23 +293,12 @@ div.stButton > button:disabled {
     border-radius: 4px;
 }
 
-/* ───── STATUS DOTS ───── */
-.status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    display: inline-block;
-    margin-right: 5px;
-}
-.status-dot.online { background: var(--success); }
-.status-dot.offline { background: var(--text-muted); }
-
-/* ───── FORM INPUTS & DATAFRAMES ───── */
+/* Form input */
 div[data-testid="stDateInput"] div[data-baseweb="input"],
 div[data-testid="stNumberInput"] div[data-baseweb="input"],
 div[data-testid="stTextInput"] div[data-baseweb="input"],
 div[data-testid="stSelectbox"] div[data-baseweb="select"] {
-    background-color: #FFFFFF !important;
+    background-color: var(--surface) !important;
     border: 1px solid var(--border) !important;
     border-radius: 6px !important;
     min-height: 34px !important;
@@ -306,15 +312,116 @@ div[data-testid="stTextInput"] input {
     font-size: 0.85em !important;
 }
 
-/* Radio button text */
 div[data-testid="stRadio"] label span {
     color: var(--text) !important;
     font-size: 0.85em !important;
 }
 
-.stDataFrame {
-    border-radius: var(--radius) !important;
-    overflow: hidden;
+/* Bang du lieu tuy chinh */
+.custom-table-container {
+    width: 100%;
+    overflow-y: auto;
+    overflow-x: auto;
     border: 1px solid var(--border);
-    background: #FFFFFF !important;
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 8px;
+}
+
+.custom-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.84em;
+    color: var(--text);
+    text-align: left;
+}
+
+.custom-table thead th {
+    position: sticky;
+    top: 0;
+    background: var(--surface-subtle);
+    color: var(--text-secondary);
+    font-weight: 700;
+    font-size: 0.88em;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: 0.3px;
+    z-index: 2;
+}
+
+.custom-table tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background-color 100ms ease;
+    background: var(--surface);
+}
+
+.custom-table tbody tr:nth-child(even) {
+    background: var(--bg);
+}
+
+.custom-table tbody tr:hover {
+    background: var(--primary-light) !important;
+}
+
+.custom-table td {
+    padding: 8px 12px;
+    vertical-align: middle;
+}
+
+.custom-table .col-time {
+    font-family: 'Inter', monospace;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+}
+
+.custom-table .col-num {
+    font-family: 'Inter', monospace;
+    color: var(--text);
+}
+
+.custom-table .col-center {
+    text-align: center;
+}
+
+.custom-table .col-xai {
+    color: var(--text-secondary);
+    font-size: 0.95em;
+    line-height: 1.35;
+}
+
+/* Huy hieu badge */
+.badge-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.82em;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+.badge-red {
+    background: var(--danger-light);
+    color: var(--danger-dark);
+    border: 1px solid var(--danger-border);
+}
+
+.badge-amber {
+    background: var(--warning-light);
+    color: var(--warning-dark);
+    border: 1px solid var(--warning-border);
+}
+
+.badge-blue {
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    border: 1px solid #BFDBFE;
+}
+
+.badge-neutral {
+    background: var(--surface-subtle);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
 }
