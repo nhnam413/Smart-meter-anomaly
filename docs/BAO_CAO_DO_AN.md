@@ -223,7 +223,7 @@ flowchart TD
 
 Khác với huấn luyện tĩnh (Batch Training) có sẵn toàn bộ dữ liệu tương lai và quá khứ, khi vận hành thực tế (Inference), mô hình chỉ nhận được từng mẫu dữ liệu mới mỗi giờ. 
 
-Để tính toán các đặc trưng lịch sử như `rolling_mean_24h`, hệ thống bắt buộc phải duy trì một **Cửa sổ trượt (Sliding Window)** trong bộ nhớ RAM (biến `state_buffer`). Cửa sổ này luôn lưu giữ đúng 24 mẫu gần nhất. Khi một mẫu dữ liệu mới đi vào ở giờ TT, hệ thống sẽ đẩy mẫu cũ nhất ở giờ TT-24 ra khỏi bộ đệm, tính toán 9 đặc trưng ngay lập tức, suy diễn qua mô hình, rồi cập nhật bộ đệm để chờ mẫu của giờ T+1.
+Để tính toán các đặc trưng lịch sử như `rolling_mean_24h`, hệ thống bắt buộc phải duy trì một **Cửa sổ trượt (Sliding Window)** trong bộ nhớ RAM (biến `state_buffer`). Cửa sổ này luôn lưu giữ đúng 24 mẫu gần nhất. Khi một mẫu dữ liệu mới đi vào ở giờ T, hệ thống sẽ đẩy mẫu cũ nhất ở giờ T-24 ra khỏi bộ đệm, tính toán 9 đặc trưng ngay lập tức, suy diễn qua mô hình, rồi cập nhật bộ đệm để chờ mẫu của giờ T+1.
 
 ---
 
