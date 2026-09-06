@@ -30,28 +30,30 @@ Hệ thống được thiết kế theo kiến trúc **4 tầng khép kín**, đ
 
 ```mermaid
 flowchart TD
-    subgraph Data_Layer ["1. Tầng Dữ liệu & Mô phỏng (Data Layer)"]
-        A["Dữ liệu thô UCI (2.07M dòng)<br/>household_power_consumption.txt"] -->|01_data_prep.py<br/>Resample 1h & Clean| B["train_hourly.csv (80%)<br/>27,243 dòng chuẩn"]
-        A -->|Tiêm 3 dạng lỗi E_01, E_02, E_03| C["demo_stream.csv (20%)<br/>6,810 dòng kiểm định"]
-        C -->|03_producer.py<br/>Headless IoT Stream| D[("stream_buffer.jsonl<br/>(IoT Real-time Buffer)")]
+    subgraph Data_Layer ["1. Tầng Dữ liệu và Mô phỏng"]
+        A["Dữ liệu thô UCI - 2.07M dòng<br/>household_power_consumption.txt"] -->|01_data_prep.py - Resample 1h| B["train_hourly.csv - 80%<br/>27.243 dòng chuẩn"]
+        A -->|Tiêm 3 dạng lỗi E_01, E_02, E_03| C["demo_stream.csv - 20%<br/>6.810 dòng kiểm định"]
+        C -->|03_producer.py - Headless IoT Stream| D[("stream_buffer.jsonl<br/>IoT Real-time Buffer")]
     end
 
-    subgraph Feature_ML_Layer ["2. Kỹ thuật Đặc trưng & Huấn luyện (ML Layer)"]
-        B -->|02_train.py| E["The Sharp 9 Features<br/>(Temporal, Dynamic, Quality)"]
+    subgraph Feature_ML_Layer ["2. Kỹ thuật Đặc trưng và Huấn luyện"]
+        B -->|02_train.py| E["The Sharp 9 Features<br/>Temporal, Dynamic, Quality"]
         E -->|Huấn luyện không giám sát| F[("models/model_bundle.pkl<br/>RobustScaler + IsolationForest")]
     end
 
-    subgraph Realtime_Inference ["3. Đệm trượt & Suy luận XAI (Inference Layer)"]
-        D -->|Cửa sổ trượt 25 giờ<br/>extract_latest()| G["Stateful Sliding Window (>= 25h)"]
-        F -.->|Load Scaler & Model| G
+    subgraph Realtime_Inference ["3. Đệm trượt và Suy luận XAI"]
+        D -->|Cửa sổ trượt 25 giờ - extract_latest| G["Stateful Sliding Window - tối thiểu 25h"]
+        F -.->|Tải Scaler và Model| G
         G --> H["Isolation Forest Score"]
-        H --> I["Severity Scoring<br/>S = 1 / (1 + e^(30 * s_raw))"]
-        H --> J["Giải thích XAI<br/>Top-3 Features lệch Median / IQR"]
-        H --> K["Phân loại lỗi<br/>classify_type()"]
+        H --> I["Tính điểm Severity<br/>Hàm Sigmoid phi tuyến"]
+        H --> J["Giải thích XAI<br/>Top-3 Features lệch Median và IQR"]
+        H --> K["Phân loại lỗi<br/>classify_type"]
     end
 
-    subgraph Presentation_Layer ["4. Giao diện Giám sát (Presentation Layer)"]
-        I & J & K --> L["04_dashboard.py (Streamlit + Plotly)<br/>- Chế độ 1: Phân tích Lịch sử (Historical EDA)<br/>- Chế độ 2: Giám sát Trực tiếp (Real-time Stream)"]
+    subgraph Presentation_Layer ["4. Giao diện Giám sát"]
+        I --> L["04_dashboard.py - Streamlit và Plotly<br/>Chế độ 1: Phân tích Lịch sử<br/>Chế độ 2: Giám sát Trực tiếp"]
+        J --> L
+        K --> L
     end
 ```
 

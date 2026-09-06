@@ -208,15 +208,15 @@ Kích thước gói mô hình sau huấn luyện: file model_bundle.pkl chiếm 
 Để giải quyết bài toán phát hiện dị biệt thời gian thực, hệ thống được thiết kế theo luồng dữ liệu (Data Pipeline) 4 bước khép kín. Sơ đồ dưới đây minh họa kiến trúc tổng quan:
 
 ```mermaid
-graph TD
-    A[Smart Meter / Sensors] -->|Dữ liệu thô liên tục| B(Data Ingestion & Sliding Window)
-    B -->|Cửa sổ 24h| C{Feature Engineering}
-    C -->|9 Đặc trưng| D[RobustScaler]
-    D -->|Dữ liệu chuẩn hóa| E(Isolation Forest Model)
-    E -->|Anomaly Score| F{Decision Threshold}
-    F -->|Bình thường| G[Lưu lịch sử / Bỏ qua]
-    F -->|Bất thường| H[XAI - Trích xuất nguyên nhân]
-    H --> I[Phát cảnh báo: Surge / Drop / Night]
+flowchart TD
+    A["Smart Meter / Sensors"] -->|Dữ liệu thô liên tục| B["Data Ingestion và Sliding Window"]
+    B -->|Cửa sổ 24h| C["Feature Engineering"]
+    C -->|9 Đặc trưng| D["RobustScaler"]
+    D -->|Dữ liệu chuẩn hóa| E["Isolation Forest Model"]
+    E -->|Anomaly Score| F["Decision Threshold"]
+    F -->|Bình thường| G["Lưu lịch sử / Bỏ qua"]
+    F -->|Bất thường| H["XAI - Trích xuất nguyên nhân"]
+    H --> I["Phát cảnh báo: Surge / Drop / Night"]
 ```
 
 ## 3.2. Cơ chế Cửa sổ trượt (Sliding Window) cho Real-time
