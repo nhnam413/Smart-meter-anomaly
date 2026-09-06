@@ -1,5 +1,5 @@
 """
-config.py - Cau hinh he thong, duong dan, dac trung va bang mau sac.
+config.py - Cau hinh tap trung cho he thong phat hien bat thuong dien nang.
 """
 
 import os
@@ -7,7 +7,7 @@ import sys
 
 
 def setup_encoding() -> None:
-    """Thiet lap UTF-8 cho Windows console."""
+    """Thiet lap ma hoa UTF-8 cho console tren Windows."""
     if sys.platform == "win32":
         try:
             sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -16,7 +16,7 @@ def setup_encoding() -> None:
             pass
 
 
-# Duong dan thu muc va file
+# Duong dan thu muc va tep tin du an
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
 MODELS_DIR = os.path.join(PROJECT_DIR, "models")
@@ -28,10 +28,16 @@ STREAM_BUFFER_PATH = os.path.join(DATA_DIR, "stream_buffer.jsonl")
 MODEL_BUNDLE_PATH = os.path.join(MODELS_DIR, "model_bundle.pkl")
 CSS_FILE = os.path.join(PROJECT_DIR, "src", "style.css")
 
-
-# Danh sach dac trung va nguong suy luan
+# Cot muc tieu va nguong canh bao
 TARGET_COL = "Global_active_power"
+VOLTAGE_DROP_THRESHOLD = -15.0
 
+# Dinh dang ngay gio thong nhat
+DATE_FORMAT = "%d/%m/%Y"
+DATETIME_FORMAT = "%d/%m/%Y %H:%M:%S"
+DATETIME_MINUTE_FORMAT = "%d/%m/%Y %H:%M"
+
+# 9 dac trung chuoi thoi gian
 ENGINEERED_FEATURE_NAMES = [
     "hour_sin",
     "hour_cos",
@@ -44,19 +50,17 @@ ENGINEERED_FEATURE_NAMES = [
     "power_factor",
 ]
 
-VOLTAGE_DROP_THRESHOLD = -15.0
-
-
-# Cau hinh phat luong va nhan hien thi
+# Cau hinh phat luong truc tiep
 SEND_INTERVAL = 1.0
 MAX_DISPLAY_POINTS = 100
 
+# Nhan hien thi nghiep vu
 TYPE_LABELS = {
     "power_surge": "Đột biến công suất",
     "voltage_drop": "Sụt điện áp",
     "night_spike": "Đột biến đêm",
-    "unknown": "Chưa xác định",
     "normal": "Bình thường",
+    "unknown": "Chưa xác định",
 }
 
 FEATURE_LABELS = {
@@ -71,40 +75,23 @@ FEATURE_LABELS = {
     "hour_cos": "Chu kỳ thời gian cos",
 }
 
-# Bang mau sac tap trung
+# Bang mau giao dien chuan Light Mode
 COLORS = {
     "primary": "#0066FF",
     "primary_dark": "#0050CC",
     "primary_light": "#EBF5FF",
     "primary_rgba_05": "rgba(0, 102, 255, 0.05)",
-    "primary_rgba_10": "rgba(0, 102, 255, 0.10)",
-
     "accent": "#F59E0B",
-    "accent_light": "#FFFBEB",
-    "accent_dark": "#B45309",
     "danger": "#EF4444",
-    "danger_light": "#FEF2F2",
-    "danger_dark": "#991B1B",
-    "danger_border": "#FCA5A5",
     "success": "#10B981",
-    "success_light": "#ECFDF5",
     "success_dark": "#065F46",
-    "success_border": "#A7F3D0",
     "success_rgba_08": "rgba(16, 185, 129, 0.08)",
-    "warning": "#F59E0B",
-    "warning_light": "#FFFBEB",
-    "warning_dark": "#92400E",
-    "warning_border": "#FDE68A",
-
     "text_primary": "#0F172A",
     "text_secondary": "#334155",
     "text_muted": "#64748B",
     "border": "#E2E8F0",
-    "border_subtle": "#CBD5E1",
     "grid_line": "#F1F5F9",
-    "background": "#F8FAFC",
     "surface": "#FFFFFF",
-    "surface_subtle": "#F1F5F9",
 }
 
 ANOMALY_TYPE_COLORS = {

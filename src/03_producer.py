@@ -10,13 +10,15 @@ import argparse
 from datetime import datetime
 import pandas as pd
 
-from config import DEMO_STREAM_PATH, STREAM_BUFFER_PATH, SEND_INTERVAL, setup_encoding
+from config import (
+    DEMO_STREAM_PATH, STREAM_BUFFER_PATH, SEND_INTERVAL,
+    DATETIME_FORMAT, setup_encoding,
+)
 
 setup_encoding()
 
-
+#Phat tung ban ghi tu demo_stream.csv vao stream_buffer.jsonl.
 def stream_data(speed: float, limit: int = 0, append: bool = False):
-    """Phat tung ban ghi tu demo_stream.csv vao stream_buffer.jsonl."""
     if not os.path.exists(DEMO_STREAM_PATH):
         print(f"Loi: Khong tim thay file {DEMO_STREAM_PATH}. Chay 01_data_prep.py truoc!")
         sys.exit(1)
@@ -33,8 +35,8 @@ def stream_data(speed: float, limit: int = 0, append: bool = False):
         with open(STREAM_BUFFER_PATH, mode, encoding="utf-8") as f:
             for timestamp, row in df.iterrows():
                 msg = {
-                    "timestamp": timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-                    "sent_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "timestamp": timestamp.strftime(DATETIME_FORMAT),
+                    "sent_at": datetime.now().strftime(DATETIME_FORMAT),
                     "is_anomaly": int(row.get("is_anomaly", 0)),
                     "anomaly_type": str(row.get("anomaly_type", "normal")),
                 }

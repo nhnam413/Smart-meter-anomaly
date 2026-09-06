@@ -1,6 +1,3 @@
-"""
-features.py - Module trich xuat dac trung (The Sharp 9), tinh Severity Score va giai thich AI (XAI).
-"""
 
 import math
 from typing import Optional, Union

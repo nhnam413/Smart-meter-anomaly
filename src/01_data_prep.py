@@ -16,9 +16,8 @@ from config import (
 
 setup_encoding()
 
-
-def load_and_clean_raw_data(file_path: str) -> pd.DataFrame:
-    """Doc du lieu tho UCI, xu ly missing data va aggregate theo gio (1h)."""
+#Doc du lieu tho UCI, xu ly missing data va aggregate theo gio (1h).
+def load_and_clean_raw_data(file_path: str) -> pd.DataFrame:  
     if not os.path.exists(file_path):
         print(f"Loi: Khong tim thay file tai: {file_path}")
         sys.exit(1)
@@ -37,9 +36,8 @@ def load_and_clean_raw_data(file_path: str) -> pd.DataFrame:
     print(f"  -> Gom nhom 1 gio hoan tat: {len(df_hourly):,} dong.")
     return df_hourly
 
-
+#Thong ke co ban tren tap du lieu Train.
 def run_eda(df: pd.DataFrame) -> dict:
-    """Thong ke co ban tren tap du lieu Train."""
     v_diff = df["Voltage"].diff().dropna()
     q1, q3 = float(v_diff.quantile(0.25)), float(v_diff.quantile(0.75))
     iqr = q3 - q1
@@ -59,9 +57,8 @@ def run_eda(df: pd.DataFrame) -> dict:
     print(f"     - IQR bien dong dien ap: {iqr:.2f}")
     return profile
 
-
+#Gia lap 3 dang loi (Power Surge, Voltage Drop, Night Spike) vao tap Demo.
 def inject_synthetic_anomalies(df_demo: pd.DataFrame) -> pd.DataFrame:
-    """Gia lap 3 dang loi (Power Surge, Voltage Drop, Night Spike) vao tap Demo."""
     print("[3/3] Dang gia lap cac dang loi vao tap Demo...")
     df = df_demo.copy()
     df["is_anomaly"] = 0
@@ -70,7 +67,7 @@ def inject_synthetic_anomalies(df_demo: pd.DataFrame) -> pd.DataFrame:
     rng = np.random.default_rng(42)
     n = len(df)
 
-    # 1. Dot bien cong suat ban ngay (3% tong mau)
+    # 1. Dot bien cong suat ban ngay 3%
     n_surge = int(n * 0.03)
     day_indices = df[(df.index.hour >= 8) & (df.index.hour <= 22)].index
     surge_idx = rng.choice(day_indices, size=min(n_surge, len(day_indices)), replace=False)
@@ -78,7 +75,7 @@ def inject_synthetic_anomalies(df_demo: pd.DataFrame) -> pd.DataFrame:
     df.loc[surge_idx, "is_anomaly"] = 1
     df.loc[surge_idx, "anomaly_type"] = "power_surge"
 
-    # 2. Sut dien ap (3% tong mau)
+    # 2. Sut dien ap 3%
     n_drop = int(n * 0.03)
     normal_idx = df[df["is_anomaly"] == 0].index
     drop_idx = rng.choice(normal_idx, size=min(n_drop, len(normal_idx)), replace=False)
@@ -86,7 +83,7 @@ def inject_synthetic_anomalies(df_demo: pd.DataFrame) -> pd.DataFrame:
     df.loc[drop_idx, "is_anomaly"] = 1
     df.loc[drop_idx, "anomaly_type"] = "voltage_drop"
 
-    # 3. Dot bien dem khuya (2% tong mau)
+    # 3. Dot bien dem khuya 2%
     n_night = int(n * 0.02)
     night_idx = df[(df.index.hour >= 1) & (df.index.hour <= 5) & (df["is_anomaly"] == 0)].index
     night_choices = rng.choice(night_idx, size=min(n_night, len(night_idx)), replace=False)

@@ -1,7 +1,8 @@
-/* style.css - Style cho giao dien Smart Meter Anomaly Detection Dashboard */
+/* style.css - Style Light Theme co dinh toan dien cho Dashboard */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
+/* Khoa che do sang (Light mode) bat buoc tren moi thanh phan */
 :root {
     color-scheme: light !important;
     --bg: #F8FAFC;
@@ -36,6 +37,12 @@
     --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
 }
 
+html, body {
+    background-color: var(--bg) !important;
+    color: var(--text) !important;
+    color-scheme: light !important;
+}
+
 /* An header va footer mac dinh cua Streamlit */
 #MainMenu,
 footer,
@@ -55,10 +62,17 @@ header[data-testid="stHeader"] {
     visibility: hidden !important;
 }
 
-[data-testid="stAppViewContainer"] {
+/* Container chinh */
+[data-testid="stAppViewContainer"],
+.stApp {
     background-color: var(--bg) !important;
     color: var(--text) !important;
     color-scheme: light !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+.stApp * {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
 
 [data-testid="stAppViewContainer"] > section:first-child {
@@ -69,16 +83,7 @@ header[data-testid="stHeader"] {
     max-width: 100% !important;
 }
 
-.stApp {
-    background-color: var(--bg) !important;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-    color: var(--text) !important;
-}
-
-.stApp * {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-}
-
+/* Chu va Nhan */
 [data-testid="stMarkdownContainer"] p,
 [data-testid="stMarkdownContainer"] span,
 [data-testid="stMarkdownContainer"] div,
@@ -134,6 +139,7 @@ div.stButton > button[kind="primary"]:not(:disabled) {
     color: #FFFFFF !important;
     border-color: var(--primary-dark) !important;
 }
+
 div.stButton > button[kind="primary"]:hover:not(:disabled) {
     background: var(--primary-dark) !important;
     border-color: var(--primary-dark) !important;
@@ -144,6 +150,7 @@ div.stButton > button[kind="secondary"]:not(:disabled) {
     color: var(--text) !important;
     border-color: var(--border) !important;
 }
+
 div.stButton > button[kind="secondary"]:hover:not(:disabled) {
     background: var(--surface-subtle) !important;
     border-color: var(--border-subtle) !important;
@@ -157,7 +164,7 @@ div.stButton > button:disabled {
     opacity: 0.7 !important;
 }
 
-/* The KPI */
+/* The chi so KPI */
 .metric-card {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -198,11 +205,11 @@ div.stButton > button:disabled {
 }
 
 .metric-card-primary { border-left: 3px solid var(--primary) !important; }
-.metric-card-red { border-left: 3px solid var(--danger) !important; }
-.metric-card-accent { border-left: 3px solid var(--accent) !important; }
-.metric-card-green { border-left: 3px solid var(--success) !important; }
+.metric-card-red     { border-left: 3px solid var(--danger) !important; }
+.metric-card-accent  { border-left: 3px solid var(--accent) !important; }
+.metric-card-green   { border-left: 3px solid var(--success) !important; }
 
-/* Thanh thong bao trang thai */
+/* Thanh thong bao trang thai luoi dien */
 .alert-bar-danger {
     min-height: 48px;
     display: flex;
@@ -248,52 +255,36 @@ div.stButton > button:disabled {
     margin-right: 8px;
 }
 
-/* Badge trang thai stream */
+/* Trang thai phat luong Stream */
 .stream-status-playing {
+    display: inline-flex;
+    align-items: center;
     padding: 6px 12px;
-    background: var(--success-light);
-    border: 1px solid var(--success);
-    border-radius: var(--radius-sm);
+    background: var(--primary-light);
+    border: 1px solid #BFDBFE;
+    border-radius: var(--radius);
+    font-size: 0.82em;
     font-weight: 700;
-    color: var(--success-dark);
-    font-size: 0.85em;
+    color: var(--primary-dark);
+    width: 100%;
+    justify-content: center;
 }
 
 .stream-status-paused {
-    padding: 6px 12px;
-    background: var(--warning-light);
-    border: 1px solid var(--warning);
-    border-radius: var(--radius-sm);
-    font-weight: 700;
-    color: var(--warning-dark);
-    font-size: 0.85em;
-}
-
-/* Header bang su co */
-.anomaly-table-header {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: space-between;
-    margin-bottom: 6px;
-    margin-top: 4px;
-    gap: 8px;
-}
-.anomaly-table-header h4 {
-    margin: 0 !important;
-    font-size: 0.88em !important;
-    font-weight: 800 !important;
-    color: var(--text) !important;
-}
-.anomaly-table-header .table-count {
-    background: var(--primary-light);
-    color: var(--primary);
-    font-size: 0.70em;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 4px;
+    padding: 6px 12px;
+    background: var(--surface-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.82em;
+    font-weight: 600;
+    color: var(--text-muted);
+    width: 100%;
+    justify-content: center;
 }
 
-/* Form input */
+/* O nhap lieu Form (Input, Select, Date) */
 div[data-testid="stDateInput"] div[data-baseweb="input"],
 div[data-testid="stNumberInput"] div[data-baseweb="input"],
 div[data-testid="stTextInput"] div[data-baseweb="input"],
@@ -310,14 +301,78 @@ div[data-testid="stNumberInput"] input,
 div[data-testid="stTextInput"] input {
     color: var(--text) !important;
     font-size: 0.85em !important;
+    background-color: transparent !important;
 }
 
-div[data-testid="stRadio"] label span {
+/* Radio Button - Co dinh hoan toan sang Light Mode khong bi den */
+div[data-testid="stRadio"] {
+    background-color: transparent !important;
+}
+
+div[data-testid="stRadio"] > div {
+    gap: 12px !important;
+}
+
+div[data-testid="stRadio"] label {
+    background-color: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 6px !important;
+    padding: 6px 14px !important;
+    cursor: pointer !important;
+    transition: all 150ms ease !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+div[data-testid="stRadio"] label:hover {
+    border-color: var(--primary) !important;
+    background-color: var(--primary-light) !important;
+}
+
+div[data-testid="stRadio"] label p,
+div[data-testid="stRadio"] label span,
+div[data-testid="stRadio"] label div {
     color: var(--text) !important;
-    font-size: 0.85em !important;
+    font-size: 0.88em !important;
+    font-weight: 500 !important;
 }
 
-/* Bang du lieu tuy chinh */
+div[data-testid="stRadio"] label div[role="radio"],
+div[data-testid="stRadio"] label input[type="radio"] {
+    background-color: #FFFFFF !important;
+    border-color: #CBD5E1 !important;
+}
+
+div[data-testid="stRadio"] label:has(input:checked) {
+    background-color: var(--primary-light) !important;
+    border-color: var(--primary) !important;
+}
+
+div[data-testid="stRadio"] label:has(input:checked) p {
+    color: var(--primary-dark) !important;
+    font-weight: 700 !important;
+}
+
+/* Bang du lieu su co */
+.anomaly-table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.anomaly-table-header h4 {
+    margin: 0;
+    font-size: 0.95em;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.table-count {
+    font-size: 0.82em;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
 .custom-table-container {
     width: 100%;
     overflow-y: auto;
@@ -391,7 +446,7 @@ div[data-testid="stRadio"] label span {
     line-height: 1.35;
 }
 
-/* Huy hieu badge */
+/* Huy hieu phan loai Badge */
 .badge-pill {
     display: inline-block;
     padding: 2px 8px;
@@ -424,4 +479,25 @@ div[data-testid="stRadio"] label span {
     background: var(--surface-subtle);
     color: var(--text-muted);
     border: 1px solid var(--border);
+}
+
+/* Cuong che Plotly luon dung Light Palette va text toi */
+.js-plotly-plot .plotly,
+.js-plotly-plot .plot-container {
+    background-color: #FFFFFF !important;
+}
+
+.js-plotly-plot .plotly text,
+.js-plotly-plot .plotly .xtitle,
+.js-plotly-plot .plotly .ytitle,
+.js-plotly-plot .plotly .g-gtitle text,
+.js-plotly-plot .plotly .legendtext {
+    fill: #0F172A !important;
+    color: #0F172A !important;
+}
+
+.js-plotly-plot .plotly .xtick text,
+.js-plotly-plot .plotly .ytick text {
+    fill: #334155 !important;
+    color: #334155 !important;
 }

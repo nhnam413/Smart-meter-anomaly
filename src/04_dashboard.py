@@ -1,5 +1,5 @@
 """
-04_dashboard.py - Dashboard giam sat va phan tich bat thuong dien nang.
+04_dashboard.py - He thong giam sat va phan tich bat thuong dien nang.
 Giao dien gom 2 che do: Phan tich lich su va Giam sat thoi gian thuc.
 """
 
@@ -17,6 +17,7 @@ from config import (
     MODEL_BUNDLE_PATH, DEMO_STREAM_PATH, CSS_FILE,
     COLORS, ANOMALY_TYPE_COLORS, TYPE_LABELS,
     MAX_DISPLAY_POINTS, TARGET_COL,
+    DATE_FORMAT, DATETIME_FORMAT, DATETIME_MINUTE_FORMAT,
 )
 from features import (
     extract_features, extract_latest,
@@ -24,13 +25,13 @@ from features import (
     classify_type, explain_anomaly,
 )
 
-# Cau hinh giao dien bieu do
+# Cau hinh nen bieu do Plotly
 CHART_THEME = dict(
     template="plotly_white",
-    font=dict(family="Inter, -apple-system, sans-serif", color=COLORS["text_primary"]),
+    font=dict(family="Inter, -apple-system, sans-serif", color="#0F172A", size=11),
     margin=dict(l=40, r=20, t=35, b=35),
-    paper_bgcolor=COLORS["surface"],
-    plot_bgcolor=COLORS["surface"],
+    paper_bgcolor="#FFFFFF",
+    plot_bgcolor="#FFFFFF",
 )
 
 TABLE_COLS = [
@@ -39,7 +40,9 @@ TABLE_COLS = [
 ]
 
 
-# 1. Nap mo hinh va du lieu
+# ==============================================================================
+# 1. NAP MO HINH VA DU LIEU
+# ==============================================================================
 
 @st.cache_resource
 def load_bundle():
@@ -51,53 +54,78 @@ def load_bundle():
 
 @st.cache_data
 def load_historical_data():
-    """Tai du lieu demo day du."""
+    """Tai tap du lieu demo."""
     if not os.path.exists(DEMO_STREAM_PATH):
         return pd.DataFrame()
     return pd.read_csv(DEMO_STREAM_PATH, index_col="datetime", parse_dates=True)
 
 
 def load_custom_css():
-    """Nap file CSS style.css."""
+    """Nap CSS tuy bien de co dinh che do Light Mode."""
     if os.path.exists(CSS_FILE):
         with open(CSS_FILE, "r", encoding="utf-8") as f:
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 
-# 2. Tao bieu do Plotly
+# ==============================================================================
+# 2. TAO BIEU DO PLOTLY
+# ==============================================================================
 
 def build_power_line_chart(df: pd.DataFrame) -> go.Figure:
-    """Bieu do duong cong suat tieu thu (kW) kem diem bat thuong."""
+    """Bieu do duong cong suat tieu thu (kW) kem cac diem bat thuong."""
     fig = go.Figure()
     if df.empty or TARGET_COL not in df.columns:
-        fig.update_layout(**CHART_THEME, title="Chua co du lieu...")
+        fig.update_layout(**CHART_THEME, title="Chưa có dữ liệu")
         return fig
 
     # Duong cong suat
     fig.add_trace(go.Scatter(
-        x=df.index, y=df[TARGET_COL], mode="lines",
-        name="Công suất (kW)", line=dict(color=COLORS["primary"], width=2),
-        fill="tozeroy", fillcolor=COLORS["primary_rgba_05"],
+        x=df.index,
+        y=df[TARGET_COL],
+        mode="lines",
+        name="Công suất (kW)",
+        line=dict(color=COLORS["primary"], width=2),
+        fill="tozeroy",
+        fillcolor=COLORS["primary_rgba_05"],
         hovertemplate="<b>%{x}</b><br>Công suất: %{y:.3f} kW<extra></extra>",
     ))
 
-    # Diem bat thuong
+    # Danh dau diem bat thuong
     if "is_anomaly" in df.columns:
         anom_df = df[df["is_anomaly"] == 1]
         if not anom_df.empty:
             fig.add_trace(go.Scatter(
-                x=anom_df.index, y=anom_df[TARGET_COL], mode="markers",
+                x=anom_df.index,
+                y=anom_df[TARGET_COL],
+                mode="markers",
                 name="Bất thường",
-                marker=dict(color=COLORS["danger"], size=8.5, symbol="circle", line=dict(width=1.5, color=COLORS["surface"])),
+                marker=dict(
+                    color=COLORS["danger"],
+                    size=8.5,
+                    symbol="circle",
+                    line=dict(width=1.5, color=COLORS["surface"])
+                ),
                 customdata=anom_df.get("anomaly_type", "Bất thường"),
                 hovertemplate="<b>BẤT THƯỜNG</b><br>Thời gian: %{x}<br>Công suất: %{y:.3f} kW<br>Dạng lỗi: %{customdata}<extra></extra>",
             ))
 
     fig.update_layout(
-        **CHART_THEME, height=310,
+        **CHART_THEME,
+        height=310,
         title=dict(text="Biểu đồ đường công suất tiêu thụ điện năng (kW)", font=dict(size=13, color=COLORS["text_primary"]), x=0),
-        xaxis=dict(title=dict(text="Thời gian", font=dict(size=10)), showgrid=True, gridcolor=COLORS["grid_line"]),
-        yaxis=dict(title=dict(text="Global Active Power (kW)", font=dict(size=10)), showgrid=True, gridcolor=COLORS["grid_line"]),
+        xaxis=dict(
+            title=dict(text="Thời gian", font=dict(size=10, color=COLORS["text_primary"])),
+            showgrid=True,
+            gridcolor=COLORS["grid_line"],
+            hoverformat="%d/%m/%Y %H:%M",
+            tickfont=dict(color=COLORS["text_secondary"]),
+        ),
+        yaxis=dict(
+            title=dict(text="Global Active Power (kW)", font=dict(size=10, color=COLORS["text_primary"])),
+            showgrid=True,
+            gridcolor=COLORS["grid_line"],
+            tickfont=dict(color=COLORS["text_secondary"]),
+        ),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
     )
     return fig
@@ -107,20 +135,26 @@ def build_voltage_line_chart(df: pd.DataFrame) -> go.Figure:
     """Bieu do duong dien ap (V) kem dai an toan 220-250V."""
     fig = go.Figure()
     if df.empty or "Voltage" not in df.columns:
-        fig.update_layout(**CHART_THEME, title="Chua co du lieu...")
+        fig.update_layout(**CHART_THEME, title="Chưa có dữ liệu")
         return fig
 
     # Dai an toan dien ap
     fig.add_hrect(
-        y0=220, y1=250, fillcolor=COLORS["success_rgba_08"], line_width=0,
-        annotation_text="Vùng an toàn (220–250V)", annotation_position="top left",
+        y0=220, y1=250,
+        fillcolor=COLORS["success_rgba_08"],
+        line_width=0,
+        annotation_text="Vùng an toàn (220–250V)",
+        annotation_position="top left",
         annotation_font=dict(color=COLORS["success_dark"], size=10),
     )
 
     # Duong dien ap
     fig.add_trace(go.Scatter(
-        x=df.index, y=df["Voltage"], mode="lines",
-        name="Điện áp (V)", line=dict(color=COLORS["primary_dark"], width=1.8),
+        x=df.index,
+        y=df["Voltage"],
+        mode="lines",
+        name="Điện áp (V)",
+        line=dict(color=COLORS["primary_dark"], width=1.8),
         hovertemplate="<b>%{x}</b><br>Điện áp: %{y:.1f} V<extra></extra>",
     ))
 
@@ -129,24 +163,43 @@ def build_voltage_line_chart(df: pd.DataFrame) -> go.Figure:
         anom_df = df[df["is_anomaly"] == 1]
         if not anom_df.empty:
             fig.add_trace(go.Scatter(
-                x=anom_df.index, y=anom_df["Voltage"], mode="markers",
+                x=anom_df.index,
+                y=anom_df["Voltage"],
+                mode="markers",
                 name="Sự cố điện áp",
-                marker=dict(color=COLORS["danger"], size=8.0, symbol="circle", line=dict(width=1.5, color=COLORS["surface"])),
+                marker=dict(
+                    color=COLORS["danger"],
+                    size=8.0,
+                    symbol="circle",
+                    line=dict(width=1.5, color=COLORS["surface"])
+                ),
                 hovertemplate="<b>SỰ CỐ ĐIỆN ÁP</b><br>Thời gian: %{x}<br>Điện áp: %{y:.1f} V<extra></extra>",
             ))
 
     fig.update_layout(
-        **CHART_THEME, height=270,
+        **CHART_THEME,
+        height=270,
         title=dict(text="Biểu đồ đường điện áp lưới điện (Voltage)", font=dict(size=13, color=COLORS["text_primary"]), x=0),
-        xaxis=dict(title=dict(text="Thời gian", font=dict(size=10)), showgrid=True, gridcolor=COLORS["grid_line"]),
-        yaxis=dict(title=dict(text="Voltage (V)", font=dict(size=10)), showgrid=True, gridcolor=COLORS["grid_line"]),
+        xaxis=dict(
+            title=dict(text="Thời gian", font=dict(size=10, color=COLORS["text_primary"])),
+            showgrid=True,
+            gridcolor=COLORS["grid_line"],
+            hoverformat="%d/%m/%Y %H:%M",
+            tickfont=dict(color=COLORS["text_secondary"]),
+        ),
+        yaxis=dict(
+            title=dict(text="Voltage (V)", font=dict(size=10, color=COLORS["text_primary"])),
+            showgrid=True,
+            gridcolor=COLORS["grid_line"],
+            tickfont=dict(color=COLORS["text_secondary"]),
+        ),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
     )
     return fig
 
 
 def build_anomaly_donut_chart(df: pd.DataFrame) -> go.Figure:
-    """Bieu do Donut the hien ty le % cac loai bat thuong."""
+    """Bieu do Donut the hien ty le phan tram cac loai bat thuong."""
     types = ["power_surge", "voltage_drop", "night_spike"]
     labels = [TYPE_LABELS.get(t, t) for t in types]
     counts = [0] * len(types)
@@ -159,8 +212,8 @@ def build_anomaly_donut_chart(df: pd.DataFrame) -> go.Figure:
             counts = [int(val_counts.get(t, 0)) for t in types]
 
     total_anom = sum(counts)
-
     fig = go.Figure()
+
     if total_anom == 0:
         fig.add_trace(go.Pie(
             labels=["Bình thường"],
@@ -198,7 +251,7 @@ def build_anomaly_donut_chart(df: pd.DataFrame) -> go.Figure:
 
 
 def build_anomaly_heatmap(df: pd.DataFrame) -> go.Figure:
-    """Ban do nhiet (Heatmap) mat do bat thuong 24h x 7 ngay."""
+    """Ban do nhiet (Heatmap) mat do bat thuong 24 gio x 7 ngay."""
     day_labels = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"]
     hours = [f"{h:02d}:00" for h in range(24)]
     z_matrix = np.zeros((24, 7), dtype=int)
@@ -224,10 +277,10 @@ def build_anomaly_heatmap(df: pd.DataFrame) -> go.Figure:
         colorscale=heatmap_colorscale,
         showscale=True,
         colorbar=dict(
-            title=dict(text="Số lỗi", font=dict(size=10)),
+            title=dict(text="Số lỗi", font=dict(size=10, color=COLORS["text_primary"])),
             thickness=10,
             len=0.85,
-            tickfont=dict(size=9),
+            tickfont=dict(size=9, color=COLORS["text_secondary"]),
             outlinewidth=0,
         ),
         hovertemplate="<b>%{x}</b> lúc <b>%{y}</b><br>Số điểm bất thường: <b>%{z}</b><extra></extra>",
@@ -237,14 +290,14 @@ def build_anomaly_heatmap(df: pd.DataFrame) -> go.Figure:
         **{**CHART_THEME, "margin": dict(l=45, r=20, t=35, b=25)},
         height=270,
         title=dict(text="Bản đồ nhiệt bất thường (24 giờ × 7 ngày)", font=dict(size=13, color=COLORS["text_primary"]), x=0),
-        xaxis=dict(title="", showgrid=False, tickfont=dict(size=10)),
-        yaxis=dict(title="", showgrid=False, dtick=3, tickfont=dict(size=10), autorange="reversed"),
+        xaxis=dict(title="", showgrid=False, tickfont=dict(size=10, color=COLORS["text_secondary"])),
+        yaxis=dict(title="", showgrid=False, dtick=3, tickfont=dict(size=10, color=COLORS["text_secondary"]), autorange="reversed"),
     )
     return fig
 
 
 def calc_peak_hour_stats(df: pd.DataFrame) -> tuple[int, int, list[int]]:
-    """Tinh so luong bat thuong theo 24 gio va tra ve (peak_hour, peak_count, hour_counts)."""
+    """Tinh so luong bat thuong theo 24 gio."""
     hour_counts = [0] * 24
     if not df.empty and "is_anomaly" in df.columns:
         anom_df = df[df["is_anomaly"] == 1]
@@ -258,7 +311,7 @@ def calc_peak_hour_stats(df: pd.DataFrame) -> tuple[int, int, list[int]]:
 
 
 def build_hourly_distribution_chart(df: pd.DataFrame) -> go.Figure:
-    """Bieu do cot phan phoi bat thuong theo 24 gio."""
+    """Bieu do cot phan bo bat thuong theo 24 gio."""
     hours = list(range(24))
     peak_hour, peak_count, hour_counts = calc_peak_hour_stats(df)
     bar_colors = [COLORS["danger"] if h == peak_hour and peak_count > 0 else COLORS["primary"] for h in hours]
@@ -270,15 +323,18 @@ def build_hourly_distribution_chart(df: pd.DataFrame) -> go.Figure:
         hovertemplate="<b>Khung giờ: %{x}</b><br>Số lượng bất thường: %{y} điểm<extra></extra>",
     ))
     fig.update_layout(
-        **CHART_THEME, height=270,
+        **CHART_THEME,
+        height=270,
         title=dict(text="Phân bố bất thường theo 24 giờ (00:00 - 23:00)", font=dict(size=13, color=COLORS["text_primary"]), x=0),
-        xaxis=dict(title=dict(text="Khung giờ", font=dict(size=10)), showgrid=False),
-        yaxis=dict(title=dict(text="Số điểm bất thường", font=dict(size=10)), showgrid=True, gridcolor=COLORS["grid_line"]),
+        xaxis=dict(title=dict(text="Khung giờ", font=dict(size=10, color=COLORS["text_primary"])), showgrid=False, tickfont=dict(color=COLORS["text_secondary"])),
+        yaxis=dict(title=dict(text="Số điểm bất thường", font=dict(size=10, color=COLORS["text_primary"])), showgrid=True, gridcolor=COLORS["grid_line"], tickfont=dict(color=COLORS["text_secondary"])),
     )
     return fig
 
 
-# 3. Thanh phan giao dien va bang bieu
+# ==============================================================================
+# 3. THANH PHAN GIAO DIEN
+# ==============================================================================
 
 def render_kpi(label: str, value: str, subtext: str = "", card_theme: str = "primary"):
     """Hien thi the chi so KPI."""
@@ -300,7 +356,7 @@ def render_kpi(label: str, value: str, subtext: str = "", card_theme: str = "pri
 
 
 def render_chart_grid(df: pd.DataFrame, key_prefix: str, is_realtime: bool = False):
-    """Luoi bieu do 2 cot (Trai: Cong suat & Dien ap | Phai: Donut & Heatmap/Bieu do 24h)."""
+    """Luoi bieu do 2 cot."""
     col_l, col_r = st.columns([1.5, 1.1])
     with col_l:
         st.plotly_chart(build_power_line_chart(df), key=f"{key_prefix}_power_chart")
@@ -314,9 +370,9 @@ def render_chart_grid(df: pd.DataFrame, key_prefix: str, is_realtime: bool = Fal
 
 
 def format_anomaly_table_data(anom_df: pd.DataFrame) -> pd.DataFrame:
-    """Chuan hoa DataFrame bat thuong de dua vao bang hien thi."""
+    """Chuan hoa DataFrame bat thuong de dua vao bang."""
     df_out = anom_df.copy()
-    df_out["Thời gian"] = df_out.index.strftime("%Y-%m-%d %H:%M")
+    df_out["Thời gian"] = df_out.index.strftime(DATETIME_MINUTE_FORMAT)
     df_out["Công suất (kW)"] = df_out[TARGET_COL].map(lambda x: f"{x:.3f}")
     df_out["Điện áp (V)"] = df_out["Voltage"].map(lambda x: f"{x:.1f}")
     df_out["Mức độ (Severity)"] = df_out["severity"].map(lambda x: f"{x*100:.1f}%")
@@ -326,7 +382,7 @@ def format_anomaly_table_data(anom_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def render_anomaly_table(df_anom: pd.DataFrame, height: int = 300):
-    """Bang HTML/CSS hien thi danh sach su co bat thuong."""
+    """Bang HTML hien thi danh sach su co bat thuong."""
     if df_anom.empty:
         st.info("Không phát hiện điểm bất thường nào trong khoảng thời gian này.")
         return
@@ -340,7 +396,7 @@ def render_anomaly_table(df_anom: pd.DataFrame, height: int = 300):
         anomaly_type = row.get("Phân loại lỗi (AI)", "—")
         explanation = row.get("Nguyên nhân chính (XAI)", "—")
 
-        # Badge pill muc do nghiem trong
+        # Badge severity
         try:
             sev_num = float(str(severity).replace("%", ""))
             if sev_num >= 60.0:
@@ -352,7 +408,7 @@ def render_anomaly_table(df_anom: pd.DataFrame, height: int = 300):
         except Exception:
             sev_badge = f'<span class="badge-pill badge-neutral">{severity}</span>'
 
-        # Badge pill loai loi
+        # Badge loai loi
         type_str = str(anomaly_type).lower()
         if "công suất" in type_str:
             type_badge = f'<span class="badge-pill badge-amber">{anomaly_type}</span>'
@@ -378,24 +434,26 @@ def render_anomaly_table(df_anom: pd.DataFrame, height: int = 300):
     st.markdown(html_code, unsafe_allow_html=True)
 
 
-# 4. Che do phan tich lich su
+# ==============================================================================
+# 4. CHE DO PHAN TICH LICH SU
+# ==============================================================================
 
 def render_history_view(bundle, df_demo: pd.DataFrame):
-    """Man hinh phan tich du lieu lich su theo khoang thoi gian."""
+    """Giao dien phan tich lich su theo khoang thoi gian."""
     if df_demo.empty:
-        st.warning("Chưa tìm thấy tập dữ liệu demo. Hãy chạy lệnh python src/01_data_prep.py rồi python src/02_train.py để tạo dữ liệu!")
+        st.warning("Chưa tìm thấy tập dữ liệu demo. Hãy chạy lệnh python src/01_data_prep.py rồi python src/02_train.py!")
         return
 
     model, scaler, feat_names = bundle["model"], bundle["scaler"], bundle["features"]
     medians, iqrs = bundle["medians"], bundle["iqrs"]
 
-    # 1. Bo loc ngay thang
+    # Bo loc ngay
     min_date, max_date = df_demo.index.min().date(), df_demo.index.max().date()
     c1, c2, c3 = st.columns([1.5, 1.5, 1.0])
     with c1:
-        start_date = st.date_input("Từ ngày:", min_value=min_date, max_value=max_date, value=min_date, key="hist_start")
+        start_date = st.date_input("Từ ngày:", min_value=min_date, max_value=max_date, value=min_date, format="DD/MM/YYYY", key="hist_start")
     with c2:
-        end_date = st.date_input("Đến ngày:", min_value=min_date, max_value=max_date, value=max_date, key="hist_end")
+        end_date = st.date_input("Đến ngày:", min_value=min_date, max_value=max_date, value=max_date, format="DD/MM/YYYY", key="hist_end")
     with c3:
         st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
         reset_filter = st.button("Xem toàn bộ", key="btn_reset_dates")
@@ -410,7 +468,7 @@ def render_history_view(bundle, df_demo: pd.DataFrame):
         st.info("Không có bản ghi nào trong khoảng thời gian đã chọn.")
         return
 
-    # 2. Suy luan va gan nhan
+    # Suy dien
     df_feat = extract_features(df_filtered)
     X = scaler.transform(df_feat[feat_names].values)
     scores = model.decision_function(X)
@@ -432,7 +490,7 @@ def render_history_view(bundle, df_demo: pd.DataFrame):
     df_eval["anomaly_type"] = types
     df_eval["explanation"] = expls
 
-    # 3. The chi so KPI
+    #  phần hiển thị các thông tin về dữ liệu đã duyệt 
     total_pts = len(df_eval)
     anom_pts = int(df_eval["is_anomaly"].sum())
     anom_rate = (anom_pts / total_pts * 100) if total_pts > 0 else 0
@@ -441,7 +499,7 @@ def render_history_view(bundle, df_demo: pd.DataFrame):
 
     k1, k2, k3, k4 = st.columns(4)
     with k1:
-        render_kpi("Tổng Số Mẫu", f"{total_pts:,}", f"Từ {start_date} đến {end_date}", "primary")
+        render_kpi("Tổng Số Mẫu", f"{total_pts:,}", f"Từ {start_date.strftime(DATE_FORMAT)} đến {end_date.strftime(DATE_FORMAT)}", "primary")
     with k2:
         render_kpi("Tổng Bất Thường", f"{anom_pts:,}", f"Tỷ lệ: {anom_rate:.1f}% tổng tải", "red")
     with k3:
@@ -450,11 +508,8 @@ def render_history_view(bundle, df_demo: pd.DataFrame):
         render_kpi("Công Suất Trung Bình", f"{avg_power:.3f} kW", f"Cao nhất: {df_eval[TARGET_COL].max():.2f} kW", "green")
 
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
-
-    # 4. Luoi bieu do
     render_chart_grid(df_eval, key_prefix="hist", is_realtime=False)
 
-    # 5. Bang danh sach su co bat thuong
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
     anom_logs = df_eval[df_eval["is_anomaly"] == 1].copy()
 
@@ -473,10 +528,12 @@ def render_history_view(bundle, df_demo: pd.DataFrame):
         st.info("Không phát hiện điểm bất thường nào trong khoảng thời gian này.")
 
 
-# 5. Dong co va giao dien giam sat thoi gian thuc (Real-Time)
+# ==============================================================================
+# 5. CHE DO GIAM SAT THOI GIAN THUC
+# ==============================================================================
 
 def _step_stream_engine(df_demo: pd.DataFrame, bundle, n_steps: int = 1):
-    """Nap n_steps ban ghi tu df_demo vao session state."""
+    """Nap va suy dien cho n_steps ban ghi luong tiep theo."""
     model, scaler, feat_names = bundle["model"], bundle["scaler"], bundle["features"]
     medians, iqrs = bundle["medians"], bundle["iqrs"]
 
@@ -492,12 +549,10 @@ def _step_stream_engine(df_demo: pd.DataFrame, bundle, n_steps: int = 1):
         dt = df_demo.index[cursor]
         cursor += 1
 
-        # Buffer trich xuat dac trung
         st.session_state.rt_buffer.append({"datetime": dt, **row.to_dict()})
         if len(st.session_state.rt_buffer) > 50:
             st.session_state.rt_buffer.pop(0)
 
-        # Suy luan diem moi nhat
         is_anom, severity, anom_type, expl = 0, 0.0, "normal", "—"
         if len(st.session_state.rt_buffer) >= 25:
             buf_df = pd.DataFrame(st.session_state.rt_buffer).set_index("datetime")
@@ -511,7 +566,6 @@ def _step_stream_engine(df_demo: pd.DataFrame, bundle, n_steps: int = 1):
                     anom_type = classify_type(latest_feat)
                     expl = explain_anomaly(latest_feat, medians, iqrs)
 
-        # Cap nhat sliding window bieu do
         record = {
             "datetime": dt,
             TARGET_COL: float(row.get(TARGET_COL, 0.0)),
@@ -525,8 +579,7 @@ def _step_stream_engine(df_demo: pd.DataFrame, bundle, n_steps: int = 1):
         if len(st.session_state.rt_display) > MAX_DISPLAY_POINTS:
             st.session_state.rt_display.pop(0)
 
-        # Ghi nhan vao bang su co (chong trung lap)
-        ts_key = dt.strftime("%Y-%m-%d %H:%M:%S")
+        ts_key = dt.strftime(DATETIME_FORMAT)
         if is_anom == 1 and ts_key not in st.session_state.rt_event_keys:
             st.session_state.rt_event_keys.add(ts_key)
             st.session_state.rt_anomaly_events.append({
@@ -542,7 +595,7 @@ def _step_stream_engine(df_demo: pd.DataFrame, bundle, n_steps: int = 1):
 
 
 def _reset_stream(df_demo: pd.DataFrame, bundle):
-    """Dat lai trang thai phat luong ve diem bat dau."""
+    """Dat lai trang thai phat luong."""
     st.session_state.rt_is_playing = False
     st.session_state.rt_cursor = 0
     st.session_state.rt_buffer = []
@@ -553,7 +606,7 @@ def _reset_stream(df_demo: pd.DataFrame, bundle):
 
 
 def render_realtime_view(bundle, df_demo: pd.DataFrame):
-    """Man hinh giam sat luong du lieu thoi gian thuc."""
+    """Giao dien giam sat luong truc tiep."""
     if df_demo.empty:
         st.warning("Chưa tìm thấy tập dữ liệu demo. Hãy chạy python src/01_data_prep.py rồi python src/02_train.py trước!")
         return
@@ -572,7 +625,7 @@ def render_realtime_view(bundle, df_demo: pd.DataFrame):
     if len(st.session_state.rt_display) == 0 and len(df_demo) >= 30:
         _step_stream_engine(df_demo, bundle, n_steps=30)
 
-    # 1. Thanh cong cu dieu khien
+    # Bang dieu khien
     st.markdown("##### Bảng điều khiển phát luồng trực tiếp")
     ctrl_c1, ctrl_c2, ctrl_c3, ctrl_c4, ctrl_c5 = st.columns([1.3, 1.2, 1.2, 1.2, 1.8])
     is_playing = st.session_state.rt_is_playing
@@ -612,19 +665,17 @@ def render_realtime_view(bundle, df_demo: pd.DataFrame):
         st.markdown("<div style='height:26px'></div>", unsafe_allow_html=True)
         cur, total = st.session_state.rt_cursor, len(df_demo)
         if is_playing:
-            st.markdown(f'<div class="stream-status-playing">ĐANG PHÁT LUỒNG (Vị trí: {cur:,}/{total:,})</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="stream-status-playing">ĐANG PHÁT LUỒNG ({cur:,}/{total:,})</div>', unsafe_allow_html=True)
         else:
-            st.markdown(f'<div class="stream-status-paused">TẠM DỪNG (Vị trí: {cur:,}/{total:,})</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="stream-status-paused">TẠM DỪNG ({cur:,}/{total:,})</div>', unsafe_allow_html=True)
 
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
-    # 2. Nap ban ghi moi khi dang Play
     if is_playing:
         _step_stream_engine(df_demo, bundle, n_steps=1)
 
     disp_df = pd.DataFrame(st.session_state.rt_display).set_index("datetime") if st.session_state.rt_display else pd.DataFrame()
 
-    # 3. The KPI thoi gian thuc
     total_streamed = st.session_state.rt_cursor
     total_anoms = len(st.session_state.rt_anomaly_events)
     anom_rate = (total_anoms / max(1, total_streamed) * 100)
@@ -640,7 +691,7 @@ def render_realtime_view(bundle, df_demo: pd.DataFrame):
     with k4:
         render_kpi("Trạng Thái Stream", "PLAYING" if is_playing else "PAUSED", f"Tốc độ: {speed_option}s / mẫu", "accent" if is_playing else "primary")
 
-    # 4. Thanh thong bao trang thai tuc thoi
+    # Thanh thong bao trang thai
     if not disp_df.empty and "is_anomaly" in disp_df.columns and disp_df["is_anomaly"].iloc[-1] == 1:
         last = disp_df.iloc[-1]
         type_str = TYPE_LABELS.get(last['anomaly_type'], last['anomaly_type']).upper()
@@ -658,10 +709,8 @@ def render_realtime_view(bundle, df_demo: pd.DataFrame):
             unsafe_allow_html=True
         )
 
-    # 5. Luoi bieu do
     render_chart_grid(disp_df, key_prefix="rt", is_realtime=True)
 
-    # 6. Bang nhat ky su co bat thuong
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
     st.markdown(
         f'<div class="anomaly-table-header">'
@@ -677,17 +726,22 @@ def render_realtime_view(bundle, df_demo: pd.DataFrame):
     else:
         st.info("Chưa ghi nhận sự cố bất thường nào trong phiên phát luồng này.")
 
-    # 7. Tu dong lap lai khi Play
     if is_playing:
         time.sleep(speed_option)
         st.rerun()
 
 
-# 6. Diem khoi chay chinh cua ung dung
+# ==============================================================================
+# 6. HAM MAIN
+# ==============================================================================
 
 def main():
-    """Ham dieu phoi ung dung chinh."""
-    st.set_page_config(page_title="Smart Meter Anomaly Detection", layout="wide")
+    """Diem khoi chay chinh cua ung dung Streamlit."""
+    st.set_page_config(
+        page_title="Smart Meter Anomaly Detection",
+        layout="wide",
+        initial_sidebar_state="collapsed",
+    )
     load_custom_css()
 
     st.markdown('<div class="dashboard-main-title">Smart Meter Anomaly Detection System</div>', unsafe_allow_html=True)
