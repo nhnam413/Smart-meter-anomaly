@@ -50,7 +50,7 @@ def run_eda(df: pd.DataFrame) -> dict:
         "iqr_voltage_diff": iqr,
     }
 
-    print("  -> Thong ke co ban tap Train:")
+    print("  -> Thong ke tap Train:")
     print(f"     - Dien ap trung binh: {profile['voltage_mean']:.1f} V")
     print(f"     - Bien dong dien ap (min/max): {profile['voltage_diff_min']:+.1f} V / {profile['voltage_diff_max']:+.1f} V")
     print(f"     - Cong suat tieu thu trung binh: {profile['power_mean']:.2f} kW")

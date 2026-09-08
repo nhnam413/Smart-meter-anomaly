@@ -54,7 +54,6 @@ Bảng 1.1 trình bày các chỉ tiêu kỹ thuật đặt ra cho hệ thống 
 | Độ bao phủ sự cố (Recall) | lon hon 70% | 72,84% |
 | Thời gian suy diễn mỗi mẫu | duoi 5 ms | khoảng 1,2 ms |
 | Kích thước gói mô hình | — | 4,3 MB |
-| Kịch bản kiểm thử | 11/11 | 11/11 ĐẠT |
 
 ---
 
@@ -68,7 +67,7 @@ Bảng 1.1 trình bày các chỉ tiêu kỹ thuật đặt ra cho hệ thống 
 |:---|:---:|
 | Tổng bản ghi gốc (chu kỳ 1 phút) | 2.075.259 |
 | Sau resample 1 giờ | 34.054 mẫu giờ |
-| Tập huấn luyện Train (80%) | 27.243 mẫu |
+| Tập huấn luyện Train (80%) | 27.310 mẫu |
 | Tập kiểm định Demo (20%) | 6.811 mẫu |
 | Tỷ lệ bất thường tiêm vào tập Demo | khoảng 8% (545 điểm) |
 | Phân bổ: Surge / Drop / Night | 3% / 3% / 2% |
@@ -87,7 +86,16 @@ Phân chia thực hiện theo thứ tự thời gian tuyệt đối, không xáo
 
 Dữ liệu thực tế từ công tơ thông minh không có nhãn chân lý (Ground-Truth Labels): không có cơ chế nào tự động đánh dấu từng giờ vận hành là "bình thường" hay "lỗi". Vì vậy, các thuật toán phân loại có giám sát như Random Forest hay SVM đều không thể áp dụng do thiếu tập nhãn huấn luyện.
 
-Ngoài ra, dữ liệu điện lực có hai đặc điểm khắt khe. Thứ nhất, mất cân bằng lớp cực đoan: tỷ lệ bất thường trong thực tế chỉ khoảng 1 đến 8%, còn lại 92 đến 99% là trạng thái bình thường. Thứ hai, phân phối công suất là đa đỉnh phi Gaussian do chu kỳ sinh hoạt ngày-đêm, các phương pháp thống kê cổ điển dựa trên khoảng 3-sigma sẽ mô tả sai miền an toàn.
+Ngoài ra, dữ liệu điện lực mang hai đặc thù vô cùng khắt khe, khiến các thuật toán truyền thống dễ dàng thất bại:
+
+**Thứ nhất, sự mất cân bằng lớp cực đoan (Extreme Class Imbalance):**
+Tỷ lệ xảy ra sự cố trong thực tế thường rất thấp (chỉ từ 1% đến 8%), trong khi 92% đến 99% thời gian hệ thống vận hành bình thường. Nếu áp dụng các mô hình phân loại thông thường, thuật toán sẽ sinh ra thiên kiến (bias) "tối ưu hóa lười biếng" — tức là luôn dự đoán mọi thời điểm đều "bình thường" để đạt độ chính xác giả tạo (Accuracy) lên tới 99%, dẫn đến việc bỏ lọt hoàn toàn các sự cố hiếm gặp.
+
+**Thứ hai, đặc tính phân phối đa đỉnh phi Gaussian (Non-Gaussian Multi-modal Distribution):**
+Hầu hết các phương pháp phát hiện bất thường cổ điển (như quy tắc 3-Sigma) đều ngầm giả định dữ liệu tuân theo phân phối chuẩn hình quả chuông (Gaussian), dao động quanh một giá trị trung bình duy nhất. Tuy nhiên, hành vi tiêu thụ điện lại có nhiều "đỉnh" khác nhau tùy thuộc vào thời gian (ví dụ: một đỉnh tải cực thấp vào ban đêm khi mọi người ngủ, và một đỉnh tải rất cao vào chiều tối do sử dụng nhiều thiết bị).
+Nếu cố tình dùng 3-Sigma để gộp chung toàn bộ dữ liệu trong ngày nhằm tìm ra một mức "Trung bình" và "Độ lệch chuẩn" duy nhất, miền an toàn được vẽ ra sẽ bị sai lệch hoàn toàn. Hệ quả là, mức tải thấp bình thường ban đêm có thể bị hệ thống báo động nhầm là "sụt áp", trong khi mức tải bình thường giờ cao điểm lại bị báo động giả là "đột biến công suất".
+
+Chính vì những đặc điểm này, **Isolation Forest** (thuật toán không giám sát, hoạt động dựa trên cơ chế cô lập điểm dị biệt bằng chiều dài đường đi của cây, thay vì cố gắng mô hình hóa phân phối của dữ liệu bình thường) được lựa chọn làm giải pháp cốt lõi cho hệ thống.
 
 ---
 
@@ -111,7 +119,7 @@ Trong đó:
 
 Median và IQR chỉ phụ thuộc vào vị trí thứ tự của 50% dữ liệu vùng lõi, nên mọi đột biến ở hai đầu biên không ảnh hưởng đến tâm chuẩn hóa. Các điểm dị biệt giữ nguyên khoảng cách xa và nổi bật rõ trong không gian đặc trưng.
 
-Trong dự án, scaler được khớp duy nhất trên tập Train (27.243 mẫu) và lưu vào file model_bundle.pkl để áp dụng nhất quán khi suy diễn.
+Trong dự án, scaler được khớp duy nhất trên tập Train (27.310 mẫu) và lưu vào file model_bundle.pkl để áp dụng nhất quán khi suy diễn.
 
 ---
 
@@ -156,13 +164,13 @@ score = 0,5 - s(x, n)
 
 Quy tắc gán nhãn: khi score âm thì mẫu bị gán nhãn Bất thường (-1); khi score dương hoặc bằng 0 thì mẫu bị gán nhãn Bình thường (+1).
 
-**Bảng 2.2 — Điểm score thực tế từ các ca kiểm thử mô hình**
+**Bảng 2.2 — Điểm score thực tế trên một số điểm bất thường**
 
-| Kịch bản | Sự cố | Giá trị score | Nhãn |
-|:---|:---|:---:|:---:|
-| TC_06 | Điện áp sụt từ 235 V xuống 202 V | -0,182 | voltage_drop |
-| TC_07 | Công suất tăng từ 1,1 kW lên 5,2 kW lúc 14 giờ | -0,215 | power_surge |
-| TC_08 | Công suất đạt 2,9 kW lúc 3 giờ sáng | -0,154 | night_spike |
+| Tình huống sự cố | Giá trị score | Nhãn |
+|:---|:---:|:---:|
+| Điện áp sụt từ 235 V xuống 202 V | -0,182 | voltage_drop |
+| Công suất tăng từ 1,1 kW lên 5,2 kW lúc 14 giờ | -0,215 | power_surge |
+| Công suất đạt 2,9 kW lúc 3 giờ sáng | -0,154 | night_spike |
 
 ### 2.3.4. Cấu hình Siêu tham số Mô hình
 
@@ -481,7 +489,7 @@ Trên Dashboard, bộ đệm được quản lý bằng danh sách trong bộ nh
 - Khi danh sách vượt quá 50 phần tử: xóa phần tử cũ nhất ở đầu danh sách.
 - Kích thước bộ đệm luôn nằm trong khoảng từ 25 đến 50 bản ghi.
 
-Cơ chế này đảm bảo RAM trình duyệt ổn định khi luồng dữ liệu chạy liên tục hàng nghìn bản ghi. Kịch bản kiểm thử TC_11 đã xác nhận: sau 1.000 bản ghi phát liên tiếp, bộ nhớ trình duyệt không tăng và đồ họa không bị giật lag.
+Cơ chế này đảm bảo RAM trình duyệt ổn định khi luồng dữ liệu chạy liên tục hàng nghìn bản ghi. Thực tế thử nghiệm xác nhận: sau 1.000 bản ghi phát liên tiếp, bộ nhớ trình duyệt không tăng và đồ họa không bị giật lag.
 
 ---
 
@@ -531,7 +539,7 @@ Deviation(i) = |x(i) - Median(i)| / (IQR(i) + 0,000001)
 
 Trong đó:
 - x(i) là giá trị thực tế của đặc trưng i tại điểm đang xét.
-- Median(i) là trung vị của đặc trưng i trên toàn bộ tập Train (27.243 mẫu bình thường).
+- Median(i) là trung vị của đặc trưng i trên toàn bộ tập Train (27.310 mẫu bình thường).
 - IQR(i) = Q3(i) - Q1(i) là khoảng tứ phân vị, đo độ trải rộng bình thường.
 
 Chỉ các đặc trưng có Deviation lớn hơn 0,5 mới được đưa vào danh sách ứng cử viên. Danh sách được sắp xếp giảm dần theo Deviation và lấy 3 đặc trưng lệch nhiều nhất (Top-3).
@@ -590,7 +598,7 @@ Trong bài toán chuỗi thời gian, phân chia ngẫu nhiên là sai lầm ngh
 
 | Tập | Giai đoạn | Số mẫu | Mục đích |
 |:---:|:---:|:---:|:---|
-| Train (80%) | 12/2006 - 01/2010 | 27.243 | Huấn luyện mô hình |
+| Train (80%) | 12/2006 - 01/2010 | 27.310 | Huấn luyện mô hình |
 | Demo (20%) | 01/2010 - 11/2010 | 6.811 | Kiểm định sau tiêm lỗi |
 
 ### 4.2.3. Tiêm lỗi Giả lập có Kiểm soát
@@ -615,7 +623,7 @@ Tổng tỷ lệ bất thường: 8%, khớp với tham số contamination = 0,0
 
 Quá trình huấn luyện thực thi bốn bước:
 
-Bước 1 — Trích xuất 9 đặc trưng từ tập Train, tạo ma trận kích thước 27.243 dòng nhân 9 cột.
+Bước 1 — Trích xuất 9 đặc trưng từ tập Train, tạo ma trận kích thước 27.310 dòng nhân 9 cột.
 
 Bước 2 — Khớp RobustScaler trên tập Train và chuẩn hóa toàn bộ ma trận đặc trưng.
 
@@ -664,28 +672,6 @@ Thời gian phản hồi sau lần nạp đầu: dưới 50 mili-giây.
 ### 4.4.3. Khóa cứng Light Theme
 
 Streamlit mặc định theo chế độ màu hệ điều hành. Khi người dùng bật Dark Mode, chữ trên biểu đồ Plotly mất màu. Giải pháp: khai báo bắt buộc color-scheme: light trong file src/style.css kết hợp cấu hình theme trong .streamlit/config.toml, đảm bảo 100% Light Mode bất kể cài đặt hệ điều hành.
-
----
-
-## 4.5. Bảng 11 Kịch bản Kiểm thử
-
-**Bảng 4.5 — Kết quả kiểm thử**
-
-| Mã | Cấp | Kịch bản | Đầu vào | Kỳ vọng | Thực tế | Kết quả |
-|:---:|:---:|:---|:---|:---|:---|:---:|
-| TC_01 | Unit | hour_sin/cos tại 6h và 18h | h = 6, h = 18 | sin=1, cos=0 va sin=-1, cos=0 | Sai số dưới 0,0000001 | ĐẠT |
-| TC_02 | Unit | Cờ is_night 24 giờ | h từ 0 đến 23 | Bằng 1 tại {1,2,3,4,5} | Đúng 24/24 | ĐẠT |
-| TC_03 | Unit | power_factor giới hạn 1,0 | P=2,5 kW, Q=0 | cos phi = 1,0 | Trả về 1,0000 | ĐẠT |
-| TC_04 | Unit | Z-Score khi tải phẳng 6h | sigma = 0 | Không văng lỗi | Ổn định nhờ epsilon | ĐẠT |
-| TC_05 | Logic | Warm-up Gate | 10, 20, 24, 25 mẫu | None khi N duoi 25 | None tại N=24, vector tại N=25 | ĐẠT |
-| TC_06 | Model | voltage_drop | U: 235V sang 202V | score âm, nhãn đúng | score = -0,182 | ĐẠT |
-| TC_07 | Model | power_surge | P: 1,1 sang 5,2 kW lúc 14h | score âm, nhãn đúng | score = -0,215 | ĐẠT |
-| TC_08 | Model | night_spike | P = 2,9 kW lúc 3h sáng | score âm, nhãn đúng | score = -0,154 | ĐẠT |
-| TC_09 | XAI | Top-1 sự cố sụt áp | Sụt áp -33V | voltage_diff_1h đứng đầu | Báo đúng | ĐẠT |
-| TC_10 | System | Phát luồng 500 bản ghi | speed 0,1 limit 500 | 500 dòng không lỗi | 500/500 thành công | ĐẠT |
-| TC_11 | UI | Giới hạn 100 điểm | 1.000 bản ghi liên tục | Tối đa 100 điểm trên đồ thị | RAM ổn định | ĐẠT |
-
-Tổng kết: 11/11 kịch bản đạt yêu cầu — tỷ lệ thông qua 100%.
 
 ---
 
@@ -780,9 +766,9 @@ Accuracy cao chủ yếu nhờ lớp bình thường chiếm 91,99%. Một mô h
 
 | Dạng sự cố | Tỷ lệ phát hiện | Đặc trưng quyết định | Giải thích |
 |:---:|:---:|:---|:---|
-| power_surge | 94,1% | power_dev_24h, power_diff_1h | Biên độ lớn, khoảng cách hình học rõ, iTree cô lập nhanh |
-| voltage_drop | 92,7% | voltage_diff_1h | Phản ánh tức thì sụt áp, quy tắc ngưỡng -15V bổ trợ |
-| night_spike | 83,6% | is_night, power_zscore_6h | Biên độ nhỏ hơn, vùng ranh giới mờ, chấp nhận bỏ sót |
+| power_surge | 62,0% | power_dev_24h, power_diff_1h | Biên độ lớn, khoảng cách hình học rõ, iTree cô lập nhanh |
+| voltage_drop | 94,1% | voltage_diff_1h | Phản ánh tức thì sụt áp, quy tắc ngưỡng -15V bổ trợ |
+| night_spike | 57,0% | is_night, power_zscore_6h | Biên độ nhỏ hơn, vùng ranh giới mờ, chấp nhận bỏ sót |
 
 Tỷ lệ night_spike thấp hơn (83,6%) vì một số thiết bị tự động hợp lệ như bình nước nóng và tủ lạnh xả tuyết có thể kích hoạt trong khung giờ 1-5h với mức tăng gấp 2 lần — nằm ở ranh giới giữa bình thường và bất thường. Mô hình chấp nhận bỏ sót tỷ lệ nhỏ này để tránh bùng nổ cảnh báo giả ban đêm.
 
@@ -911,7 +897,7 @@ Lệnh này sẽ đọc dữ liệu thô `household_power_consumption.txt`, làm
 ```bash
 python src/01_data_prep.py
 ```
-*Kết quả đầu ra:* Tạo ra `data/train_hourly.csv` (27.243 dòng) và `data/demo_stream.csv` (6.811 dòng).
+*Kết quả đầu ra:* Tạo ra `data/train_hourly.csv` (27.310 dòng) và `data/demo_stream.csv` (6.811 dòng).
 
 #### Bước 2: Huấn luyện Mô hình và Đóng gói
 Lệnh này sẽ trích xuất 9 đặc trưng, huấn luyện `RobustScaler` và `IsolationForest`, đánh giá hiệu năng trên tập Demo và xuất gói mô hình `model_bundle.pkl`:

@@ -33,11 +33,30 @@ def evaluate_model(model: IsolationForest, scaler: RobustScaler, df_demo_labeled
 
     common_idx = df_feat.index.intersection(df_demo_labeled.index)
     y_true = df_demo_labeled.loc[common_idx, "is_anomaly"].values
+    anomaly_types = df_demo_labeled.loc[common_idx, "anomaly_type"].values
 
     roc_auc = roc_auc_score(y_true, -scores)
     print(f"   ROC-AUC Score: {roc_auc:.4f}\n")
-    print("Classification Report:")
+    print("Classification Report (Tổng quan):")
     print(classification_report(y_true, preds, target_names=["Bình thường", "Bất thường"], digits=4))
+
+    print("\nChi tiết Recall theo từng loại lỗi (Root Cause Analysis):")
+    print(f"{'Loại Bất Thường':<20} | {'Số Lượng':<10} | {'Bắt Được':<10} | {'Bỏ Lọt':<8} | {'Recall (%)':<10}")
+    print("-" * 68)
+    
+    unique_types = sorted(list(set(anomaly_types)))
+    for atype in unique_types:
+        if atype == 'normal':
+            continue
+        mask = (anomaly_types == atype)
+        total = mask.sum()
+        if total == 0:
+            continue
+        caught = (preds[mask] == 1).sum()
+        missed = total - caught
+        recall_pct = (caught / total) * 100
+        print(f"{atype:<20} | {total:<10} | {caught:<10} | {missed:<8} | {recall_pct:.1f}%")
+    print("-" * 68)
 
 
 def main():

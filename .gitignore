@@ -32,7 +32,8 @@ data/demo/
 models/*.pkl
 
 # Generated evaluation reports
-reports/
+reports/*
+!reports/figures/
 
 # Streamlit
 .streamlit/
