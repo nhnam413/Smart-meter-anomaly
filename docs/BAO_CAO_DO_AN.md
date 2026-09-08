@@ -121,6 +121,9 @@ Median và IQR chỉ phụ thuộc vào vị trí thứ tự của 50% dữ li�
 
 Trong dự án, scaler được khớp duy nhất trên tập Train (27.310 mẫu) và lưu vào file model_bundle.pkl để áp dụng nhất quán khi suy diễn.
 
+![Hình 2.1 — So sánh trực quan dữ liệu trước và sau khi áp dụng StandardScaler, MinMaxScaler và RobustScaler trên cùng tập dữ liệu có Outlier](../reports/figures/Hinh_2.1_SoSanh_ChuanHoa_RobustScaler.png)
+*Hình 2.1 — So sánh trực quan dữ liệu trước và sau khi chuẩn hóa: (a) Dữ liệu gốc có Outlier cực đoan; (b) StandardScaler bị kéo lệch tâm Mean và thổi phồng phương sai Std (hiệu ứng Masking); (c) MinMaxScaler nén nghẹt cụm dữ liệu bình thường sát 0 do Max quá lớn; (d) RobustScaler bảo toàn nguyên vẹn hình thái phân phối tự nhiên và khoảng cách dị biệt.*
+
 ---
 
 ## 2.3. Thuật toán Isolation Forest
@@ -133,6 +136,9 @@ Isolation Forest không cố gắng xây dựng mô hình mô tả điểm bình
 - Giá trị cách biệt — tọa độ nằm xa cụm chính.
 
 Khi phân chia không gian dữ liệu một cách ngẫu nhiên và đệ quy bằng các cây nhị phân, điểm bất thường nằm trong vùng thưa nên chỉ cần vài lần cắt là bị cô lập hoàn toàn (đường đi ngắn, khoảng 2 đến 4 tầng). Điểm bình thường nằm sâu trong vùng dày đặc, đòi hỏi nhiều lần cắt hơn (đường đi dài, khoảng 12 đến 16 tầng).
+
+![Hình 2.2 — Sơ đồ minh họa nguyên lý Cô lập Trực tiếp của Isolation Tree](../reports/figures/Hinh_2.2_NguyenLy_Isolation_Tree.png)
+*Hình 2.2 — Minh họa nguyên lý của Isolation Tree: (a) Trong không gian đặc trưng 2D, điểm bất thường $x_i$ nằm ở vùng thưa chỉ cần 2 nhát cắt ($s_1, s_2$) là bị cô lập hoàn toàn, trong khi điểm bình thường $x_o$ đòi hỏi nhiều nhát cắt đệ quy ($s_3 \dots s_{12}$); (b) Cấu trúc cây nhị phân tương ứng với chiều dài đường đi ngắn $h(x_i) = 2$ (tầng nông $\rightarrow$ Điểm số dị biệt $s \approx 1,0$) và đường đi dài $h(x_o) = 12$ (tầng sâu $\rightarrow$ Điểm số bình thường $s \approx 0,0$).*
 
 ### 2.3.2. Điểm số Bất thường
 
