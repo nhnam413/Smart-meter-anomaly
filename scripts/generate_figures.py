@@ -37,14 +37,17 @@ def generate_hinh_1_1(df_demo):
         anomalies = df_demo[df_demo['anomaly_type'] == atype]
         if not anomalies.empty:
             idx = anomalies.index[0]
-            start_idx = df_demo.index.get_loc(idx) - 24
-            end_idx = df_demo.index.get_loc(idx) + 24
+            # Mở rộng khung cửa sổ lên 2 tuần (336 giờ)
+            start_idx = df_demo.index.get_loc(idx) - 168
+            end_idx = df_demo.index.get_loc(idx) + 168
             start_idx = max(0, start_idx)
             end_idx = min(len(df_demo), end_idx)
             
             sub_df = df_demo.iloc[start_idx:end_idx]
-            ax.plot(sub_df.index, sub_df[col], color='blue', label='Bình thường')
-            ax.scatter([idx], [df_demo.loc[idx, col]], color='red', s=100, label='Sự cố', zorder=5)
+            window_anomalies = sub_df[sub_df['anomaly_type'] == atype]
+            
+            ax.plot(sub_df.index, sub_df[col], color='blue', label='Bình thường', alpha=0.7)
+            ax.scatter(window_anomalies.index, window_anomalies[col], color='red', s=60, label='Sự cố', zorder=5)
             ax.set_title(title)
             ax.legend()
     save_fig("Hinh_1.1_MinhHoa_3_Loai_SuCo.png")
