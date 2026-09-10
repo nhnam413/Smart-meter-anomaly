@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="700" viewBox="0 0 1080 700" role="img">
+<title>Kiến trúc mô-đun và các tệp trao đổi</title>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs>
+<rect width="1080" height="700" fill="white"/>
+<g font-family="DejaVu Sans, Arial, sans-serif" font-size="17" fill="#0f172a">
+<text x="540" y="34" text-anchor="middle" font-size="25" fill="#0f172a" font-weight="bold">
+<tspan x="540" dy="0">Kiến trúc mô-đun và các tệp trao đổi</tspan>
+</text>
+<rect x="40" y="75" width="230" height="65" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="155.0" y="112.94" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="normal">
+<tspan x="155.0" dy="0">UCI: số đo theo phút</tspan>
+</text>
+<rect x="365" y="75" width="350" height="65" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="540.0" y="100.615" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="normal">
+<tspan x="540.0" dy="0">01_data_prep.py</tspan>
+<tspan x="540.0" dy="24.65">Làm sạch → tổng hợp → chia thời gian</tspan>
+</text>
+<polyline points="270,108 365,108" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="100" y="195" width="340" height="70" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="270.0" y="223.115" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="normal">
+<tspan x="270.0" dy="0">train_hourly.csv</tspan>
+<tspan x="270.0" dy="24.65">Đầu vào huấn luyện</tspan>
+</text>
+<rect x="640" y="195" width="340" height="70" rx="10" fill="#fff7ed" stroke="#d97706" stroke-width="2"/>
+<text x="810.0" y="223.115" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="normal">
+<tspan x="810.0" dy="0">Demo sau tiêm tổng hợp</tspan>
+<tspan x="810.0" dy="24.65">demo_stream.csv</tspan>
+</text>
+<polyline points="470,140 470,166 270,166 270,195" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<polyline points="610,140 610,166 810,166 810,195" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="100" y="315" width="340" height="80" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="270.0" y="348.115" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="normal">
+<tspan x="270.0" dy="0">02_train.py + features.py</tspan>
+<tspan x="270.0" dy="24.65">Fit scaler → fit Isolation Forest</tspan>
+</text>
+<polyline points="270,265 270,315" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="100" y="445" width="340" height="80" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="270.0" y="478.52" text-anchor="middle" font-size="16" fill="#0f172a" font-weight="normal">
+<tspan x="270.0" dy="0">model_bundle.pkl</tspan>
+<tspan x="270.0" dy="23.2">model, scaler, features, medians, iqrs</tspan>
+</text>
+<polyline points="270,395 270,445" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="640" y="335" width="340" height="100" rx="10" fill="#ecfdf5" stroke="#059669" stroke-width="2"/>
+<text x="810.0" y="366.92" text-anchor="middle" font-size="16" fill="#0f172a" font-weight="normal">
+<tspan x="810.0" dy="0">04_dashboard.py + features.py</tspan>
+<tspan x="810.0" dy="23.2">Lịch sử / mô phỏng tuần tự</tspan>
+<tspan x="810.0" dy="23.2">Transform → suy luận → hậu xử lý</tspan>
+</text>
+<polyline points="810,265 810,335" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="870" y="305" text-anchor="middle" font-size="15" fill="#475569" font-weight="normal">
+<tspan x="870" dy="0">đọc CSV</tspan>
+</text>
+<polyline points="440,485 555,485 555,385 640,385" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="525" y="465" text-anchor="middle" font-size="15" fill="#475569" font-weight="normal">
+<tspan x="525" dy="0">nạp bundle</tspan>
+</text>
+<rect x="640" y="505" width="340" height="70" rx="10" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+<text x="810.0" y="533.115" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="normal">
+<tspan x="810.0" dy="0">SQLite: alerts</tspan>
+<tspan x="810.0" dy="24.65">Lưu và cập nhật trạng thái</tspan>
+</text>
+<polyline points="810,435 810,505" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="902" y="475" text-anchor="middle" font-size="15" fill="#475569" font-weight="normal">
+<tspan x="902" dy="0">cảnh báo mô phỏng</tspan>
+</text>
+<rect x="640" y="615" width="340" height="55" rx="10" fill="#f8fafc" stroke="#475569" stroke-width="2"/>
+<text x="810.0" y="647.94" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="normal">
+<tspan x="810.0" dy="0">Người vận hành / CSV đã lọc</tspan>
+</text>
+<polyline points="810,575 810,615" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="270" y="595" text-anchor="middle" font-size="16" fill="#475569" font-weight="normal">
+<tspan x="270" dy="0">03_producer.py xuất JSONL tùy chọn.</tspan>
+<tspan x="270" dy="23.2">Dashboard hiện chưa đọc JSONL.</tspan>
+</text>
+</g></svg>

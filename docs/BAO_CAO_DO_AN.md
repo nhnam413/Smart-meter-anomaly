@@ -1,957 +1,847 @@
-# BÁO CÁO TOÀN DIỆN ĐỒ ÁN TỐT NGHIỆP
-## HỆ THỐNG PHÁT HIỆN BẤT THƯỜNG ĐIỆN NĂNG THỜI GIAN THỰC SỬ DỤNG MÔ HÌNH ISOLATION FOREST
+# BÁO CÁO ĐỒ ÁN NGÀNH
 
-> **Bộ dữ liệu thực nghiệm:** UCI — Individual Household Electric Power Consumption  
-> **Công nghệ cốt lõi:** Python, Scikit-Learn (Isolation Forest), Streamlit, Plotly  
-> **Phạm vi nghiên cứu:** Giám sát điện năng hộ gia đình, phát hiện và chẩn đoán 3 dạng sự cố cốt lõi (power_surge, voltage_drop, night_spike)  
-> **Tài liệu tổng hợp chuẩn:** Đầy đủ 5 chương, phụ lục vận hành và danh mục tài liệu tham khảo
+## HỆ THỐNG PHÁT HIỆN BẤT THƯỜNG ĐIỆN NĂNG TRÊN DỮ LIỆU CÔNG TƠ THÔNG MINH SỬ DỤNG ISOLATION FOREST
 
----
-
-# CHƯƠNG 1: TỔNG QUAN HỆ THỐNG VÀ 3 BÀI TOÁN SỰ CỐ CỐT LÕI
-
----
-
-## 1.1. Bối cảnh và Phát biểu Bài toán
-
-Cơ chế bảo vệ duy nhất trong hệ thống điện dân dụng truyền thống là Aptomat (MCB/RCCB) — thiết bị hoạt động dựa trên ngưỡng tĩnh (Static Thresholding), chỉ ngắt mạch khi dòng điện vượt mức định mức cố định. Tuy nhiên, dữ liệu điện năng thực tế (như công suất P, Q, điện áp U) là chuỗi thời gian đa biến mang tính chu kỳ cao. Một mức công suất 3 kW có thể là bình thường vào lúc 19h tối nhưng là dấu hiệu bất thường nghiêm trọng (rò rỉ điện hoặc kẹt rơ-le) nếu xảy ra lúc 3h sáng. 
-
-Việc sử dụng ngưỡng tĩnh tạo ra khoảng trống bảo vệ lớn đối với các sự cố "dưới ngưỡng" và gây hiện tượng "mỏi cảnh báo" (Alert Fatigue) do không thích ứng được với sự phân phối động của dữ liệu. Do đó, bài toán đặt ra là: Xây dựng một đường ống thuật toán (Algorithmic Pipeline) áp dụng Học máy không giám sát để học phân phối dữ liệu phụ tải bình thường theo thời gian, từ đó tự động phát hiện các dị biệt đa chiều mà không phụ thuộc vào nhãn dữ liệu hay ngưỡng tĩnh cứng nhắc.
+**Trường:** [Điền tên trường]<br>
+**Khoa:** [Điền tên khoa]<br>
+**Ngành:** [Điền tên ngành]<br>
+**Sinh viên thực hiện:** [Điền họ tên]<br>
+**Mã số sinh viên:** [Điền MSSV]<br>
+**Giảng viên hướng dẫn:** [Điền họ tên giảng viên]<br>
+**Địa điểm, năm:** [Điền thông tin]
 
 ---
 
-## 1.2. Ba Dạng Sự cố Điện Cốt lõi
+# LỜI CẢM ƠN
 
-### 1.2.1. Đột biến công suất (power_surge)
+[Bổ sung lời cảm ơn sau khi hoàn tất thông tin tác giả và giảng viên hướng dẫn.]
 
-Sự cố xảy ra khi công suất tác dụng P tăng đột biến gấp từ 3,0 đến 5,0 lần so với mức tiêu thụ nền bình thường trong khung giờ sinh hoạt từ 8 giờ sáng đến 10 giờ tối. Nguyên nhân thực tế gồm: chập mạch một phần cuộn dây động cơ, máy bơm bị kẹt cánh quạt duy trì dòng khởi động liên tục, hoặc nhiều thiết bị công suất cao hoạt động đồng thời trên cùng một nhánh dây.
+# NHẬN XÉT CỦA GIẢNG VIÊN HƯỚNG DẪN
 
-Hậu quả tuân theo định luật Joule-Lenz: nhiệt lượng sinh ra tỷ lệ bình phương dòng điện, quá tải gấp 4 lần đồng nghĩa dây dẫn tích nhiệt nhanh gấp 16 lần, có thể dẫn đến phóng điện hồ quang và bùng phát cháy.
+[Dành cho giảng viên hướng dẫn.]
 
-### 1.2.2. Sụt điện áp lưới (voltage_drop)
+# TÓM TẮT
 
-Sự cố xảy ra khi điện áp nguồn U giảm đột ngột từ 20 V đến 40 V trong vòng một giờ, đẩy điện áp vận hành xuống dưới ngưỡng an toàn 210 V. Tiêu chuẩn an toàn cho phép dao động 220 V cộng trừ 10%, tức từ 198 V đến 242 V.
+Đồ án xây dựng một hệ thống nguyên mẫu phát hiện bất thường trên dữ liệu công tơ điện thông minh theo giờ. Dữ liệu nguồn là bộ *Individual Household Electric Power Consumption* của UCI. Chuỗi sau làm sạch được chia theo thời gian thành 27.334 dòng huấn luyện và 6.834 dòng Demo. Hệ thống tính chín đặc trưng về chu kỳ thời gian, biến động công suất, biến động điện áp và hệ số công suất; 24 dòng đầu của mỗi chuỗi không đủ độ trễ 24 mẫu nên không được đưa vào mô hình. RobustScaler được khớp trên 27.310 mẫu huấn luyện hợp lệ, sau đó Isolation Forest gồm 200 cây được huấn luyện không giám sát với tối đa 512 mẫu trên mỗi cây và `contamination=0,08`.
 
-Nguyên nhân gồm: lệch pha trên lưới phân phối hạ thế, mối nối tiếp xúc kém hoặc một phụ tải lân cận khởi động kéo tụt điện áp. Với các tải cảm ứng như động cơ tủ lạnh và máy điều hòa, điện áp giảm buộc dòng điện tăng tỷ lệ nghịch; ngâm dòng cao kéo dài sẽ thiêu hủy cuộn dây máy nén.
+Ba kịch bản tổng hợp được tiêm vào bản sao của phần Demo để tạo nhãn kiểm định: đột biến công suất ban ngày, sụt điện áp và đột biến công suất ban đêm. Sau bước tạo đặc trưng còn 6.810 mẫu, trong đó 545 mẫu mang nhãn tiêm tổng hợp. Với ngưỡng quyết định của model bundle hiện tại, hệ thống phát 764 cảnh báo, đạt ROC-AUC 0,923131 và Recall 72,84%. Dashboard Streamlit hỗ trợ hai chế độ: phân tích lịch sử và suy luận mô phỏng; cảnh báo có thể được lọc, tiếp nhận, ghi chú, đóng và xuất CSV. Mười test nghiệp vụ dùng chính dữ liệu UCI cùng hai test giao diện sáng đều đạt trong lần nghiệm thu. Các kết quả phản ánh khả năng nhận biết kịch bản tổng hợp trong dữ liệu của một hộ gia đình; chúng chưa chứng minh hiệu quả trên sự cố thiết bị đã được chuyên gia xác nhận.
 
-### 1.2.3. Đột biến ban đêm (night_spike)
+**Từ khóa:** công tơ thông minh, phát hiện bất thường, Isolation Forest, RobustScaler, dữ liệu chuỗi thời gian, Streamlit.
 
-Sự cố xảy ra khi công suất bất ngờ tăng gấp 2,0 đến 3,5 lần trong khung giờ thấp điểm từ 1 giờ sáng đến 5 giờ sáng. Mức nền đêm bình thường chỉ từ 0,20 đến 0,45 kW (chế độ Standby).
+# ABSTRACT
 
-Nguyên nhân gồm: rơ-le bình nước nóng bị dính tiếp điểm khiến thiết bị đóng điện liên tục xuyên đêm, hoặc rò rỉ dòng điện qua kết cấu xây dựng ẩm ướt. Sự cố này đặc biệt nguy hiểm vì xảy ra khi cả nhà đang ngủ, không có người ứng cứu.
+This project develops a prototype for detecting anomalies in hourly smart-meter data. The source is the UCI *Individual Household Electric Power Consumption* dataset. After cleaning, the time-ordered series is split into 27,334 training rows and 6,834 demo rows. Nine engineered features describe time cycles, power changes, voltage changes, and power factor. The first 24 rows of each sequence are unavailable because the feature pipeline requires a 24-sample lag. A RobustScaler is fitted on 27,310 valid training samples, followed by an unsupervised Isolation Forest with 200 trees, up to 512 samples per tree, and `contamination=0.08`.
 
----
+Three synthetic scenarios are injected into a copy of the demo partition: daytime power surges, voltage drops, and nighttime power spikes. Feature extraction leaves 6,810 evaluation samples, including 545 injected labels. The current model bundle raises 764 alerts and obtains a ROC-AUC of 0.923131 and a Recall of 72.84%. A Streamlit dashboard provides historical analysis and simulated streaming, while an SQLite alert store supports filtering, acknowledgement, notes, closure, and CSV export. Ten UCI-based business tests and two light-theme tests pass in the acceptance run. These results measure detection against synthetic labels for one household and should not be interpreted as validation on expert-confirmed equipment faults.
 
-## 1.3. Mục tiêu Kỹ thuật Định lượng
+**Keywords:** smart meter, anomaly detection, Isolation Forest, RobustScaler, time-series data, Streamlit.
 
-Bảng 1.1 trình bày các chỉ tiêu kỹ thuật đặt ra cho hệ thống và kết quả thực tế đạt được.
+# MỤC LỤC
 
-**Bảng 1.1 — Mục tiêu kỹ thuật và kết quả**
+- [Chương 1: Giới thiệu](#chuong-1)
+- [Chương 2: Cơ sở lý thuyết và công trình liên quan](#chuong-2)
+- [Chương 3: Phân tích và thiết kế hệ thống](#chuong-3)
+- [Chương 4: Hiện thực và kiểm thử](#chuong-4)
+- [Chương 5: Kết quả, đánh giá và kết luận](#chuong-5)
+- [Tài liệu tham khảo](#tai-lieu-tham-khao)
+- [Phụ lục](#phu-luc)
 
-| Chỉ tiêu | Ngưỡng đặt ra | Kết quả |
-|:---|:---:|:---:|
-| Chỉ số phân tách ROC-AUC | lon hon 0,90 | 0,9231 |
-| Độ bao phủ sự cố (Recall) | lon hon 70% | 72,84% |
-| Thời gian suy diễn mỗi mẫu | duoi 5 ms | khoảng 1,2 ms |
-| Kích thước gói mô hình | — | 4,3 MB |
+# DANH MỤC HÌNH
 
----
+- Hình 1.1 — Ba kịch bản bất thường tổng hợp trong tập Demo.
+- Hình 2.1 — Phân phối công suất theo khung giờ trên tập Train.
+- Hình 2.2 — Phép chiếu đặc trưng Demo sau RobustScaler.
+- Hình 2.3 — Quy trình học và chấm điểm của Isolation Forest.
+- Hình 2.4 — Phân phối điểm quyết định trên tập Demo.
+- Hình 3.1 — Kiến trúc mô-đun của hệ thống.
+- Hình 3.2 — Ma trận tương quan Pearson của chín đặc trưng.
+- Hình 3.3 — Luồng suy luận theo lô và theo tuần tự.
+- Hình 3.4 — Vòng đời cảnh báo.
+- Hình 3.5 — Wireframe hai chế độ của dashboard.
+- Hình 4.1 — Phân chia thời gian và quy trình tạo tập thực nghiệm.
+- Hình 5.1 — Đường cong ROC trên nhãn tiêm tổng hợp.
+- Hình 5.2 — Ma trận nhầm lẫn chuẩn hóa theo nhãn thực nghiệm.
+- Hình 5.3 — Recall theo từng kịch bản tổng hợp.
 
-## 1.4. Phạm vi và Dữ liệu Thực nghiệm
+# DANH MỤC BẢNG
 
-Đề tài sử dụng bộ dữ liệu Individual Household Electric Power Consumption do Đại học California, Irvine (UCI) công bố. Dữ liệu ghi nhận hành vi tiêu thụ điện của một hộ gia đình tại Sceaux, ngoại ô Paris (Pháp) trong 47 tháng liên tục từ tháng 12/2006 đến tháng 11/2010.
+- Bảng 1.1 — Quy mô và vai trò của các tập dữ liệu.
+- Bảng 1.2 — Mục tiêu đo được của đề tài.
+- Bảng 2.1 — So sánh các công trình liên quan.
+- Bảng 2.2 — Tham số RobustScaler trong model bundle hiện tại.
+- Bảng 2.3 — Cấu hình Isolation Forest trong model bundle hiện tại.
+- Bảng 3.1 — Yêu cầu chức năng.
+- Bảng 3.2 — Yêu cầu phi chức năng.
+- Bảng 3.3 — Cấu trúc chín đặc trưng.
+- Bảng 3.4 — Cấu trúc bảng `alerts` trong SQLite.
+- Bảng 4.1 — Môi trường nghiệm thu.
+- Bảng 4.2 — Cấu hình tiêm ba kịch bản tổng hợp.
+- Bảng 4.3 — Kết quả mười test nghiệp vụ.
+- Bảng 5.1 — Chỉ số đánh giá tổng thể.
+- Bảng 5.2 — Đối chiếu kết quả với mục tiêu.
+- Bảng 5.3 — Hạn chế và hướng phát triển tương ứng.
 
-**Bảng 1.2 — Thống kê dữ liệu**
+# DANH MỤC TỪ VIẾT TẮT
 
-| Thông số | Giá trị |
-|:---|:---:|
-| Tổng bản ghi gốc (chu kỳ 1 phút) | 2.075.259 |
-| Sau resample 1 giờ | 34.054 mẫu giờ |
-| Tập huấn luyện Train (80%) | 27.310 mẫu |
-| Tập kiểm định Demo (20%) | 6.811 mẫu |
-| Tỷ lệ bất thường tiêm vào tập Demo | khoảng 8% (545 điểm) |
-| Phân bổ: Surge / Drop / Night | 3% / 3% / 2% |
-
-Phân chia thực hiện theo thứ tự thời gian tuyệt đối, không xáo trộn, đảm bảo không rò rỉ thông tin tương lai vào quá trình huấn luyện.
-
----
-
-# BÁO CÁO ĐỒ ÁN TỐT NGHIỆP
-
-# CHƯƠNG 2: NỀN TẢNG TOÁN HỌC VÀ THUẬT TOÁN
-
----
-
-## 2.1. Lý do Chọn Học máy Không giám sát
-
-Dữ liệu thực tế từ công tơ thông minh không có nhãn chân lý (Ground-Truth Labels): không có cơ chế nào tự động đánh dấu từng giờ vận hành là "bình thường" hay "lỗi". Vì vậy, các thuật toán phân loại có giám sát như Random Forest hay SVM đều không thể áp dụng do thiếu tập nhãn huấn luyện.
-
-Ngoài ra, dữ liệu điện lực mang hai đặc thù vô cùng khắt khe, khiến các thuật toán truyền thống dễ dàng thất bại:
-
-**Thứ nhất, sự mất cân bằng lớp cực đoan (Extreme Class Imbalance):**
-Tỷ lệ xảy ra sự cố trong thực tế thường rất thấp (chỉ từ 1% đến 8%), trong khi 92% đến 99% thời gian hệ thống vận hành bình thường. Nếu áp dụng các mô hình phân loại thông thường, thuật toán sẽ sinh ra thiên kiến (bias) "tối ưu hóa lười biếng" — tức là luôn dự đoán mọi thời điểm đều "bình thường" để đạt độ chính xác giả tạo (Accuracy) lên tới 99%, dẫn đến việc bỏ lọt hoàn toàn các sự cố hiếm gặp.
-
-**Thứ hai, đặc tính phân phối đa đỉnh phi Gaussian (Non-Gaussian Multi-modal Distribution):**
-Hầu hết các phương pháp phát hiện bất thường cổ điển (như quy tắc 3-Sigma) đều ngầm giả định dữ liệu tuân theo phân phối chuẩn hình quả chuông (Gaussian), dao động quanh một giá trị trung bình duy nhất. Tuy nhiên, hành vi tiêu thụ điện lại có nhiều "đỉnh" khác nhau tùy thuộc vào thời gian (ví dụ: một đỉnh tải cực thấp vào ban đêm khi mọi người ngủ, và một đỉnh tải rất cao vào chiều tối do sử dụng nhiều thiết bị).
-Nếu cố tình dùng 3-Sigma để gộp chung toàn bộ dữ liệu trong ngày nhằm tìm ra một mức "Trung bình" và "Độ lệch chuẩn" duy nhất, miền an toàn được vẽ ra sẽ bị sai lệch hoàn toàn. Hệ quả là, mức tải thấp bình thường ban đêm có thể bị hệ thống báo động nhầm là "sụt áp", trong khi mức tải bình thường giờ cao điểm lại bị báo động giả là "đột biến công suất".
-
-Chính vì những đặc điểm này, **Isolation Forest** (thuật toán không giám sát, hoạt động dựa trên cơ chế cô lập điểm dị biệt bằng chiều dài đường đi của cây, thay vì cố gắng mô hình hóa phân phối của dữ liệu bình thường) được lựa chọn làm giải pháp cốt lõi cho hệ thống.
-
----
-
-## 2.2. Chuẩn hóa Bền vững — RobustScaler
-
-### 2.2.1. Hạn chế của các phương pháp chuẩn hóa truyền thống
-
-StandardScaler chuẩn hóa dữ liệu theo công thức: `X_chuẩn = (X - Mean) / Std`. Nhược điểm chết người của công thức này nằm ở tính nhạy cảm cực hạn của `Mean` và `Std` với điểm dị biệt. Chỉ cần một xung sét đẩy công suất lên 15 kW, tử số `Mean` bị kéo lệch và mẫu số `Std` bị thổi phồng bậc hai. Hệ quả là các điểm bất thường khác bị chia cho một mẫu số quá lớn, co lại gần tâm và trông như bình thường (hiệu ứng Masking), gây bỏ sót sự cố.
-
-MinMaxScaler co toàn bộ dữ liệu về khoảng [0, 1] theo công thức: `X_chuẩn = (X - Min) / (Max - Min)`. Khi có một xung cực đại (Max rất lớn), mẫu số phình to khiến hơn 99% điểm dữ liệu bình thường bị nén nghẹt vào một dải hẹp sát số 0. Điều này triệt tiêu hoàn toàn phương sai tự nhiên của chuỗi thời gian, làm mất đi tính chu kỳ ngày đêm.
-
-### 2.2.2. Cách tính của RobustScaler
-
-RobustScaler thay thế trung bình và độ lệch chuẩn bằng hai đại lượng phân vị bền vững:
-
-X_chuẩn_hóa = (X - Median) / IQR
-
-Trong đó:
-- Median (trung vị) là giá trị ở vị trí thứ 50% khi sắp xếp dữ liệu theo thứ tự tăng dần.
-- IQR (khoảng tứ phân vị) = Q3 - Q1, với Q1 là phân vị thứ 25% và Q3 là phân vị thứ 75%.
-
-Median và IQR chỉ phụ thuộc vào vị trí thứ tự của 50% dữ liệu vùng lõi, nên mọi đột biến ở hai đầu biên không ảnh hưởng đến tâm chuẩn hóa. Các điểm dị biệt giữ nguyên khoảng cách xa và nổi bật rõ trong không gian đặc trưng.
-
-Trong dự án, scaler được khớp duy nhất trên tập Train (27.310 mẫu) và lưu vào file model_bundle.pkl để áp dụng nhất quán khi suy diễn.
-
-![Hình 2.1 — So sánh trực quan dữ liệu trước và sau khi áp dụng StandardScaler, MinMaxScaler và RobustScaler trên cùng tập dữ liệu có Outlier](../reports/figures/Hinh_2.1_SoSanh_ChuanHoa_RobustScaler.png)
-*Hình 2.1 — So sánh trực quan dữ liệu trước và sau khi chuẩn hóa: (a) Dữ liệu gốc có Outlier cực đoan; (b) StandardScaler bị kéo lệch tâm Mean và thổi phồng phương sai Std (hiệu ứng Masking); (c) MinMaxScaler nén nghẹt cụm dữ liệu bình thường sát 0 do Max quá lớn; (d) RobustScaler bảo toàn nguyên vẹn hình thái phân phối tự nhiên và khoảng cách dị biệt.*
+| Từ viết tắt | Diễn giải |
+|---|---|
+| AUC | Area Under the Curve |
+| CSV | Comma-Separated Values |
+| FN | False Negative |
+| FP | False Positive |
+| IQR | Interquartile Range |
+| ROC | Receiver Operating Characteristic |
+| SQLite | Cơ sở dữ liệu quan hệ nhúng |
+| TN | True Negative |
+| TP | True Positive |
+| UCI | University of California, Irvine Machine Learning Repository |
+| UI | User Interface |
 
 ---
 
-## 2.3. Thuật toán Isolation Forest
+<a id="chuong-1"></a>
 
-### 2.3.1. Nguyên lý Cô lập Trực tiếp
+# CHƯƠNG 1: GIỚI THIỆU
 
-Isolation Forest không cố gắng xây dựng mô hình mô tả điểm bình thường. Thay vào đó, thuật toán khai thác trực tiếp hai đặc tính hình học tự nhiên của điểm dị biệt:
+## 1.1. Bối cảnh và vấn đề
 
-- Số lượng ít — nằm trong vùng mật độ thưa.
-- Giá trị cách biệt — tọa độ nằm xa cụm chính.
+Công tơ thông minh tạo ra chuỗi phép đo có mật độ cao hơn cách ghi chỉ số thủ công. Chuỗi này cho phép quan sát biến động tải theo giờ, nhưng số lượng điểm đo khiến người vận hành khó kiểm tra từng thời điểm bằng mắt. Một giá trị khác thường có thể liên quan đến thay đổi hành vi sử dụng, sự cố điện áp, sai số cảm biến hoặc dữ liệu bị thiếu. Phát hiện bất thường vì vậy là bước sàng lọc: hệ thống ưu tiên những thời điểm cần xem xét và cung cấp dấu hiệu hỗ trợ phân tích, còn quyết định nguyên nhân cuối cùng vẫn cần ngữ cảnh vận hành.
 
-Khi phân chia không gian dữ liệu một cách ngẫu nhiên và đệ quy bằng các cây nhị phân, điểm bất thường nằm trong vùng thưa nên chỉ cần vài lần cắt là bị cô lập hoàn toàn (đường đi ngắn, khoảng 2 đến 4 tầng). Điểm bình thường nằm sâu trong vùng dày đặc, đòi hỏi nhiều lần cắt hơn (đường đi dài, khoảng 12 đến 16 tầng).
+Đề tài sử dụng bộ *Individual Household Electric Power Consumption* của UCI, gồm phép đo theo phút của một hộ gia đình tại Pháp từ tháng 12/2006 đến tháng 11/2010 [1]. Đây là dữ liệu tiêu thụ thực nhưng không kèm nhãn sự cố thiết bị đã được xác nhận. Bài toán được đặt theo hướng phát hiện bất thường không giám sát, phù hợp với tình huống dữ liệu nền nhiều nhưng nhãn hiếm hoặc không đầy đủ [2]. Để có cơ sở kiểm định lặp lại, ba kịch bản được tiêm vào bản sao của tập Demo. Hình 1.1 trình bày một cửa sổ dữ liệu thực cho mỗi kịch bản; đường liên tục là chuỗi Demo sau khi tiêm, còn ký hiệu màu chỉ đúng điểm được thay đổi.
 
-![Hình 2.2 — Sơ đồ minh họa nguyên lý Cô lập Trực tiếp của Isolation Tree](../reports/figures/Hinh_2.2_NguyenLy_Isolation_Tree.png)
-*Hình 2.2 — Minh họa nguyên lý của Isolation Tree: (a) Trong không gian đặc trưng 2D, điểm bất thường $x_i$ nằm ở vùng thưa chỉ cần 2 nhát cắt ($s_1, s_2$) là bị cô lập hoàn toàn, trong khi điểm bình thường $x_o$ đòi hỏi nhiều nhát cắt đệ quy ($s_3 \dots s_{12}$); (b) Cấu trúc cây nhị phân tương ứng với chiều dài đường đi ngắn $h(x_i) = 2$ (tầng nông $\rightarrow$ Điểm số dị biệt $s \approx 1,0$) và đường đi dài $h(x_o) = 12$ (tầng sâu $\rightarrow$ Điểm số bình thường $s \approx 0,0$).*
+![Ba kịch bản bất thường tổng hợp](../reports/figures/Hinh_1.1_MinhHoa_3_Loai_SuCo.png)
 
-### 2.3.2. Điểm số Bất thường
+*Hình 1.1 — Ba kịch bản bất thường tổng hợp trong tập Demo: đột biến công suất ban ngày, sụt điện áp và đột biến công suất ban đêm. Nguồn: dữ liệu và script tạo hình của đề tài.*
 
-Sau khi xây dựng rừng gồm T cây, mỗi cây cho một độ dài đường đi h(x) đối với mẫu x. Giá trị trung bình đường đi trên toàn rừng là:
+Nhãn trong Hình 1.1 là nhãn tiêm tổng hợp, không phải kết luận về sự cố điện thực tế. Cách gọi này được duy trì xuyên suốt báo cáo để phân biệt rõ dữ liệu kiểm định với chẩn đoán chuyên gia.
 
-E[h(x)] = tổng h_t(x) cho t từ 1 đến T, chia cho T
+## 1.2. Mục tiêu
 
-Điểm số bất thường s(x, n) được tính theo công thức:
+Hệ thống hướng đến người vận hành nguyên mẫu cần xem nhanh diễn biến đo, phát hiện điểm đáng chú ý và quản lý vòng đời cảnh báo. Bảng 1.1 xác định quy mô và vai trò của từng tập trước khi Bảng 1.2 lượng hóa năm mục tiêu; mã mục tiêu được dùng lại ở Chương 5 để đánh giá mức hoàn thành.
 
-s(x, n) = 2 lũy thừa (-E[h(x)] / c(n))
+*Bảng 1.1 — Quy mô và vai trò của các tập dữ liệu*
 
-Trong đó c(n) là hằng số chuẩn hóa phụ thuộc vào số lượng mẫu n dùng để xây mỗi cây.
+| Tập | Khoảng thời gian | Số dòng gốc | Số mẫu đủ đặc trưng | Vai trò |
+|---|---:|---:|---:|---|
+| Train | 16/12/2006 17:00 – 05/02/2010 04:00 | 27.334 | 27.310 | Khớp RobustScaler, học Isolation Forest và thống kê nền |
+| Demo | 05/02/2010 05:00 – 26/11/2010 21:00 | 6.834 | 6.810 | Tiêm kịch bản, đánh giá và mô phỏng luồng |
 
-**Cách đọc giá trị s(x, n):**
+*Nguồn: kiểm tra trực tiếp `train_hourly.csv` và `demo_stream.csv`.*
 
-**Bảng 2.1 — Diễn giải điểm số bất thường**
+*Bảng 1.2 — Mục tiêu đo được của đề tài*
 
-| Trường hợp | Đường đi trung bình | Điểm s | Kết luận |
-|:---|:---:|:---:|:---|
-| Bị cô lập ngay tầng nông | Rất ngắn | Gần 1,0 | Bất thường nghiêm trọng |
-| Nằm sâu trong vùng dày đặc | Rất dài | Gần 0,0 | Bình thường |
-| Ngang bằng kỳ vọng ngẫu nhiên | Trung bình | Bằng 0,5 | Không khẳng định được |
+| Mã | Mục tiêu | Tiêu chí nghiệm thu |
+|---|---|---|
+| MT01 | Xây dựng pipeline dữ liệu có thể chạy lại | Tách Train/Demo theo thời gian; không tiêm nhãn vào Train; dữ liệu và bundle không đổi sau kiểm thử |
+| MT02 | Dùng thống nhất chín đặc trưng trong huấn luyện và suy luận | Đúng thứ tự chín đặc trưng; warm-up và công thức được kiểm thử |
+| MT03 | Phát hiện kịch bản tổng hợp có chất lượng định lượng | ROC-AUC > 0,90 và Recall tổng thể > 70% trên Demo hợp lệ |
+| MT04 | Hỗ trợ người vận hành xử lý cảnh báo | Có lọc, xem chi tiết, tiếp nhận, ghi chú, đóng và xuất CSV |
+| MT05 | Có kiểm thử tự động cho các luồng chính | Mười test nghiệp vụ dùng UCI và các test giao diện sáng đều đạt |
 
-### 2.3.3. Ánh xạ trong Scikit-Learn
+## 1.3. Đối tượng và phạm vi
 
-Thư viện Scikit-Learn trả về điểm số đã đảo chiều:
+Đối tượng xử lý là chuỗi công suất, điện áp và công suất phản kháng đã gom theo giờ. Đối tượng sử dụng là người vận hành nguyên mẫu, không phải người tiêu dùng cuối hay hệ thống điều khiển lưới điện. Đề tài tập trung vào một hộ gia đình, một mô hình Isolation Forest, một pipeline đặc trưng và một dashboard chạy cục bộ. Phần Demo mô phỏng tuần tự theo từng bản ghi; nó không kết nối công tơ, message broker hoặc hạ tầng thời gian thực bên ngoài.
 
-score = 0,5 - s(x, n)
+Phạm vi không bao gồm dự báo phụ tải, định vị thiết bị gây lỗi, điều khiển đóng cắt, xác nhận nguyên nhân vật lý, đánh giá nhiều hộ gia đình, bảo mật triển khai sản xuất và so sánh thực nghiệm với mạng nơ-ron sâu. Ba loại sau hậu xử lý chỉ là nhãn diễn giải cho cảnh báo. Chúng không phải ba lớp được Isolation Forest học và cũng không được tiêm vào tập Train.
 
-Quy tắc gán nhãn: khi score âm thì mẫu bị gán nhãn Bất thường (-1); khi score dương hoặc bằng 0 thì mẫu bị gán nhãn Bình thường (+1).
+## 1.4. Phương pháp thực hiện
 
-**Bảng 2.2 — Điểm score thực tế trên một số điểm bất thường**
+Quy trình gồm năm bước. Dữ liệu phút được làm sạch, lấy trung bình theo giờ và chia theo thứ tự thời gian 80/20. Từ các cột đo gốc, hệ thống tính chín đặc trưng dùng chung. RobustScaler và Isolation Forest chỉ được khớp trên Train. Bản sao Demo được tiêm kịch bản với seed cố định, sau đó được biến đổi bằng scaler đã học và chấm điểm bằng model đã lưu. Cuối cùng, kết quả được đánh giá định lượng và trình bày trên dashboard cùng kho cảnh báo SQLite.
 
-| Tình huống sự cố | Giá trị score | Nhãn |
-|:---|:---:|:---:|
-| Điện áp sụt từ 235 V xuống 202 V | -0,182 | voltage_drop |
-| Công suất tăng từ 1,1 kW lên 5,2 kW lúc 14 giờ | -0,215 | power_surge |
-| Công suất đạt 2,9 kW lúc 3 giờ sáng | -0,154 | night_spike |
+## 1.5. Bố cục báo cáo
 
-### 2.3.4. Cấu hình Siêu tham số Mô hình
-
-**Bảng 2.3 — Siêu tham số Isolation Forest**
-
-| Tham số | Giá trị | Ý nghĩa |
-|:---|:---:|:---|
-| n_estimators | 100 | Số cây trong rừng — đủ để hội tụ kết quả mà không quá tải CPU |
-| contamination | 0,08 | Tỷ lệ dị biệt kỳ vọng, khớp với tỷ lệ tiêm lỗi 8% vào tập Demo |
-| max_samples | 256 | Kích thước mẫu con mỗi cây — triệt tiêu hiệu ứng Masking và Swamping |
-| random_state | 42 | Cố định hạt giống ngẫu nhiên, đảm bảo tái lập kết quả |
-
-Ý nghĩa của contamination = 0,08: tham số này điều chỉnh ngưỡng phân loại nội bộ. Khi gọi predict(), Isolation Forest chọn ngưỡng score sao cho đúng 8% dữ liệu huấn luyện bị gán nhãn bất thường. Tăng contamination sẽ tăng Recall (bắt được nhiều sự cố hơn) nhưng giảm Precision (nhiều cảnh báo nhầm hơn).
+Chương 2 trình bày lý thuyết, công trình liên quan và ý nghĩa chính xác của các điểm số. Chương 3 chuyển các yêu cầu thành kiến trúc, thiết kế dữ liệu, đặc trưng, luồng suy luận và giao diện. Chương 4 mô tả hiện thực, môi trường, quy trình thực nghiệm và test case. Chương 5 phân tích kết quả, ba trường hợp cụ thể, mức hoàn thành mục tiêu, hạn chế và hướng phát triển.
 
 ---
 
-## 2.4. So sánh với Các Thuật toán Khác
+<a id="chuong-2"></a>
 
-**Bảng 2.4 — So sánh các thuật toán phát hiện dị biệt**
+# CHƯƠNG 2: CƠ SỞ LÝ THUYẾT VÀ CÔNG TRÌNH LIÊN QUAN
 
-| Tiêu chí | Isolation Forest | k-NN | LOF | Autoencoder |
-|:---|:---|:---|:---|:---|
-| Độ phức tạp thời gian | O(n log n) | O(n²) | O(n²) | Phụ thuộc số lớp/Epochs |
-| Độ trễ suy diễn | Khoảng 1,2 ms | Rất cao | Rất cao | Trung bình |
-| RAM khi suy diễn | Dưới 50 MB | Rất cao | Rất cao | 100-500 MB |
-| Hoạt động với 9 chiều | Ổn định | Suy thoái nặng | Suy thoái vừa | Ổn định |
-| Cần nhãn huấn luyện | Không | Không | Không | Không |
-| Khả năng giải thích | Dễ dàng (Tree-based XAI) | Khó | Rất khó | Hộp đen |
-| Triển khai Edge AI | Hoàn hảo | Không khả thi | Không khả thi | Cần chip GPU |
+## 2.1. Phát hiện bất thường không giám sát
 
-Kích thước gói mô hình sau huấn luyện: file model_bundle.pkl chiếm 4,3 MB trên ổ đĩa và tiêu tốn dưới 45 MB RAM khi nạp — phù hợp triển khai trên Raspberry Pi 4.
+Một điểm bất thường là quan sát khác đáng kể so với phần lớn dữ liệu theo một tiêu chí đã xác định [2]. Trong chuỗi điện năng, khác biệt có thể xuất hiện ở trị đo tức thời, mức thay đổi so với mẫu trước, quan hệ với cùng thời điểm trước đó hoặc hành vi trong một cửa sổ cục bộ. Vì vậy, chỉ đặt một ngưỡng trên công suất không đủ để biểu diễn toàn bộ bối cảnh.
+
+Đề tài chọn học không giám sát vì dữ liệu UCI không có nhãn sự cố chuyên gia. Isolation Forest phù hợp với mục tiêu sàng lọc vì mô hình cô lập trực tiếp quan sát hiếm, không cần ước lượng mật độ của lớp bình thường và có thể chấm điểm cho mỗi mẫu [3], [4]. Nhãn tổng hợp chỉ tham gia đánh giá sau huấn luyện. Thiết kế này ngăn mô hình học trực tiếp quy tắc tiêm, đồng thời cho phép đo khả năng phát hiện trên các thay đổi đã biết.
+
+Phân phối công suất của Train trong Hình 2.1 cho thấy ngữ cảnh 01:00–05:00 khác các giờ còn lại. Trục tung là mật độ xác suất: mỗi histogram được chuẩn hóa để tổng diện tích bằng 1, do đó chiều cao không phải số lượng mẫu. Biểu đồ dùng đủ 27.334 dòng Train và hiển thị miền giá trị đầy đủ; ô phóng to chỉ hỗ trợ đọc vùng tập trung.
+
+![Phân phối công suất theo khung giờ](../reports/figures/Hinh_2.1_PhanPhoi_CongSuat_Theo_KhungGio.png)
+
+*Hình 2.1 — Phân phối `Global_active_power` trên Train, tách giờ đêm 01:00–05:00 và các giờ còn lại. Nguồn: tính trực tiếp từ `train_hourly.csv`.*
+
+## 2.2. Công trình liên quan
+
+Isolation Forest gốc của Liu, Ting và Zhou xây dựng nhiều cây phân hoạch ngẫu nhiên; điểm cần ít phép chia hơn để bị cô lập được xem là bất thường [3]. Công trình tiếp theo hệ thống hóa cách chuẩn hóa chiều dài đường đi và mở rộng đánh giá của họ thuật toán này [4]. Ưu điểm phù hợp với đề tài là không cần nhãn để huấn luyện và có chi phí dự đoán thuận lợi với dữ liệu dạng bảng. Hạn chế là mô hình không tự biểu diễn thứ tự thời gian, nên thông tin chu kỳ và độ trễ phải được đưa vào bằng đặc trưng.
+
+Wang, Gu và Liu kết hợp phân cụm, phân tích thành phần chính, trọng số entropy và Isolation Forest trên dữ liệu điện của 6.445 người dùng [5]. Cách tiếp cận đưa mức quan trọng của thuộc tính vào phép phát hiện và xử lý dữ liệu nhiều người dùng. Tuy nhiên, pipeline phức tạp hơn và mục tiêu dữ liệu khác với chuỗi một hộ gia đình theo giờ trong đề tài này.
+
+Dai và cộng sự đề xuất variational recurrent autoencoder có attention cho phát hiện bất thường dữ liệu công tơ [6]. Mạng hồi tiếp có khả năng học quan hệ thời gian thay vì dựa chủ yếu vào đặc trưng thủ công. Đổi lại, phương pháp cần nhiều tài nguyên huấn luyện, nhiều lựa chọn siêu tham số và cơ chế giải thích riêng. Nghiên cứu được kiểm tra trên một ca dữ liệu nhiệt độ cấp nước nóng công nghiệp; metric của nghiên cứu đó không được so trực tiếp với kết quả UCI của đề tài.
+
+Bảng 2.1 so sánh theo dữ liệu, cách biểu diễn và phạm vi đánh giá. Mục đích của bảng là xác định lựa chọn kỹ thuật, không xếp hạng các công trình bằng metric từ những tập dữ liệu khác nhau.
+
+*Bảng 2.1 — So sánh các công trình liên quan*
+
+| Công trình | Dữ liệu và biểu diễn | Phương pháp | Điểm phù hợp | Giới hạn khi áp dụng cho đề tài |
+|---|---|---|---|---|
+| Liu và cộng sự [3], [4] | Dữ liệu dạng bảng, không bắt buộc nhãn | Cây cô lập ngẫu nhiên | Pipeline gọn, có điểm bất thường | Không tự học trật tự thời gian |
+| Wang và cộng sự [5] | 6.445 người dùng điện, nhiều thuộc tính | Entropy weight, PCA và Isolation Forest | Kết hợp trọng số thuộc tính | Nhiều bước, phạm vi nhiều người dùng khác dữ liệu đề tài |
+| Dai và cộng sự [6] | Chuỗi công tơ trong ca công nghiệp | VRAE có attention | Học quan hệ thời gian | Tài nguyên và độ phức tạp cao; dữ liệu đánh giá khác |
+| Hệ thống đề tài | Một hộ gia đình; chín đặc trưng theo giờ | RobustScaler và Isolation Forest | Dễ tái lập, tích hợp dashboard và vòng đời cảnh báo | Nhãn tổng hợp; chưa so sánh mô hình trên cùng protocol |
+
+Khoảng trống mà đề tài tập trung là một quy trình đầu cuối có thể kiểm tra: từ dữ liệu UCI, đặc trưng dùng chung, model bundle, suy luận theo lô/tuần tự đến thao tác cảnh báo. Đề tài không tuyên bố cải thiện thuật toán Isolation Forest; đóng góp nằm ở tính nhất quán và minh chứng hiện thực.
+
+## 2.3. RobustScaler
+
+Chín đặc trưng có miền đo khác nhau. `power_factor` nằm trong khoảng 0–1, trong khi biến động điện áp có thể đạt hàng chục volt. RobustScaler của Scikit-learn dùng trung vị và khoảng tứ phân vị nên ít bị chi phối bởi giá trị cực đoan hơn phép chuẩn hóa dùng trung bình và độ lệch chuẩn [7]. Với đặc trưng \(x_j\), các đại lượng được xác định bởi:
+
+\[
+Q_{1,j}=P_{25}(x_j),\qquad Q_{3,j}=P_{75}(x_j),\qquad IQR_j=Q_{3,j}-Q_{1,j}. \tag{2.1}
+\]
+
+Phép biến đổi của cấu hình mặc định là:
+
+\[
+\tilde{x}_{ij}=\frac{x_{ij}-\operatorname{median}(x_j)}{\operatorname{scale}_j}. \tag{2.2}
+\]
+
+Trong đa số cột, `scale_` bằng IQR. Khi IQR bằng 0, Scikit-learn thay hệ số chia bằng 1 để tránh chia cho 0. Vì vậy, cột `is_night` có Q1 = Q3 = IQR = 0 nhưng `scale_ = 1`. Tên “hệ số chia `scale_`” chính xác hơn cách gọi mọi giá trị trong cột này là IQR.
+
+`fit` ước lượng `center_` và `scale_`; `transform` áp dụng các tham số đã học; `fit_transform` thực hiện hai thao tác liên tiếp trên cùng tập. Trong pipeline, `fit_transform` chỉ chạy trên 27.310 mẫu Train. Demo chỉ gọi `transform`, nhờ đó không đưa phân phối kiểm định vào bước học. Ví dụ, với `power_diff_1h = 0,487575` kW, `center_ = -0,007217` và `scale_ = 0,494792`, kết quả là \((0,487575+0,007217)/0,494792=1,000\). Điểm này nằm cao hơn trung vị Train đúng một hệ số chia.
+
+Bảng 2.2 ghi các tham số đọc trực tiếp từ `model_bundle.pkl`. Những giá trị này có thể thay đổi khi dữ liệu hoặc quy trình huấn luyện thay đổi.
+
+*Bảng 2.2 — Tham số RobustScaler trong model bundle hiện tại*
+
+| Đặc trưng | `center_` | Hệ số chia `scale_` | IQR tính trực tiếp trên Train |
+|---|---:|---:|---:|
+| `hour_sin` | 0,000000 | 1,414214 | 1,414214 |
+| `hour_cos` | 0,000000 | 1,414214 | 1,414214 |
+| `is_night` | 0,000000 | 1,000000 | 0,000000 |
+| `power_diff_1h` | -0,007217 | 0,494792 | 0,494792 |
+| `power_dev_24h` | -0,002293 | 0,908084 | 0,908084 |
+| `power_zscore_6h` | -0,320253 | 1,698758 | 1,698758 |
+| `voltage_diff_1h` | -0,002667 | 2,091827 | 2,091827 |
+| `voltage_zscore_6h` | 0,025787 | 1,840346 | 1,840346 |
+| `power_factor` | 0,989848 | 0,037069 | 0,037069 |
+
+Isolation Forest không phụ thuộc khoảng cách Euclid nên không bắt buộc chuẩn hóa theo cách của k-nearest neighbors hoặc SVM. Đề tài vẫn dùng RobustScaler để cố định một biểu diễn đầu vào, thuận lợi khi so sánh hoặc thay mô hình trong tương lai. Chưa có thí nghiệm ablation đối chứng có/không có scaler, vì vậy báo cáo không kết luận scaler làm tăng metric hiện tại.
+
+Hình 2.2 chiếu hai trong chín chiều sau khi áp dụng scaler của Train lên Demo. Mỗi ô dùng cặp đặc trưng và ngữ cảnh giờ phù hợp với một kịch bản. Trục biểu diễn số hệ số chia lệch khỏi trung vị Train; các điểm màu là nhãn tiêm tổng hợp. Đây là phép chiếu để quan sát, không phải ranh giới quyết định đầy đủ của Isolation Forest trong không gian chín chiều.
+
+![Đặc trưng Demo sau RobustScaler](../reports/figures/Hinh_2.2_DacTrung_Sau_RobustScaler.png)
+
+*Hình 2.2 — Phép chiếu các đặc trưng Demo sau `scaler.transform()`: 205 `power_surge`, 205 `voltage_drop` và 135 `night_spike`. Nguồn: `demo_stream.csv` và scaler trong model bundle.*
+
+## 2.4. Isolation Forest
+
+Isolation Forest tạo nhiều cây nhị phân. Với mỗi cây, thuật toán lấy ngẫu nhiên tối đa ψ mẫu, chọn một đặc trưng và một ngưỡng chia ngẫu nhiên trong miền quan sát của đặc trưng đó. Điểm hiếm thường bị tách khỏi phần còn lại sau ít nút hơn. Đề tài dùng 200 cây, mỗi cây tối đa 512 mẫu và cả chín đặc trưng. Giá trị dự đoán là kết quả tổng hợp từ toàn bộ rừng, không phải bình chọn loại sự cố.
+
+Chiều dài đường đi kỳ vọng của một cây tìm kiếm nhị phân không thành công được dùng để hiệu chỉnh theo kích thước mẫu:
+
+\[
+c(n)=2H_{n-1}-\frac{2(n-1)}{n},\qquad H_k\approx \ln(k)+\gamma. \tag{2.3}
+\]
+
+Trong đó \(n\) là số mẫu dùng xây cây, \(H_k\) là số điều hòa thứ \(k\), và γ là hằng số Euler. Dạng điểm trong công trình gốc là:
+
+\[
+s(x,n)=2^{-\frac{E[h(x)]}{c(n)}}. \tag{2.4}
+\]
+
+\(h(x)\) là chiều dài đường đi của \(x\), còn \(E[h(x)]\) là trung bình trên các cây. Điểm gần 1 biểu thị dễ cô lập hơn theo định nghĩa gốc. Khi dùng Scikit-learn, cần phân biệt bốn API. `score_samples(X)` trả điểm “độ bình thường” theo quy ước của thư viện: giá trị thấp hơn bất thường hơn. Thuộc tính `offset_` xác định độ dịch của ngưỡng. `decision_function(X)` được tính theo:
+
+\[
+d(x)=\operatorname{score\_samples}(x)-\operatorname{offset\_}. \tag{2.5}
+\]
+
+`predict(X)` trả -1 khi \(d(x)<0\) và 1 khi \(d(x)\ge 0\). Bundle hiện tại có `offset_=-0,527125`; giá trị này được học theo cấu hình `contamination=0,08`, không phải ngưỡng mặc định và không phải tỷ lệ lỗi tiêm vào Train. Cấu hình contamination đặt ranh giới sao cho một tỷ lệ tương ứng của dữ liệu huấn luyện nằm phía bất thường theo cơ chế của thư viện [8]. Hình 2.3 tách luồng học trên Train khỏi luồng chấm điểm; `n_jobs=-1` chỉ giúp song song hóa quá trình `fit` của tập cây trong hiện thực hiện tại, không thay đổi công thức dự đoán.
+
+Giá trị 0,08 được chọn như một **giả định của thiết kế thực nghiệm**. Ba kịch bản trên Demo được đặt ở các tỷ lệ danh nghĩa 3% đột biến công suất ban ngày, 3% sụt điện áp và 2% đột biến công suất ban đêm; tổng danh nghĩa bằng 8%. Mức tiêm này giữ bất thường là lớp thiểu số nhưng vẫn tạo hơn 100 mẫu cho mỗi kịch bản để có thể tính Recall riêng. `contamination=0,08` sau đó được dùng làm điểm vận hành ban đầu, sao cho tỷ lệ điểm mô hình kỳ vọng xếp vào vùng bất thường trên Train gần với tổng tỷ lệ tiêm danh nghĩa của Demo. Do phép lấy phần nguyên, trước warm-up có 546/6.834 = 7,99% điểm được tiêm; sau warm-up còn 545/6.810 = 8,00%.
+
+Lựa chọn trên không có nghĩa UCI chứa 8% sự cố thực tế. Tập Train không được tiêm lỗi và không có nhãn sự cố; `contamination` chỉ dùng giả định tỷ lệ để xác định `offset_`. Cấu hình không sử dụng nhãn của từng điểm Demo, nhưng đã sử dụng thông tin thiết kế về tỷ lệ tổng thể của bộ kiểm định. Vì đề tài chưa thực hiện tìm kiếm tham số hoặc phân tích độ nhạy trên nhiều mức contamination, 0,08 chưa được chứng minh là tối ưu. Khi triển khai thực tế, ngưỡng cần được chọn trên tập validation tách theo thời gian hoặc theo chi phí giữa bỏ sót và cảnh báo ngoài nhãn, thay vì mặc định giữ tỷ lệ 8%.
+
+![Quy trình Isolation Forest](../reports/figures/Hinh_2.3_IsolationForest.png)
+
+*Hình 2.3 — Quy trình khớp RobustScaler, xây 200 cây và tính `decision_function`. Các tham số được đọc từ model bundle hiện tại. Nguồn: hiện thực của đề tài và quy ước API Scikit-learn [8].*
+
+Ảnh hưởng của từng tham số được diễn giải như sau. Tăng `n_estimators` thường làm kết quả tổng hợp ổn định hơn nhưng tăng thời gian và bộ nhớ. `max_samples=512` giới hạn kích thước mẫu của mỗi cây; giá trị lớn hơn cho cây nhìn thấy nhiều dữ liệu hơn nhưng làm tăng chiều sâu và chi phí. `max_features=1,0` cho phép mỗi cây dùng toàn bộ chín đặc trưng khi chọn phép chia. `contamination=0,08` xác định offset dùng cho dự đoán nhị phân. `random_state=42` cố định các phép lấy mẫu và chia ngẫu nhiên để tái lập bundle. Không tham số nào gán trực tiếp ba loại sự cố.
+
+*Bảng 2.3 — Cấu hình Isolation Forest trong model bundle hiện tại*
+
+| Tham số | Giá trị | Vai trò trong hiện thực |
+|---|---:|---|
+| `n_estimators` | 200 | Số cây cô lập |
+| `max_samples` | 512 | Số mẫu tối đa dùng cho mỗi cây |
+| `max_features` | 1,0 | Tỷ lệ đặc trưng khả dụng trên mỗi cây |
+| `contamination` | 0,08 | Cấu hình xác định offset dự đoán trên Train |
+| `random_state` | 42 | Tái lập lấy mẫu và phép chia |
+| `n_jobs` | -1 | Dùng các lõi CPU khả dụng khi huấn luyện |
+| Số chiều đầu vào | 9 | Thứ tự lưu trong trường `features` của bundle |
+| `offset_` | -0,527125 | Ngưỡng dịch hiện có sau huấn luyện |
+
+Hình 2.4 cho biết mức phân tách của điểm quyết định trên 6.810 mẫu Demo. Biểu đồ nhóm theo nhãn kiểm định: 6.265 điểm không được tiêm và 545 điểm được tiêm. Đường \(d(x)=0\) là ranh giới dự đoán; vùng âm tạo cảnh báo. Việc tô màu theo nhãn thay vì theo dự đoán cho phép quan sát cả phần chồng lấn gây bỏ sót và cảnh báo ngoài nhãn tiêm.
+
+![Phân phối điểm quyết định](../reports/figures/Hinh_2.4_PhanPhoi_Diem_QuyetDinh.png)
+
+*Hình 2.4 — Phân phối `decision_function` của 6.810 mẫu Demo theo nhãn tiêm tổng hợp. Nguồn: model bundle và `demo_stream.csv`.*
+
+## 2.5. Ba tầng kết quả và chỉ số đánh giá
+
+Hệ thống có ba tầng kết quả độc lập về vai trò. Tầng thứ nhất, Isolation Forest quyết định bình thường hoặc bất thường bằng dấu của \(d(x)\). Tầng thứ hai, hàm sigmoid đổi điểm quyết định thành severity để sắp xếp và hiển thị:
+
+\[
+\operatorname{severity}(d)=\frac{1}{1+e^{30d}}. \tag{2.6}
+\]
+
+Severity nằm trong [0,1], giảm khi \(d\) tăng và bằng 0,5 tại ngưỡng. Đây không phải xác suất lỗi vì hàm chưa được hiệu chuẩn xác suất. Hệ thống gán `warning` khi severity từ 0,50 đến dưới 0,70 và `critical` khi từ 0,70 trở lên. Tầng thứ ba, `classify_type()` áp dụng quy tắc ưu tiên sụt áp, đột biến đêm, rồi đột biến công suất; `explain_anomaly()` xếp hạng độ lệch tuyệt đối so với median/IQR của Train. Hai hàm này chạy sau dự đoán, không tham gia huấn luyện và không thay đổi \(d(x)\).
+
+Với nhãn dương là điểm được tiêm, các chỉ số được dùng gồm:
+
+\[
+\operatorname{Precision}=\frac{TP}{TP+FP},\qquad
+\operatorname{Recall}=\frac{TP}{TP+FN}. \tag{2.7}
+\]
+
+\[
+F_1=2\frac{\operatorname{Precision}\cdot\operatorname{Recall}}
+{\operatorname{Precision}+\operatorname{Recall}},\qquad
+\operatorname{Accuracy}=\frac{TP+TN}{TP+TN+FP+FN}. \tag{2.8}
+\]
+
+ROC-AUC đánh giá thứ hạng liên tục của \(-d(x)\) trên nhiều ngưỡng. Accuracy cần được đọc cùng Recall, Precision và ma trận nhầm lẫn vì lớp bất thường chỉ chiếm 545/6.810 mẫu. FP trong thực nghiệm nghĩa là “cảnh báo ngoài nhãn tiêm”, chưa đủ cơ sở gọi là cảnh báo sai trong vận hành thực tế.
 
 ---
 
-# BÁO CÁO ĐỒ ÁN TỐT NGHIỆP
+<a id="chuong-3"></a>
 
-# CHƯƠNG 3: THIẾT KẾ KỸ THUẬT ĐẶC TRƯNG VÀ BỘ ĐỆM TRẠNG THÁI
+# CHƯƠNG 3: PHÂN TÍCH VÀ THIẾT KẾ HỆ THỐNG
+
+## 3.1. Tác nhân và yêu cầu
+
+Tác nhân chính là người vận hành nguyên mẫu. Người này cần xem dữ liệu lịch sử, quan sát luồng mô phỏng và quản lý cảnh báo. Tác nhân kỹ thuật phụ là người huấn luyện mô hình, chịu trách nhiệm chuẩn bị dữ liệu và tạo model bundle trước khi dashboard chạy. Các yêu cầu chức năng trong Bảng 3.1 được rút ra từ ba luồng sử dụng chính và có thể truy vết tới test ở Chương 4.
+
+*Bảng 3.1 — Yêu cầu chức năng*
+
+| Mã | Yêu cầu | Tiêu chí chấp nhận |
+|---|---|---|
+| FR01 | Chuẩn bị dữ liệu theo giờ | Đọc UCI, xử lý thiếu, gom theo giờ và chia 80/20 theo thời gian |
+| FR02 | Tạo đặc trưng dùng chung | Huấn luyện và suy luận gọi cùng `extract_features()`/`extract_latest()` |
+| FR03 | Huấn luyện và lưu mô hình | Bundle chứa model, scaler, thứ tự đặc trưng, median và IQR |
+| FR04 | Phân tích lịch sử | Lọc khoảng ngày, hiển thị KPI, biểu đồ, bảng cảnh báo và chi tiết |
+| FR05 | Suy luận mô phỏng | Play, Pause, bước tiếp, tốc độ, reset và trạng thái warm-up |
+| FR06 | Diễn giải cảnh báo | Hiển thị severity, dạng gợi ý và ba dấu hiệu nổi bật |
+| FR07 | Quản lý vòng đời | Lưu duy nhất theo `alert_id`, tiếp nhận, ghi chú và đóng |
+| FR08 | Xuất kết quả | Tải danh sách cảnh báo đang lọc dưới dạng CSV |
+
+Ngoài chức năng, hệ thống cần bảo đảm tái lập, an toàn dữ liệu và khả năng đọc giao diện. Bảng 3.2 nêu các yêu cầu phi chức năng có bằng chứng kiểm tra trong phạm vi đồ án.
+
+*Bảng 3.2 — Yêu cầu phi chức năng*
+
+| Mã | Yêu cầu | Cách kiểm chứng |
+|---|---|---|
+| NFR01 | Tái lập | Cố định `random_state=42`; sinh hình hai lần cho cùng hash |
+| NFR02 | Không rò rỉ dữ liệu | Scaler/model chỉ `fit` trên Train; Demo chỉ `transform` và đánh giá |
+| NFR03 | Bảo vệ dữ liệu | Test dùng DataFrame sao chép, thư mục tạm và SQLite tạm |
+| NFR04 | Nhất quán giao diện sáng | Cấu hình theme và CSS ép bảng/widget về màu sáng độc lập browser theme |
+| NFR05 | Truy vết | ID cảnh báo theo thời điểm dữ liệu; bundle lưu đúng thứ tự đặc trưng |
+| NFR06 | Khả năng chạy cục bộ | Có lệnh chuẩn bị dữ liệu, huấn luyện, dashboard, test và tạo hình |
+
+## 3.2. Đặc tả ba Use Case chính
+
+### 3.2.1. UC01 — Phân tích lịch sử
+
+**Tác nhân:** người vận hành. **Tiền điều kiện:** có Demo và model bundle. **Luồng chính:** người dùng chọn chế độ lịch sử, chọn khoảng ngày; hệ thống trích xuất đặc trưng cho phần dữ liệu, dùng scaler/model đã học để tính điểm, tổng hợp KPI và vẽ hai chuỗi công suất/điện áp; bảng bên dưới chỉ liệt kê điểm có \(d(x)<0\). Người dùng chọn một dòng để xem dữ liệu đo, severity, dạng gợi ý và dấu hiệu. **Ngoại lệ:** nếu khoảng ngày rỗng hoặc không đủ đặc trưng, giao diện hiển thị thông báo thay vì kết luận bình thường. **Hậu điều kiện:** thao tác xem lịch sử không ghi cảnh báo mới vào SQLite.
+
+### 3.2.2. UC02 — Suy luận mô phỏng tuần tự
+
+**Tác nhân:** người vận hành. **Tiền điều kiện:** có Demo, bundle và kho SQLite khả dụng. **Luồng chính:** hệ thống đọc lần lượt từng hàng theo con trỏ, giữ tối đa 50 hàng trong buffer, tính đặc trưng cho mẫu mới nhất khi buffer có ít nhất 25 hàng, rồi hiển thị điểm và lưu cảnh báo mới. Người dùng có thể chạy, tạm dừng, bước một mẫu, đổi tốc độ hoặc khởi động lại luồng. **Luồng warm-up:** 24 mẫu đầu có `evaluation_status="warming_up"`, `is_anomaly=None` và chưa được tính vào tỷ lệ bình thường. **Hậu điều kiện:** cảnh báo có ID `ALT-YYYYMMDDHHMMSS`; thao tác lặp trên cùng thời điểm không tạo bản ghi trùng.
+
+### 3.2.3. UC03 — Xử lý và xuất cảnh báo
+
+**Tác nhân:** người vận hành. **Tiền điều kiện:** SQLite có ít nhất một cảnh báo. **Luồng chính:** người dùng lọc theo trạng thái và dạng gợi ý, chọn ID, xem chi tiết, nhập ghi chú, bấm “Tiếp nhận cảnh báo” hoặc “Đóng cảnh báo”. Hệ thống cập nhật trạng thái và thời điểm tương ứng. Người dùng có thể tải phần đang lọc thành `bao_cao_canh_bao.csv`. **Ngoại lệ:** khi không có bản ghi phù hợp, giao diện thông báo hàng đợi trống. **Hậu điều kiện:** thay đổi được duy trì qua lần rerun Streamlit.
+
+## 3.3. Kiến trúc mô-đun
+
+Hình 3.1 mô tả năm nhóm thành phần. `01_data_prep.py` chuyển dữ liệu thô thành Train và Demo. `features.py` là nguồn duy nhất của công thức đặc trưng và hậu xử lý. `02_train.py` khớp scaler/model rồi đóng gói thành bundle. `04_dashboard.py` đọc Demo và bundle để phục vụ hai chế độ, đồng thời giao tiếp với SQLite. Các test gọi trực tiếp từng mô-đun và dùng kho tạm để không ảnh hưởng lịch sử vận hành.
+
+![Kiến trúc mô-đun](../reports/figures/Hinh_3.1_KienTruc_HeThong.svg)
+
+*Hình 3.1 — Kiến trúc mô-đun, artefact và hướng trao đổi dữ liệu. Nguồn: thiết kế của đề tài.*
+
+Việc đặt đặc trưng trong một mô-đun chung tránh chênh lệch công thức giữa huấn luyện và dashboard. Bundle lưu đồng thời `model`, `scaler`, `features`, `medians`, `iqrs`; nhờ đó suy luận dùng đúng thứ tự cột và phần giải thích dùng đúng thống kê nền. CSV giữ dữ liệu đo/nhãn kiểm định, trong khi SQLite chỉ giữ cảnh báo vận hành. Hai loại lưu trữ này có vòng đời khác nhau và không cập nhật lẫn nhau.
+
+## 3.4. Thiết kế đặc trưng và dữ liệu thời gian
+
+Từ các cột gốc `Global_active_power`, `Global_reactive_power`, `Voltage` và timestamp, hệ thống tạo chín đặc trưng theo Bảng 3.3. Không phải chín cột này được “bơm” vào dữ liệu; chúng được tính mỗi lần huấn luyện, đánh giá hoặc suy luận rồi đưa vào scaler dưới đúng thứ tự đã lưu.
+
+*Bảng 3.3 — Cấu trúc chín đặc trưng*
+
+| Thứ tự | Tên code | Ý nghĩa và đơn vị trước scale |
+|---:|---|---|
+| 1 | `hour_sin` | Thành phần sin của giờ, không đơn vị |
+| 2 | `hour_cos` | Thành phần cos của giờ, không đơn vị |
+| 3 | `is_night` | 1 trong 01:00–05:00, ngược lại 0 |
+| 4 | `power_diff_1h` | Công suất hiện tại trừ mẫu trước, kW |
+| 5 | `power_dev_24h` | Độ lệch tương đối so với mẫu cách 24 hàng |
+| 6 | `power_zscore_6h` | Z-score trong cửa sổ tối đa 6 mẫu |
+| 7 | `voltage_diff_1h` | Điện áp hiện tại trừ mẫu trước, V |
+| 8 | `voltage_zscore_6h` | Z-score trong cửa sổ tối đa 6 mẫu |
+| 9 | `power_factor` | \(P/\sqrt{P^2+Q^2}\), giới hạn [0,1] |
+
+Chu kỳ giờ được mã hóa để 23 giờ và 0 giờ gần nhau trong không gian đặc trưng:
+
+\[
+hour\_sin=\sin\left(2\pi\frac{h}{24}\right),\qquad
+hour\_cos=\cos\left(2\pi\frac{h}{24}\right). \tag{3.1}
+\]
+
+Với \(P_t\) là công suất tác dụng tại hàng \(t\), độ lệch 24 mẫu là:
+
+\[
+power\_dev_{24}(t)=\frac{P_t-P_{t-24}}{|P_{t-24}|+\varepsilon},\qquad \varepsilon=10^{-6}. \tag{3.2}
+\]
+
+Z-score cửa sổ được tính từ tối đa sáu hàng gần nhất, bao gồm hàng hiện tại:
+
+\[
+z^{(6)}_t=\frac{x_t-\bar{x}_{t,6}}{s_{t,6}+\varepsilon}. \tag{3.3}
+\]
+
+`pandas.Series.std()` dùng độ lệch chuẩn mẫu; giá trị chưa xác định ở hàng đầu được thay bằng 0 trước khi cộng ε. Tuy nhiên, `power_dev_24h` vẫn thiếu ở 24 hàng đầu. `dropna()` vì thế loại đúng 24 hàng khỏi mỗi chuỗi: 27.334 thành 27.310 và 6.834 thành 6.810. Suy luận tuần tự cần 24 hàng lịch sử và mẫu thứ 25 để tạo vector đầu tiên. Warm-up này không phải dữ liệu bình thường và không được model chấm điểm.
+
+Tên hậu tố `_1h`, `_6h`, `_24h` phản ánh kỳ vọng chuỗi liên tục theo giờ, nhưng code thực tế dùng một, sáu và 24 **hàng**. Train thiếu tổng cộng 182 giờ tại năm khoảng trống; Demo thiếu 239 giờ tại ba khoảng trống. Trong số mẫu hợp lệ, có 120 hàng Train và 72 hàng Demo mà hàng cách 24 vị trí không cách đúng 24 giờ theo timestamp. Do đó, báo cáo gọi đây là độ trễ 24 mẫu. Đây cũng là hạn chế cần xử lý ở phiên bản tiếp theo bằng cách tái lập lưới giờ hoặc dùng phép nối theo timestamp.
+
+Hình 3.2 dùng Pearson trên 27.310 mẫu Train để kiểm tra quan hệ tuyến tính. `power_diff_1h` tương quan 0,618 với `power_zscore_6h`; `voltage_diff_1h` tương quan 0,666 với `voltage_zscore_6h`; hai biến động tức thời công suất và điện áp tương quan -0,543. Các hệ số cho thấy có thông tin liên quan nhưng không đồng nghĩa quan hệ nhân quả. Isolation Forest vẫn nhận đủ chín chiều.
+
+![Ma trận tương quan chín đặc trưng](../reports/figures/Hinh_3.2_MaTran_TuongQuan_9_DacTrung.png)
+
+*Hình 3.2 — Tam giác dưới của ma trận tương quan Pearson trên 27.310 mẫu Train. Nhãn tiếng Việt ánh xạ theo thứ tự trong Bảng 3.3. Nguồn: `train_hourly.csv`.*
+
+## 3.5. Luồng suy luận và hậu xử lý
+
+Hình 3.3 đặt hai chế độ cạnh nhau. Phân tích lịch sử tính đặc trưng theo lô trên chuỗi đã chọn, biến đổi toàn bộ ma trận rồi căn kết quả với index hợp lệ. Mô phỏng tuần tự thêm từng hàng vào buffer và chỉ chấm vector mới nhất. Cả hai dùng cùng scaler, model, thứ tự đặc trưng, hàm severity, phân loại gợi ý và thống kê giải thích.
+
+![Luồng suy luận](../reports/figures/Hinh_3.3_Luong_SuyLuan.svg)
+
+*Hình 3.3 — Luồng suy luận theo lô và theo tuần tự, gồm nhánh warm-up và nhánh tạo cảnh báo. Nguồn: thiết kế của đề tài.*
+
+Quy tắc `classify_type()` được áp dụng theo thứ tự. Nếu `voltage_diff_1h <= -15`, dạng gợi ý là `voltage_drop`. Nếu không, khi `is_night=1` và `power_zscore_6h > 0,8` hoặc `power_dev_24h > 0,8`, kết quả là `night_spike`. Các cảnh báo còn lại được gợi ý là `power_surge`. Quy tắc ưu tiên giúp một điểm thỏa nhiều điều kiện vẫn nhận một nhãn duy nhất; nó không chứng minh nguyên nhân vật lý.
+
+Phần giải thích tính cho mỗi đặc trưng:
+
+\[
+D_j(x)=\frac{|x_j-\operatorname{median}_j|}{IQR_j+\varepsilon}. \tag{3.4}
+\]
+
+Ba đặc trưng có \(D_j>0,5\) lớn nhất được hiển thị. Công thức dùng IQR gốc trong `medians`/`iqrs`, không dùng `scale_` đã thay thế trường hợp IQR=0. Với `is_night`, IQR gốc bằng 0 nên nếu giá trị bằng 1 thì độ lệch trở nên rất lớn do mẫu số ε. Điều này có thể đẩy dấu hiệu thời gian lên đầu danh sách; báo cáo xem đây là giới hạn của giải thích heuristic, không phải đóng góp xác suất của mô hình.
+
+## 3.6. Kho cảnh báo và vòng đời
+
+SQLite được chọn vì dashboard cục bộ cần lưu trạng thái qua rerun mà không cần dịch vụ cơ sở dữ liệu riêng. Bảng 3.4 mô tả đúng schema được tạo bởi `init_alert_store()`.
+
+*Bảng 3.4 — Cấu trúc bảng `alerts` trong SQLite*
+
+| Cột | Kiểu/ràng buộc | Ý nghĩa |
+|---|---|---|
+| `alert_id` | TEXT, khóa chính | ID từ thời điểm dữ liệu, ngăn trùng |
+| `data_time` | TEXT, NOT NULL | Thời điểm phép đo |
+| `power`, `voltage` | REAL, NOT NULL | Giá trị đo tại cảnh báo |
+| `severity` | REAL, NOT NULL | Điểm hiển thị [0,1] |
+| `severity_level` | TEXT, NOT NULL | `warning` hoặc `critical` với cảnh báo |
+| `anomaly_type` | TEXT, NOT NULL | Dạng gợi ý sau hậu xử lý |
+| `explanation` | TEXT, NOT NULL | Tối đa ba dấu hiệu nổi bật |
+| `status` | TEXT, mặc định `new` | `new`, `acknowledged` hoặc `closed` |
+| `note` | TEXT, mặc định rỗng | Ghi chú người vận hành |
+| `acknowledged_at`, `closed_at` | TEXT, nullable | Thời điểm chuyển trạng thái |
+| `updated_at` | TEXT, NOT NULL | Lần cập nhật gần nhất |
+
+`save_alert()` dùng `INSERT ... ON CONFLICT(alert_id) DO UPDATE`. Phép cập nhật làm mới dữ liệu mô hình nhưng không xóa trạng thái, ghi chú và thời điểm xử lý đã có. Hình 3.4 cho thấy vòng đời một chiều từ mới đến đã tiếp nhận và đã đóng. Hiện thực cũng cho phép đóng trực tiếp một cảnh báo mới; dashboard không có thao tác mở lại.
+
+![Vòng đời cảnh báo](../reports/figures/Hinh_3.4_VongDoi_CanhBao.svg)
+
+*Hình 3.4 — Vòng đời cảnh báo và các trường thời gian được cập nhật. Nguồn: thiết kế SQLite của đề tài.*
+
+## 3.7. Thiết kế giao diện
+
+Hình 3.5 là wireframe thống nhất của hai chế độ. Chế độ lịch sử đặt bộ lọc ngày và KPI trước biểu đồ, sau đó là bảng cảnh báo để hỗ trợ đi từ tổng quan đến chi tiết. Chế độ mô phỏng đặt điều khiển Play/Pause/Step/Reset và tốc độ trước vùng giám sát; hàng đợi xử lý nằm sau KPI để người vận hành tập trung vào cảnh báo mở. Cả hai dùng nền sáng cố định trong cấu hình Streamlit và CSS để tránh bảng đổi sang dark theme theo browser.
+
+![Wireframe dashboard](../reports/figures/Hinh_3.5_Wireframe.svg)
+
+*Hình 3.5 — Wireframe hai chế độ: phân tích lịch sử và giám sát mô phỏng. Nguồn: thiết kế của đề tài.*
+
+Giao diện phân biệt ba trạng thái dữ liệu: `warming_up`, bình thường đã đánh giá và bất thường đã đánh giá. Các ô chưa đủ lịch sử hiển thị thông báo “đang tích lũy đủ 24 mẫu lịch sử”, không đưa vào mẫu số tỷ lệ bình thường. Bảng cảnh báo ưu tiên trạng thái mới, sau đó severity giảm dần và thời điểm dữ liệu. Thiết kế này phục vụ tác vụ xử lý trực tiếp thay vì chỉ trình bày metric mô hình.
 
 ---
 
-## 3.1. Kiến trúc Hệ thống Tổng thể (System Architecture)
+<a id="chuong-4"></a>
 
-Để giải quyết bài toán phát hiện dị biệt thời gian thực, hệ thống được thiết kế theo luồng dữ liệu (Data Pipeline) 4 bước khép kín. Sơ đồ dưới đây minh họa kiến trúc tổng quan:
+# CHƯƠNG 4: HIỆN THỰC VÀ KIỂM THỬ
 
-```mermaid
-flowchart TD
-    A["Smart Meter / Sensors"] -->|Dữ liệu thô liên tục| B["Data Ingestion và Sliding Window"]
-    B -->|Cửa sổ 24h| C["Feature Engineering"]
-    C -->|9 Đặc trưng| D["RobustScaler"]
-    D -->|Dữ liệu chuẩn hóa| E["Isolation Forest Model"]
-    E -->|Anomaly Score| F["Decision Threshold"]
-    F -->|Bình thường| G["Lưu lịch sử / Bỏ qua"]
-    F -->|Bất thường| H["XAI - Trích xuất nguyên nhân"]
-    H --> I["Phát cảnh báo: Surge / Drop / Night"]
+## 4.1. Môi trường nghiệm thu
+
+Hệ thống được hiện thực bằng Python, Pandas, NumPy, Scikit-learn và Streamlit. Bảng 4.1 ghi môi trường đã dùng để tái tính số liệu, sinh hình và chạy test ngày 10/09/2026. Đây là môi trường nghiệm thu của phiên bản hiện tại, không phải yêu cầu phần cứng tối thiểu đã được benchmark.
+
+*Bảng 4.1 — Môi trường nghiệm thu*
+
+| Thành phần | Phiên bản/thông số |
+|---|---|
+| Hệ điều hành | Windows 10, build 10.0.19045 |
+| CPU | Intel Core i5-8400 @ 2,80 GHz, 6 logical CPU |
+| RAM | 31,92 GiB |
+| Python | 3.14.3 |
+| Pandas / NumPy | 3.0.5 / 2.5.3 |
+| Scikit-learn / Joblib | 1.9.0 / 1.6.0 |
+| Streamlit / Plotly | 1.63.0 / 7.0.0 |
+| Matplotlib | 3.11.1 |
+
+## 4.2. Cấu trúc mã nguồn
+
+Các tệp được tách theo bước dữ liệu, huấn luyện, suy luận và kiểm thử. Cấu trúc chính như sau:
+
+```text
+Smart-meter-anomaly/
+├── data/
+│   ├── household_power_consumption.txt
+│   ├── train_hourly.csv
+│   ├── demo_stream.csv
+│   └── alert_history.sqlite3
+├── models/model_bundle.pkl
+├── src/
+│   ├── 01_data_prep.py
+│   ├── 02_train.py
+│   ├── 03_producer.py
+│   ├── 04_dashboard.py
+│   ├── config.py
+│   ├── features.py
+│   └── style.css
+├── scripts/
+│   ├── generate_report_figures.py
+│   ├── report_diagrams.py
+│   └── collect_report_evidence.py
+├── tests/
+└── reports/figures/
 ```
 
-## 3.2. Cơ chế Cửa sổ trượt (Sliding Window) cho Real-time
-
-Khác với huấn luyện tĩnh (Batch Training) có sẵn toàn bộ dữ liệu tương lai và quá khứ, khi vận hành thực tế (Inference), mô hình chỉ nhận được từng mẫu dữ liệu mới mỗi giờ. 
-
-Để tính toán các đặc trưng lịch sử như `rolling_mean_24h`, hệ thống bắt buộc phải duy trì một **Cửa sổ trượt (Sliding Window)** trong bộ nhớ RAM (biến `state_buffer`). Cửa sổ này luôn lưu giữ đúng 24 mẫu gần nhất. Khi một mẫu dữ liệu mới đi vào ở giờ T, hệ thống sẽ đẩy mẫu cũ nhất ở giờ T-24 ra khỏi bộ đệm, tính toán 9 đặc trưng ngay lập tức, suy diễn qua mô hình, rồi cập nhật bộ đệm để chờ mẫu của giờ T+1.
-
----
-
-## 3.3. Tại sao cần Kỹ thuật Đặc trưng?
-
-Mô hình Isolation Forest vận hành trên không gian vector số thực. Nó không thể nhận đầu vào là nhãn thời gian dạng chuỗi ký tự như "14/03/2010 19:00:00". Vì vậy, trước khi đưa dữ liệu vào mô hình, hệ thống cần chuyển đổi các tín hiệu điện thô (công suất, điện áp) thành một bộ số liệu mang đầy đủ ngữ cảnh thời gian và lịch sử phụ tải.
-
-Nhu cầu này xuất phát từ một thực tế quan trọng: cùng một giá trị công suất 4,5 kW là hoàn toàn bình thường vào lúc 19:30 tối khi gia đình nấu ăn, nhưng cùng giá trị đó vào lúc 3 giờ sáng khi cả nhà đang ngủ lại là dấu hiệu cực kỳ nguy hiểm. Mô hình chỉ có thể phân biệt được hai tình huống này khi được cung cấp thêm thông tin về giờ trong ngày, xu hướng phụ tải gần đây và so sánh với ngày hôm trước.
-
-Toàn bộ logic trích xuất được hiện thực trong file `src/features.py`. Hàm nhận vào một bảng dữ liệu chứa các cột đo đạc gốc và trả về một bảng mới gồm đúng 9 cột đặc trưng, được đặt tên là "The Sharp 9".
-
----
-
-## 3.2. Bảng Tổng hợp 9 Đặc trưng
-
-Bảng 3.1 trình bày tổng quan 9 đặc trưng được sử dụng trong hệ thống, phân thành 6 nhóm theo bản chất kỹ thuật.
-
-**Bảng 3.1 — Tổng hợp 9 đặc trưng chuỗi thời gian**
-
-| STT | Tên | Nhóm | Dạng sự cố nhận diện chính |
-|:---:|:---|:---:|:---:|
-| 1 | hour_sin | Chu kỳ thời gian | Ngữ cảnh giờ trong ngày |
-| 2 | hour_cos | Chu kỳ thời gian | Ngữ cảnh giờ trong ngày |
-| 3 | is_night | Ngữ cảnh thấp điểm | Đột biến ban đêm (night_spike) |
-| 4 | power_diff_1h | Động học công suất | Đột biến công suất (power_surge) |
-| 5 | power_dev_24h | Tương quan ngày trước | Đột biến công suất (power_surge) |
-| 6 | power_zscore_6h | Thống kê trượt | Tất cả nhóm sự cố |
-| 7 | voltage_diff_1h | Chất lượng điện áp | Sụt điện áp (voltage_drop) |
-| 8 | voltage_zscore_6h | Thống kê trượt | Sụt điện áp (voltage_drop) |
-| 9 | power_factor | Bản chất phụ tải | Sự cố tải cảm ứng |
-
-Trong tất cả các công thức bên dưới, ký hiệu P(t) là công suất tác dụng tại giờ t (đơn vị kW), U(t) là điện áp lưới tại giờ t (đơn vị V), Q(t) là công suất phản kháng tại giờ t (đơn vị kVAR), và h là giờ trong ngày (số nguyên từ 0 đến 23).
-
----
-
-## 3.3. Phân tích Chi tiết Từng Đặc trưng
-
-### 3.3.1. Nhóm 1 — Mã hóa Chu kỳ Thời gian: hour_sin và hour_cos
-
-**Bài toán cần giải quyết:**
-
-Giả sử ta giữ nguyên giá trị giờ dạng số nguyên (0, 1, 2, ..., 23) làm đặc trưng đầu vào cho mô hình. Khi đó, mô hình sẽ tính khoảng cách giữa 23 giờ đêm và 0 giờ sáng là |23 - 0| = 23 đơn vị, tức khoảng cách lớn nhất trong ngày. Trong thực tế, 23:59 và 00:01 chỉ cách nhau 2 phút. Đây là lỗi toán học nghiêm trọng vì mô hình sẽ coi hai thời điểm liền kề này như hai cực đối lập.
-
-**Cách tính:**
-
-Hệ thống chiếu trục thời gian 24 giờ lên một đường tròn đơn vị bằng hai hàm lượng giác:
-
-- hour_sin = sin(2 x pi x h / 24)
-- hour_cos = cos(2 x pi x h / 24)
-
-Trong đó pi = 3,14159... và h là giờ trong ngày (số nguyên từ 0 đến 23).
-
-**Ví dụ tính cụ thể:**
-
-- Lúc 0 giờ (h = 0): hour_sin = sin(0) = 0,00 và hour_cos = cos(0) = 1,00.
-- Lúc 6 giờ sáng (h = 6): hour_sin = sin(pi/2) = 1,00 và hour_cos = cos(pi/2) = 0,00.
-- Lúc 12 giờ trưa (h = 12): hour_sin = sin(pi) = 0,00 và hour_cos = cos(pi) = -1,00.
-- Lúc 18 giờ chiều (h = 18): hour_sin = sin(3pi/2) = -1,00 và hour_cos = cos(3pi/2) = 0,00.
-- Lúc 23 giờ đêm (h = 23): hour_sin = khoảng -0,26 và hour_cos = khoảng 0,97.
-
-Quan sát: tọa độ lúc 23 giờ (-0,26; 0,97) rất gần tọa độ lúc 0 giờ (0,00; 1,00). Khoảng cách Euclidean giữa chúng chỉ khoảng 0,27 đơn vị — phản ánh đúng thực tế rằng hai thời điểm này liền kề nhau.
-
-**Ý nghĩa:** Cặp đặc trưng này cho phép mô hình Isolation Forest nhận biết rằng 23 giờ đêm và 0 giờ sáng nằm cạnh nhau trong chu kỳ ngày, thay vì ở hai đầu xa nhất.
-
----
-
-### 3.3.2. Nhóm 2 — Cờ Khung giờ Thấp điểm: is_night
-
-**Cách tính:**
-
-Đặc trưng này có giá trị nhị phân: bằng 1 khi giờ h nằm trong tập {1, 2, 3, 4, 5}, bằng 0 trong tất cả các giờ còn lại.
-
-Nói cách khác:
-- Từ 1 giờ sáng đến 5 giờ sáng: is_night = 1.
-- Từ 6 giờ sáng đến 0 giờ đêm: is_night = 0.
-
-**Tại sao chọn khung 1 giờ đến 5 giờ?**
-
-Đây là khoảng thời gian thấp điểm sinh học khi toàn bộ thành viên gia đình đang ngủ sâu. Mức tiêu thụ điện bình thường trong khung giờ này cực kỳ thấp và ổn định, chỉ từ 0,20 đến 0,45 kW (chế độ chờ của tủ lạnh, modem wifi, đồng hồ điện tử). Bất kỳ mức tăng bất thường nào trong khung giờ này đều rất đáng ngờ.
-
-**Vai trò trong phân loại sự cố:**
-
-Đặc trưng is_night là điều kiện bắt buộc trong quy tắc phân loại loại sự cố. Cụ thể, trong hàm classify_type() tại file src/features.py, hệ thống chỉ gán nhãn "night_spike" khi thỏa đồng thời hai điều kiện:
-
-- Điều kiện 1: is_night bằng 1 (tức giờ hiện tại nằm trong khung 1 giờ đến 5 giờ sáng).
-- Điều kiện 2: power_zscore_6h lớn hơn 0,8 HOẶC power_dev_24h lớn hơn 0,8.
-
-Nếu chỉ có điều kiện 2 mà is_night bằng 0, hệ thống sẽ phân loại thành power_surge thay vì night_spike.
-
----
-
-### 3.3.3. Nhóm 3 — Tốc độ Biến thiên Bậc nhất: power_diff_1h và voltage_diff_1h
-
-**Cách tính:**
-
-- power_diff_1h = P(t) - P(t-1)
-- voltage_diff_1h = U(t) - U(t-1)
-
-Tức lấy giá trị tại giờ hiện tại trừ đi giá trị tại giờ trước đó. Phép tính này tương đương với đạo hàm bậc nhất rời rạc theo thời gian — đo tốc độ thay đổi trong một giờ.
-
-**Ví dụ tính cụ thể cho power_diff_1h:**
-
-- Lúc 13 giờ, công suất là 1,2 kW. Lúc 14 giờ, công suất vọt lên 5,8 kW.
-- power_diff_1h = 5,8 - 1,2 = +4,6 kW.
-- Giá trị +4,6 cho thấy công suất tăng thêm 4,6 kW chỉ trong 1 giờ — biến động cực lớn.
-
-**Ví dụ tính cụ thể cho voltage_diff_1h:**
-
-- Lúc 13 giờ, điện áp là 238,5 V. Lúc 14 giờ, điện áp tụt xuống 204,2 V.
-- voltage_diff_1h = 204,2 - 238,5 = -34,3 V.
-- Giá trị -34,3 cho thấy điện áp sụt 34,3 V trong 1 giờ — mức sụt rất nguy hiểm.
-
-**Ngưỡng phân loại cứng duy nhất trong hệ thống:**
-
-Đặc trưng voltage_diff_1h là đặc trưng duy nhất kích hoạt quy tắc ngưỡng cứng. Trong file src/config.py, hằng số VOLTAGE_DROP_THRESHOLD được đặt bằng -15,0 V. Trong hàm classify_type(), nếu voltage_diff_1h nhỏ hơn hoặc bằng -15,0 V, hệ thống phân loại ngay lập tức thành "voltage_drop" mà không cần chờ kết quả từ mô hình Isolation Forest.
-
-Ý nghĩa: bất kỳ khi nào điện áp lưới sụt từ 15 V trở lên trong vòng 1 giờ, đó là dấu hiệu nguy hiểm rõ ràng đến mức không cần đến phân tích thống kê — cần cảnh báo tức thì.
-
----
-
-### 3.3.4. Nhóm 4 — Độ lệch so với Ngày hôm trước: power_dev_24h
-
-**Cách tính:**
-
-power_dev_24h = (P(t) - P(t-24)) / (|P(t-24)| + 0,000001)
-
-Trong đó:
-- P(t) là công suất tại giờ hiện tại.
-- P(t-24) là công suất tại cùng giờ này ngày hôm trước (lùi đúng 24 mẫu giờ).
-- |P(t-24)| là giá trị tuyệt đối của P(t-24).
-- Số 0,000001 (một phần triệu) được cộng vào mẫu số để tránh lỗi chia cho 0 trong trường hợp P(t-24) bằng 0.
-
-**Ý nghĩa từng thành phần:**
-
-- Tử số P(t) - P(t-24): đo chênh lệch tuyệt đối giữa công suất hiện tại và công suất cùng giờ hôm trước.
-- Mẫu số |P(t-24)|: chia cho mức nền hôm trước để chuyển chênh lệch tuyệt đối thành tỷ lệ tương đối (phần trăm).
-- Kết quả: một tỷ số cho biết công suất hiện tại tăng hay giảm bao nhiêu phần so với cùng giờ hôm trước.
-
-**Ví dụ tính cụ thể:**
-
-- Lúc 14 giờ hôm qua, nhà vắng người, P(t-24) = 0,30 kW.
-- Lúc 14 giờ hôm nay, P(t) = 3,00 kW.
-- power_dev_24h = (3,00 - 0,30) / (0,30 + 0,000001) = 2,70 / 0,30 = +9,00.
-- Giá trị +9,00 có nghĩa công suất hôm nay gấp 10 lần hôm qua cùng giờ (tăng 900%) — dấu hiệu power_surge cực kỳ rõ ràng.
-
-**Tại sao so sánh với "cùng giờ hôm trước" thay vì "giờ trước đó"?**
-
-Phụ tải điện hộ gia đình có tính tự tương quan chu kỳ 24 giờ rất mạnh: gia đình thường nấu ăn cùng giờ mỗi ngày, bật điều hòa cùng giờ mỗi tối. Bằng cách so sánh với cùng giờ hôm trước, đặc trưng này triệt tiêu được yếu tố chu kỳ ngày — chỉ còn lại các biến động bất thường thực sự.
-
----
-
-### 3.3.5. Nhóm 5 — Điểm chuẩn hóa Z-Score trượt 6 giờ: power_zscore_6h và voltage_zscore_6h
-
-**Khái niệm Z-Score:**
-
-Z-Score (hay Standard Score) đo độ lệch của một giá trị so với trung bình, tính bằng số lần độ lệch chuẩn. Z-Score = 0 có nghĩa giá trị bằng đúng trung bình. Z-Score = +2,0 có nghĩa giá trị lớn hơn trung bình 2 lần độ lệch chuẩn. Z-Score = -3,0 có nghĩa giá trị nhỏ hơn trung bình 3 lần độ lệch chuẩn.
-
-**Cách tính power_zscore_6h:**
-
-Bước 1 — Tính trung bình trượt 6 giờ (mean_6h): lấy trung bình cộng công suất của 6 giờ gần nhất, bao gồm giờ hiện tại và 5 giờ trước đó.
-
-mean_6h = (P(t) + P(t-1) + P(t-2) + P(t-3) + P(t-4) + P(t-5)) / 6
-
-Bước 2 — Tính độ lệch chuẩn trượt 6 giờ (std_6h): đo mức độ dao động của 6 giá trị xung quanh trung bình.
-
-std_6h = căn bậc hai của [ tổng (P(t-k) - mean_6h)^2 cho k từ 0 đến 5, chia cho 6 ]
-
-Bước 3 — Tính Z-Score:
-
-power_zscore_6h = (P(t) - mean_6h) / (std_6h + 0,000001)
-
-Số 0,000001 được cộng vào mẫu số để tránh chia cho 0 khi tải phẳng liên tục 6 giờ khiến std_6h bằng 0.
-
-**Ví dụ tính cụ thể:**
-
-Giả sử trong 6 giờ gần nhất, công suất lần lượt là: 0,8 — 0,9 — 0,7 — 0,8 — 0,9 — 4,5 kW.
-
-- Bước 1: mean_6h = (0,8 + 0,9 + 0,7 + 0,8 + 0,9 + 4,5) / 6 = 8,6 / 6 = 1,433 kW.
-- Bước 2: std_6h = khoảng 1,42 kW (tính từ phương sai của 6 giá trị trên).
-- Bước 3: power_zscore_6h = (4,5 - 1,433) / (1,42 + 0,000001) = 3,067 / 1,42 = khoảng +2,16.
-
-Giá trị +2,16 cho thấy công suất giờ hiện tại lệch hơn 2 lần độ lệch chuẩn so với trung bình 6 giờ gần nhất — một gai đột xuất rõ ràng.
-
-**Tại sao dùng cửa sổ 6 giờ thay vì toàn bộ lịch sử?**
-
-Cửa sổ 6 giờ đo "bất thường cục bộ": so sánh giá trị hiện tại chỉ với bối cảnh gần nhất, không phải toàn bộ lịch sử hàng tháng. Nếu suốt buổi sáng phụ tải duy trì ổn định ở mức thấp (0,3 kW), mọi gai đột xuất dù nhỏ cũng tạo std_6h rất nhỏ, đẩy Z-Score vọt lên cao và kích hoạt phát hiện ngay. Đây chính là khái niệm "bất thường theo ngữ cảnh cục bộ" (Local Contextual Anomaly).
-
-**voltage_zscore_6h** được tính hoàn toàn tương tự, nhưng thay giá trị công suất P bằng giá trị điện áp U. Nó phản ánh mức độ bất ổn định kéo dài của pha cấp điện lưới trong 6 giờ gần nhất.
-
----
-
-### 3.3.6. Nhóm 6 — Hệ số Công suất: power_factor
-
-**Khái niệm vật lý:**
-
-Trong hệ thống điện xoay chiều, điện năng gồm hai thành phần:
-- Công suất tác dụng P (kW): phần năng lượng thực sự được chuyển hóa thành nhiệt, ánh sáng hoặc cơ năng.
-- Công suất phản kháng Q (kVAR): phần năng lượng dao động qua lại giữa nguồn và tải, không sinh công hữu ích nhưng gây tổn hao trên dây dẫn.
-
-Công suất biểu kiến S (kVA) là tổng hợp vector của P và Q:
-
-S = căn bậc hai của (P^2 + Q^2)
-
-Hệ số công suất (Power Factor, ký hiệu cos phi) là tỷ số giữa phần năng lượng hữu ích và tổng năng lượng:
-
-cos phi = P / S = P / căn bậc hai của (P^2 + Q^2)
-
-**Cách tính trong hệ thống:**
-
-power_factor = P(t) / (căn bậc hai của (P(t)^2 + Q(t)^2) + 0,000001)
-
-Kết quả được giới hạn (clip) trong khoảng từ 0,0 đến 1,0. Số 0,000001 tránh chia cho 0 khi cả P và Q đều bằng 0.
-
-**Ý nghĩa giá trị:**
-
-- power_factor gần 1,0: phụ tải chủ yếu là thuần trở (bếp từ, bình nóng lạnh, bóng đèn sợi đốt, ấm đun siêu tốc). Q gần bằng 0, hầu hết điện năng được chuyển hóa thành nhiệt.
-- power_factor khoảng 0,7 đến 0,9: phụ tải có thành phần cảm ứng (động cơ tủ lạnh, máy nén điều hòa, máy bơm, quạt trần). Q có giá trị đáng kể.
-- power_factor dưới 0,6: dấu hiệu bất thường — có thể do chạm chập cuộn dây động cơ hoặc hỏng tụ bù, khiến Q tăng vọt.
-
-**Ví dụ phân biệt sự cố kỹ thuật:**
-
-Giả sử gia đình bật đồng thời nhiều bếp từ khiến P tăng lên 5 kW nhưng Q vẫn gần 0 — power_factor xấp xỉ 1,0. Đây chỉ là sinh hoạt bình thường. Ngược lại, nếu P tăng lên 5 kW mà Q cũng tăng vọt lên 4 kW — power_factor = 5 / căn(25 + 16) = 5 / 6,4 = 0,78 — hệ thống nhận biết đây là tải cảm ứng bất thường, có thể do sự cố kỹ thuật trên động cơ.
-
----
-
-## 3.4. Cách Hệ thống Lấy 9 Đặc trưng trong Thực tế
-
-### 3.4.1. Chế độ Phân tích theo lô (Batch — Chế độ Lịch sử)
-
-Khi phân tích tập dữ liệu lịch sử đã có sẵn (ví dụ file demo_stream.csv chứa 6.810 mẫu giờ), hệ thống gọi hàm extract_features(df) một lần trên toàn bộ bảng dữ liệu. Hàm này tính toán đồng loạt cả 9 đặc trưng cho tất cả các dòng, rồi loại bỏ các dòng đầu tiên bị thiếu dữ liệu (do shift 24 giờ và rolling 6 giờ chưa có đủ lịch sử).
-
-### 3.4.2. Chế độ Luồng thời gian thực (Stream — Chế độ Giám sát)
-
-Trong luồng thời gian thực, mỗi chu kỳ chỉ có đúng một bản ghi mới được đẩy đến qua bộ đệm stream_buffer.jsonl. Nếu gọi extract_features() trên một bản ghi đơn lẻ, phép tính P(t-24) sẽ trả về giá trị rỗng (NaN) vì chưa có 24 bản ghi trước đó, và toàn bộ vector đặc trưng bị hỏng.
-
-Giải pháp: hệ thống duy trì một bộ đệm trượt (Sliding Buffer) trong bộ nhớ RAM, tích lũy các bản ghi liên tiếp. Khi bộ đệm đạt tối thiểu 25 bản ghi, hệ thống gọi hàm extract_latest(buffer_df) — hàm này tính extract_features() trên toàn bộ bộ đệm rồi chỉ trả về đặc trưng của dòng cuối cùng (bản ghi mới nhất).
-
----
-
-## 3.5. Bộ đệm Trượt Trạng thái (Stateful Sliding Window)
-
-### 3.5.1. Tại sao ngưỡng tối thiểu là 25 bản ghi?
-
-Để tính được đặc trưng power_dev_24h, hệ thống cần giá trị P(t-24) — tức công suất cùng giờ ngày hôm trước. Điều này đòi hỏi ít nhất 24 bản ghi lịch sử trước bản ghi hiện tại. Cộng thêm bản ghi hiện tại, tổng tối thiểu là 25.
-
-Kích thuoc tối thiểu = 24 (cho shift 24 giờ) + 1 (bản ghi hiện tại) = 25 bản ghi.
-
-Khi bộ đệm chưa đạt 25 bản ghi, hàm extract_latest() trả về giá trị rỗng (None), và hệ thống ở trạng thái "tích lũy ngữ cảnh" — không phát ra bất kỳ cảnh báo nào. Đây gọi là giai đoạn Warm-up.
-
-### 3.5.2. Cơ chế FIFO (First-In, First-Out)
-
-Trên Dashboard, bộ đệm được quản lý bằng danh sách trong bộ nhớ phiên (Session State) của Streamlit:
-
-- Khi bản ghi mới đến: thêm vào cuối danh sách.
-- Khi danh sách vượt quá 50 phần tử: xóa phần tử cũ nhất ở đầu danh sách.
-- Kích thước bộ đệm luôn nằm trong khoảng từ 25 đến 50 bản ghi.
-
-Cơ chế này đảm bảo RAM trình duyệt ổn định khi luồng dữ liệu chạy liên tục hàng nghìn bản ghi. Thực tế thử nghiệm xác nhận: sau 1.000 bản ghi phát liên tiếp, bộ nhớ trình duyệt không tăng và đồ họa không bị giật lag.
-
----
-
-## 3.6. Cơ chế Đánh giá Mức độ Nguy hại (Severity Scoring)
-
-### 3.6.1. Từ điểm số mô hình đến phần trăm nguy cơ
-
-Điểm số trả về từ hàm decision_function() của Isolation Forest trong Scikit-Learn là một số thực không bị giới hạn: có thể dương (bình thường) hoặc âm (bất thường), với biên độ tùy thuộc vào mức độ dị biệt. Ví dụ: score = -0,234 cho một sự cố power_surge nghiêm trọng; score = +0,050 cho một giờ vận hành ổn định.
-
-Để người vận hành dễ hình dung, hàm calc_severity() chuyển đổi điểm số này thành một tỷ lệ phần trăm Severity từ 0% (an toàn) đến 100% (nguy hiểm nhất) thông qua hàm Sigmoid:
-
-Severity = 1 / (1 + e^(30 x score))
-
-Trong đó e = 2,71828... (số Euler) và hệ số 30 là hệ số khuếch đại tạo đường cong rất dốc.
-
-**Cách đọc kết quả:**
-
-- Khi score rất âm (ví dụ -0,2): 30 x (-0,2) = -6,0; e^(-6,0) = 0,0025; Severity = 1 / 1,0025 = 99,8%.
-- Khi score bằng 0 (ranh giới): 30 x 0 = 0; e^0 = 1; Severity = 1 / 2 = 50,0%.
-- Khi score dương (ví dụ +0,1): 30 x 0,1 = 3,0; e^3 = 20,1; Severity = 1 / 21,1 = 4,7%.
-
-### 3.6.2. Ba mức phân cấp nguy cơ
-
-**Bảng 3.2 — Phân cấp mức độ nguy hại**
-
-| Mức độ | Điều kiện | Màu Badge | Hành động |
-|:---:|:---:|:---:|:---|
-| Bình thường | Severity duoi 50% | Xanh lục | Theo dõi thường quy |
-| Cảnh báo | Severity từ 50% đến dưới 70% | Vàng cam | Theo dõi sát phụ tải |
-| Nguy cấp | Severity từ 70% trở lên | Đỏ | Cảnh báo tức thì |
-
----
-
-## 3.7. Giải thích AI — Bóc tách Nguyên nhân (XAI)
-
-### 3.7.1. Bài toán cần giải quyết
-
-Khi mô hình phát hiện một điểm bất thường, người vận hành cần biết: tại sao điểm này bị coi là bất thường? Đặc trưng nào đóng góp nhiều nhất vào quyết định này?
-
-### 3.7.2. Cách tính
-
-Hệ thống so sánh giá trị thực tế của từng đặc trưng với "đường cơ sở bình thường" (Baseline) — tức giá trị Median và IQR của từng đặc trưng trên tập Train.
-
-Đối với mỗi đặc trưng thứ i, tính độ lệch chuẩn hóa:
-
-Deviation(i) = |x(i) - Median(i)| / (IQR(i) + 0,000001)
-
-Trong đó:
-- x(i) là giá trị thực tế của đặc trưng i tại điểm đang xét.
-- Median(i) là trung vị của đặc trưng i trên toàn bộ tập Train (27.310 mẫu bình thường).
-- IQR(i) = Q3(i) - Q1(i) là khoảng tứ phân vị, đo độ trải rộng bình thường.
-
-Chỉ các đặc trưng có Deviation lớn hơn 0,5 mới được đưa vào danh sách ứng cử viên. Danh sách được sắp xếp giảm dần theo Deviation và lấy 3 đặc trưng lệch nhiều nhất (Top-3).
-
-### 3.7.3. Ví dụ đầu ra XAI
-
-**Bảng 3.3 — Ví dụ thông điệp giải thích XAI từ 3 ca sự cố**
-
-| Dạng sự cố | Thông điệp hiển thị trên Dashboard |
-|:---:|:---|
-| Đột biến công suất | Biến động công suất 1 giờ = +4,21; Bất thường công suất 6h = +3,85; Lệch so với hôm qua = +3,67 |
-| Sụt điện áp | Biến động điện áp 1 giờ = -34,30; Bất thường điện áp 6h = -3,45 |
-| Đột biến đêm | Bất thường công suất 6h = +3,12; Lệch so với hôm qua = +6,20; Khung giờ đêm khuya = 1,00 |
-
-Median và IQR của từng đặc trưng được tính một lần trên tập Train và lưu vĩnh viễn vào file model_bundle.pkl cùng với mô hình và bộ chuẩn hóa. Nhờ vậy, điểm tham chiếu XAI luôn nhất quán trong mọi phiên suy diễn.
-
----
-
-# BÁO CÁO ĐỒ ÁN TỐT NGHIỆP
-
-# CHƯƠNG 4: HIỆN THỰC HÓA VÀ KIỂM THỬ PHẦN MỀM
-
----
-
-## 4.1. Hệ sinh thái Công nghệ
-
-Hệ thống được xây dựng hoàn toàn trên nền tảng Python 3.10 kết hợp các thư viện chuẩn công nghiệp:
-
-- Pandas và NumPy thực thi toàn bộ thao tác chuỗi thời gian: resample, rolling window, ffill/bfill và biến đổi lượng giác.
-- Scikit-Learn cung cấp mô-đun học máy không giám sát IsolationForest và bộ chuẩn hóa RobustScaler.
-- Joblib đóng gói mô hình và các tham số thống kê thành tệp nhị phân nén model_bundle.pkl.
-- Plotly (Graph Objects) dựng biểu đồ tương tác thời gian thực, hỗ trợ zoom và hover thông tin đa chiều.
-- Streamlit cung cấp khung ứng dụng web reactive với quản lý trạng thái phiên cho luồng dữ liệu thời gian thực.
-
----
-
-## 4.2. Pipeline Xử lý Dữ liệu (src/01_data_prep.py)
-
-### 4.2.1. Làm sạch 2.075.259 Bản ghi Gốc
-
-Tệp household_power_consumption.txt kích thước gần 130 MB chứa dữ liệu đo đạc theo phút từ ngày 16/12/2006 đến 26/11/2010. Quá trình làm sạch thực thi bốn bước tuần tự.
-
-Bước 1 — Đọc và nhận diện giá trị khuyết thiếu. Ký tự dấu hỏi "?" trong dữ liệu gốc đại diện cho các khoảng mất điện hoặc lỗi truyền thông và được tự động chuyển thành giá trị rỗng.
-
-Bước 2 — Hợp nhất trục thời gian. Kết hợp cột Date và Time thành cột datetime chuẩn theo định dạng ngày/tháng/năm giờ:phút:giây và đặt làm chỉ mục.
-
-Bước 3 — Nội suy dữ liệu. Áp dụng kỹ thuật điền tiến (forward fill) kết hợp điền lùi (backward fill) để lấp các khoảng gián đoạn ngắn mà không làm thay đổi phân phối vật lý của phụ tải.
-
-Bước 4 — Tổng hợp theo chu kỳ 1 giờ. Gom trung bình 60 mẫu phút thành 1 mẫu giờ, thu được 34.054 mẫu giờ liên tục sạch.
-
-### 4.2.2. Phân chia Chuỗi thời gian
-
-Trong bài toán chuỗi thời gian, phân chia ngẫu nhiên là sai lầm nghiêm trọng vì dữ liệu tương lai rò rỉ vào quá trình huấn luyện (Data Leakage). Dự án phân chia theo thứ tự thời gian tuyệt đối:
-
-**Bảng 4.1 — Phân chia tập dữ liệu**
-
-| Tập | Giai đoạn | Số mẫu | Mục đích |
-|:---:|:---:|:---:|:---|
-| Train (80%) | 12/2006 - 01/2010 | 27.310 | Huấn luyện mô hình |
-| Demo (20%) | 01/2010 - 11/2010 | 6.811 | Kiểm định sau tiêm lỗi |
-
-### 4.2.3. Tiêm lỗi Giả lập có Kiểm soát
-
-Ba dạng lỗi được tiêm vào tập Demo để tạo nhãn chân lý đánh giá.
-
-**Bảng 4.2 — Tham số tiêm lỗi**
-
-| Dạng sự cố | Thao tác | Khung giờ | Tỷ lệ |
-|:---:|:---|:---:|:---:|
-| power_surge | Nhân P với hệ số 3,0 đến 5,0 | 8h - 22h | 3% |
-| voltage_drop | Trừ U một lượng 20 đến 40 V | Ngẫu nhiên | 3% |
-| night_spike | Nhân P với hệ số 2,0 đến 3,5 | 1h - 5h | 2% |
-
-Tổng tỷ lệ bất thường: 8%, khớp với tham số contamination = 0,08 của mô hình. Kết quả: 545 điểm lỗi trên 6.811 mẫu.
-
----
-
-## 4.3. Huấn luyện và Đóng gói Mô hình (src/02_train.py)
-
-### 4.3.1. Quy trình Huấn luyện
-
-Quá trình huấn luyện thực thi bốn bước:
-
-Bước 1 — Trích xuất 9 đặc trưng từ tập Train, tạo ma trận kích thước 27.310 dòng nhân 9 cột.
-
-Bước 2 — Khớp RobustScaler trên tập Train và chuẩn hóa toàn bộ ma trận đặc trưng.
-
-Bước 3 — Huấn luyện IsolationForest với 100 cây, contamination = 0,08, random_state = 42.
-
-Bước 4 — Tính Median và IQR của từng đặc trưng trên tập Train để làm điểm tham chiếu cho bộ giải thích XAI.
-
-### 4.3.2. Cấu trúc Gói model_bundle.pkl
-
-Dự án đóng gói đồng bộ năm thành phần vào một tệp duy nhất, tránh sai lầm phổ biến là chỉ lưu mô hình mà quên lưu bộ chuẩn hóa.
-
-**Bảng 4.3 — Nội dung model_bundle.pkl**
-
-| Thành phần | Nội dung | Vai trò |
-|:---:|:---|:---|
-| model | Đối tượng IsolationForest đã khớp | Suy luận phát hiện bất thường |
-| scaler | Đối tượng RobustScaler đã khớp trên Train | Chuẩn hóa đặc trưng nhất quán |
-| features | Danh sách thứ tự 9 tên đặc trưng | Đảm bảo đúng thứ tự cột đầu vào |
-| medians | Vector Median tập Train | Điểm tham chiếu XAI |
-| iqrs | Vector IQR tập Train | Thang đo chuẩn hóa XAI |
-
-Kích thước tệp: 4,3 MB. Khi Dashboard nạp gói này, toàn bộ ngữ cảnh suy diễn được khôi phục đồng bộ 100%.
-
----
-
-## 4.4. Giao diện Dashboard (src/04_dashboard.py)
-
-### 4.4.1. Chiến lược Caching
-
-Dashboard sử dụng hai cơ chế caching của Streamlit:
-
-- cache_resource: nạp gói mô hình một lần duy nhất trong phiên, dùng cho IsolationForest và RobustScaler.
-- cache_data: cache tập dữ liệu Demo 6.810 mẫu, không tải lại mỗi lần tương tác.
-
-Thời gian phản hồi sau lần nạp đầu: dưới 50 mili-giây.
-
-### 4.4.2. Hai Chế độ Vận hành
-
-**Bảng 4.4 — So sánh hai chế độ Dashboard**
-
-| Chế độ | Dữ liệu | Suy luận | Tính năng chính |
-|:---:|:---|:---|:---|
-| Lịch sử | demo_stream.csv (6.810 mẫu) | Batch inference | Bộ lọc ngày, Heatmap, Bảng sự cố kèm XAI |
-| Thời gian thực | stream_buffer.jsonl | Online từng mẫu | Buffer FIFO 25-50, Gauge Severity, Biểu đồ 100 điểm |
-
-### 4.4.3. Khóa cứng Light Theme
-
-Streamlit mặc định theo chế độ màu hệ điều hành. Khi người dùng bật Dark Mode, chữ trên biểu đồ Plotly mất màu. Giải pháp: khai báo bắt buộc color-scheme: light trong file src/style.css kết hợp cấu hình theme trong .streamlit/config.toml, đảm bảo 100% Light Mode bất kể cài đặt hệ điều hành.
-
----
-
-# BÁO CÁO ĐỒ ÁN TỐT NGHIỆP
-
-# CHƯƠNG 5: KẾT QUẢ THỰC NGHIỆM VÀ BÀN LUẬN
-
----
-
-## 5.1. Thiết lập Thực nghiệm
-
-Toàn bộ quá trình đánh giá thực hiện độc lập trên tập kiểm định demo_stream.csv. Sau khi loại trừ 24 mẫu đầu dành cho giai đoạn Warm-up, số mẫu hợp lệ là 6.810 bản ghi, tương đương gần 10 tháng vận hành liên tục.
-
-**Bảng 5.1 — Phân bổ tập kiểm định**
-
-| Phân lớp | Số mẫu | Tỷ lệ |
-|:---:|:---:|:---:|
-| Bình thường | 6.265 | 91,99% |
-| Bất thường (đã tiêm) | 545 | 8,01% |
-| Tổng | 6.810 | 100% |
-
----
-
-## 5.2. Kết quả Đo đạc
-
-### 5.2.1. Bảng Chỉ số Cốt lõi
-
-**Bảng 5.2 — Kết quả đánh giá mô hình**
-
-| Chỉ số | Giá trị | Mục tiêu | Đánh giá |
-|:---|:---:|:---:|:---:|
-| ROC-AUC Score | 0,9231 | lon hon 0,90 | Xuất sắc |
-| Recall (Bất thường) | 72,84% | lon hon 70% | Đạt |
-| Precision (Bất thường) | 51,96% | — | Hợp lý |
-| F1-Score (Bất thường) | 0,6066 | — | Ổn định |
-| Accuracy (Toàn thể) | 92,44% | — | Cao |
-
-### 5.2.2. Ma trận Nhầm lẫn
-
-**Bảng 5.3 — Ma trận nhầm lẫn trên 6.810 mẫu**
-
-| | Dự đoán Bình thường | Dự đoán Bất thường |
-|:---|:---:|:---:|
-| Thực tế Bình thường (6.265) | TN = 5.898 (94,14%) | FP = 367 (5,86%) |
-| Thực tế Bất thường (545) | FN = 148 (27,16%) | TP = 397 (72,84%) |
-
-Trong đó:
-- TP (True Positive) = 397: số sự cố bị phát hiện đúng.
-- TN (True Negative) = 5.898: số giờ bình thường được nhận diện đúng.
-- FP (False Positive) = 367: số lần hệ thống cảnh báo nhầm. Nguyên nhân gốc rễ của FP thường xuất phát từ hành vi sinh hoạt bất quy tắc của con người (ví dụ: người dùng đi làm về muộn và bật lò nướng, máy lạnh công suất tối đa vào lúc 1 giờ sáng). Khung giờ này bình thường có công suất rất thấp, do đó bộ XAI sẽ diễn giải đây là `night_spike` do tính chất biên độ bất thường.
-- FN (False Negative) = 148: số sự cố bị bỏ sót. Thường là các điểm dị biệt nằm "chìm" sát trong đám mây dữ liệu bình thường.
-
----
-
-## 5.3. Phân tích Từng Chỉ số
-
-### 5.3.1. ROC-AUC = 0,9231
-
-ROC-AUC đo khả năng mô hình xếp hạng đúng thứ tự các điểm bất thường cao hơn điểm bình thường, trên toàn bộ mọi ngưỡng phân loại có thể. Giá trị 0,9231 có nghĩa: nếu lấy ngẫu nhiên một mẫu bất thường và một mẫu bình thường, có xác suất 92,31% mô hình gán score bất thường cao hơn.
-
-Theo chuẩn đánh giá: ROC-AUC trong khoảng 0,90 đến 1,00 xếp loại Xuất sắc. Dự án đạt 0,9231, vượt mục tiêu đề ra.
-
-### 5.3.2. Recall = 72,84% — Chỉ số Quan trọng Nhất
-
-Recall = TP / (TP + FN) = 397 / (397 + 148) = 72,84%.
-
-Chỉ số này cho biết: trong 545 sự cố thực sự nguy hiểm, hệ thống phát hiện được 397 sự cố (72,84%) và bỏ sót 148 sự cố (27,16%).
-
-Recall là chỉ số quan trọng nhất vì chi phí hai loại sai lầm hoàn toàn bất đối xứng:
-
-- Bỏ sót sự cố (FN = 148 lần): mỗi lần bỏ sót là một nguy cơ không được cảnh báo — rò rỉ điện ban đêm có thể gây điện giật, sụt áp kéo dài có thể thiêu cháy động cơ. Thiệt hại tính bằng sinh mạng và tài sản.
-
-- Cảnh báo nhầm (FP = 367 lần): mỗi lần cảnh báo nhầm, chủ hộ mở ứng dụng kiểm tra và xác nhận bình thường. Thiệt hại chỉ mất 5 đến 10 giây.
-
-### 5.3.3. Precision = 51,96%
-
-Precision = TP / (TP + FP) = 397 / (397 + 367) = 51,96%.
-
-Cứ hai lần hệ thống phát cảnh báo thì có hơn một lần là sự cố thực sự. Đây là tỷ lệ hoàn toàn chấp nhận được trong lĩnh vực an toàn. So sánh: hệ thống báo khói dân dụng có tỷ lệ cảnh báo nhầm 70-80% nhưng vẫn triển khai rộng rãi vì chi phí nhầm thấp hơn nhiều so với bỏ sót cháy.
-
-Precision 51,96% là kết quả của chiến lược contamination = 0,08 — mở rộng vùng quyết định bất thường để tăng Recall, chấp nhận tỷ lệ nhầm cao hơn. Đây là đánh đổi có chủ đích.
-
-### 5.3.4. Accuracy = 92,44%
-
-Accuracy cao chủ yếu nhờ lớp bình thường chiếm 91,99%. Một mô hình ngây thơ luôn dự đoán "bình thường" sẽ đạt accuracy 91,99% mà không phát hiện được sự cố nào. Do đó Accuracy không phải chỉ số quyết định — Recall và ROC-AUC mới là thước đo thực sự.
-
----
-
-## 5.4. Tỷ lệ Phát hiện theo Dạng Sự cố
-
-**Bảng 5.4 — Độ nhạy phát hiện theo dạng sự cố**
-
-| Dạng sự cố | Tỷ lệ phát hiện | Đặc trưng quyết định | Giải thích |
-|:---:|:---:|:---|:---|
-| power_surge | 62,0% | power_dev_24h, power_diff_1h | Biên độ lớn, khoảng cách hình học rõ, iTree cô lập nhanh |
-| voltage_drop | 94,1% | voltage_diff_1h | Phản ánh tức thì sụt áp, quy tắc ngưỡng -15V bổ trợ |
-| night_spike | 57,0% | is_night, power_zscore_6h | Biên độ nhỏ hơn, vùng ranh giới mờ, chấp nhận bỏ sót |
-
-Tỷ lệ night_spike thấp hơn (83,6%) vì một số thiết bị tự động hợp lệ như bình nước nóng và tủ lạnh xả tuyết có thể kích hoạt trong khung giờ 1-5h với mức tăng gấp 2 lần — nằm ở ranh giới giữa bình thường và bất thường. Mô hình chấp nhận bỏ sót tỷ lệ nhỏ này để tránh bùng nổ cảnh báo giả ban đêm.
-
----
-
-## 5.5. Phân tích Ba Ca Sự cố Điển hình
-
-### 5.5.1. Ca 1 — Đột biến công suất lúc 19 giờ Thứ Bảy
-
-**Bảng 5.5 — Ca Power Surge**
-
-| Thông số | Giá trị |
-|:---|:---:|
-| Công suất tức thời P(t) | 5,842 kW |
-| Mức nền cùng giờ hôm trước P(t-24) | 1,250 kW |
-| Hệ số tăng | Gấp 4,67 lần |
-| Điện áp U(t) | 228,4 V (ổn định) |
-| Điểm score | -0,234 |
-| Mức Severity | 99,9% (Nguy cấp) |
-| Phân loại | power_surge |
-| Giải thích XAI | Biến động công suất 1h = +4,21; Bất thường công suất 6h = +3,85; Lệch so với hôm qua = +3,67 |
-
-Hệ thống chỉ rõ nguyên nhân: công suất tăng vọt gấp gần 5 lần so với hôm trước cùng giờ, tốc độ biến thiên 1 giờ cực lớn, cảnh báo quá tải đường dây.
-
-### 5.5.2. Ca 2 — Sụt điện áp lúc 14 giờ Thứ Ba
-
-**Bảng 5.6 — Ca Voltage Drop**
-
-| Thông số | Giá trị |
-|:---|:---:|
-| Điện áp U(t) | 204,2 V |
-| Điện áp giờ trước U(t-1) | 238,5 V |
-| Độ sụt | -34,3 V (vượt ngưỡng -15 V) |
-| Công suất P(t) | 1,150 kW (bình thường) |
-| Điểm score | -0,198 |
-| Mức Severity | 99,7% (Nguy cấp) |
-| Phân loại | voltage_drop |
-| Giải thích XAI | Biến động điện áp 1h = -34,30; Bất thường điện áp 6h = -3,45 |
-
-Hệ thống cảnh báo: điện áp rơi xuống dưới dải an toàn 210 V, khuyến cáo ngắt ngay thiết bị động cơ nhạy cảm.
-
-### 5.5.3. Ca 3 — Đột biến đêm lúc 3 giờ sáng Thứ Năm
-
-**Bảng 5.7 — Ca Night Spike**
-
-| Thông số | Giá trị |
-|:---|:---:|
-| Công suất P(t) | 2,450 kW |
-| Mức nền đêm bình thường | 0,20 đến 0,35 kW |
-| Hệ số tăng | Gấp khoảng 7 lần |
-| Cờ is_night | 1 (xác nhận khung giờ thấp điểm) |
-| power_zscore_6h | +3,12 (vượt ngưỡng 0,8) |
-| Điểm score | -0,162 |
-| Mức Severity | 99,2% (Nguy cấp) |
-| Phân loại | night_spike |
-| Giải thích XAI | Bất thường công suất 6h = +3,12; Lệch so với hôm qua = +6,20; Khung giờ đêm khuya = 1,00 |
-
-Hệ thống cảnh báo: công suất tăng gần 7 lần mức nền đêm trong lúc cả nhà ngủ, nguy cơ rò điện hoặc dính tiếp điểm rơ-le thiết bị gia nhiệt.
-
----
-
-## 5.6. Tổng kết và Hướng Phát triển
-
-### 5.6.1. Kết quả Đạt được
-
-**Bảng 5.8 — So sánh mục tiêu với kết quả**
-
-| Hạng mục | Mục tiêu | Kết quả | Trạng thái |
-|:---|:---:|:---:|:---:|
-| ROC-AUC | lon hon 0,90 | 0,9231 | Đạt |
-| Recall | lon hon 70% | 72,84% | Đạt |
-| Thời gian suy diễn | duoi 5 ms | khoảng 1,2 ms | Đạt |
-| Kích thước mô hình | — | 4,3 MB | — |
-| Kiểm thử | 11/11 | 11/11 | Đạt |
-
-### 5.6.2. Hạn chế của Mô hình (Concept Drift & Data Leakage)
-
-Một nhược điểm cốt lõi của Học máy không giám sát tĩnh là rủi ro **Trôi dạt khái niệm (Concept Drift)**. Dữ liệu huấn luyện chỉ bao phủ hành vi trong quá khứ. Khi gia đình mua thêm một chiếc điều hòa mới, hoặc chuyển giao mùa từ Đông sang Hè, mức tiêu thụ nền của phụ tải sẽ dịch chuyển hoàn toàn. Nếu mô hình Isolation Forest không được huấn luyện lại, tỷ lệ False Positive sẽ tăng vọt vì mô hình vẫn dùng phân phối cũ để đánh giá dữ liệu mới. Ngoài ra, bộ dữ liệu UCI chỉ giới hạn ở một hộ gia đình tại Pháp, các thói quen sinh hoạt (đun sưởi, nấu ăn) có thể không mang tính phổ quát cho các quốc gia khác.
-
-### 5.6.3. Ba Hướng Phát triển tương lai
-
-Hướng 1 — Nâng cấp hạ tầng luồng. Thay bộ đệm stream_buffer.jsonl bằng Apache Kafka hoặc MQTT cho phép thu thập đồng thời hàng triệu công tơ với độ trễ dưới 10 ms.
-
-Hướng 2 — Tự thích ứng trôi dữ liệu (Auto-Retraining). Tích hợp kiểm định thống kê Kolmogorov-Smirnov trên luồng dữ liệu theo thời gian thực để phát hiện sớm Concept Drift, từ đó hệ thống tự động kích hoạt quá trình tái huấn luyện (Retrain) lại mô hình hàng tháng hoặc khi phân phối dữ liệu bị lệch chuẩn lớn.
-
-Hướng 3 — Triển khai Edge AI. Biên dịch mô hình sang định dạng ONNX Runtime hoặc nhúng C++ trực tiếp vào vi điều khiển ESP32, cho phép cảnh báo cục bộ ngay tại công tơ kể cả khi mất kết nối Internet.
-
----
-
----
-
-# PHỤ LỤC VÀ TÀI LIỆU THAM KHẢO
-
----
-
-## Phụ lục A: Sổ tay Hướng dẫn Cài đặt và Vận hành Hệ thống
-
-### A.1. Yêu cầu Môi trường Phần cứng và Phần mềm
-- **Hệ điều hành:** Windows 10/11, Ubuntu 20.04+, macOS Sonoma.
-- **Python:** Phiên bản `3.10` hoặc `3.11` (khuyến nghị `Python 3.10.x` 64-bit).
-- **Bộ nhớ RAM:** Tối thiểu 4GB RAM (Khuyến nghị 8GB RAM).
-- **Dung lượng ổ đĩa trống:** Tối thiểu 1GB (bao gồm tập dữ liệu gốc P130130 MB và các tệp dẫn xuất).
-
-### A.2. Quy trình Cài đặt Môi trường
-Mở Terminal / PowerShell tại thư mục gốc của dự án và thực hiện các bước:
-
-```bash
-# 1. Tạo môi trường ảo Python (Virtual Environment)
-python -m venv venv
-
-# 2. Kích hoạt môi trường ảo
-# Trên Windows:
-.\venv\Scripts\activate
-# Trên Linux/macOS:
-source venv/bin/activate
-
-# 3. Cài đặt các gói thư viện cần thiết
-pip install --upgrade pip
-pip install pandas numpy scikit-learn joblib streamlit plotly
+`config.py` tập trung đường dẫn, thứ tự đặc trưng, ngưỡng và nhãn hiển thị. `features.py` không đọc tệp; nó nhận DataFrame và trả DataFrame/Series đặc trưng, nên có thể dùng lại trong train, dashboard và test. `01_data_prep.py` cùng `02_train.py` là các lệnh batch. `04_dashboard.py` quản lý trạng thái phiên, suy luận và SQLite. `03_producer.py` cung cấp luồng console riêng, không phải thành phần bắt buộc của dashboard.
+
+## 4.3. Hiện thực đặc trưng, huấn luyện và cảnh báo
+
+Đoạn mã 4.1 trích phần cốt lõi của `extract_features()`. Hàm sao chép DataFrame trước khi thêm cột, nhờ đó TC04–TC07 có thể biến đổi dữ liệu trong bộ nhớ mà không ghi đè CSV.
+
+*Đoạn mã 4.1 — Tạo các đặc trưng độ trễ và cửa sổ*
+
+```python
+df = df.copy()
+df["power_diff_1h"] = df[TARGET_COL] - df[TARGET_COL].shift(1)
+power_lag_24h = df[TARGET_COL].shift(24)
+df["power_dev_24h"] = (
+    df[TARGET_COL] - power_lag_24h
+) / (power_lag_24h.abs() + _EPS)
+
+p_rmean = df[TARGET_COL].rolling(window=6, min_periods=1).mean()
+p_rstd = df[TARGET_COL].rolling(window=6, min_periods=1).std().fillna(0)
+df["power_zscore_6h"] = (df[TARGET_COL] - p_rmean) / (p_rstd + _EPS)
+df["voltage_diff_1h"] = df["Voltage"] - df["Voltage"].shift(1)
+return df[ENGINEERED_FEATURE_NAMES].dropna()
 ```
 
-### A.3. Các Bước Vận hành Hệ thống theo Chu trình Khép kín
+Sau khi đặc trưng được tạo, Đoạn mã 4.2 thể hiện ranh giới học: `fit_transform` và `fit` chỉ nhận Train. Bundle đóng gói các thành phần cần thiết để dashboard không phải huấn luyện lại.
 
-#### Bước 1: Xử lý và Chuẩn bị Dữ liệu
-Lệnh này sẽ đọc dữ liệu thô `household_power_consumption.txt`, làm sạch thiếu sót, resample chu kỳ 1 giờ, chia tập Train (80%) / Demo (20%) và tiêm 3 dạng lỗi giả lập vào tập Demo:
-```bash
+*Đoạn mã 4.2 — Khớp scaler/model và tạo bundle*
+
+```python
+df_train_feats = extract_features(df_train)
+scaler = RobustScaler()
+X_train = scaler.fit_transform(
+    df_train_feats[ENGINEERED_FEATURE_NAMES].values
+)
+model = IsolationForest(
+    n_estimators=200,
+    max_samples=512,
+    max_features=1.0,
+    contamination=0.08,
+    random_state=42,
+    n_jobs=-1,
+)
+model.fit(X_train)
+medians, iqrs = calc_baseline_stats(df_train_feats)
+bundle = {"model": model, "scaler": scaler, "features":
+          ENGINEERED_FEATURE_NAMES, "medians": medians, "iqrs": iqrs}
+joblib.dump(bundle, MODEL_BUNDLE_PATH)
+```
+
+Đoạn mã 4.3 cho thấy cách lưu idempotent. Khóa chính ngăn cùng thời điểm luồng tạo nhiều dòng, còn mệnh đề cập nhật không ghi đè `status` hay `note`.
+
+*Đoạn mã 4.3 — Lưu cảnh báo không tạo bản ghi trùng*
+
+```python
+conn.execute("""
+    INSERT INTO alerts (
+        alert_id, data_time, power, voltage, severity,
+        severity_level, anomaly_type, explanation, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(alert_id) DO UPDATE SET
+        power=excluded.power,
+        voltage=excluded.voltage,
+        severity=excluded.severity,
+        severity_level=excluded.severity_level,
+        anomaly_type=excluded.anomaly_type,
+        explanation=excluded.explanation,
+        updated_at=excluded.updated_at
+""", values)
+conn.commit()
+```
+
+## 4.4. Chuẩn bị dữ liệu và thiết kế thực nghiệm
+
+Dữ liệu gốc được đọc với dấu phân cách `;`; ký hiệu `?` được xem là thiếu. Các cột đo được đổi sang số, hàng thiếu toàn bộ bị bỏ, giá trị còn thiếu được điền tiến/lùi, timestamp trùng giữ bản ghi đầu. Chuỗi sau đó được lấy trung bình theo từng giờ bằng `resample("h").mean().dropna()`. Việc chia 80/20 dùng vị trí thời gian, không xáo trộn, nên Demo luôn nằm sau Train.
+
+CSV theo giờ vẫn giữ các phép đo gốc như công suất tác dụng, công suất phản kháng, điện áp và ba kênh sub-metering. Chín đặc trưng không được ghi thêm vào hai CSV. Cách hiện thực này tránh lưu song song nhiều phiên bản đặc trưng, nhưng yêu cầu mọi consumer phải gọi đúng mô-đun `features.py`. Trường nhãn `is_anomaly` và `anomaly_type` chỉ có trong Demo sau tiêm. Khi `02_train.py` đọc Train, hàm đặc trưng chỉ dùng cột đo và index thời gian; không tồn tại cột nhãn để mô hình học.
+
+Phép điền tiến rồi điền lùi xử lý ô thiếu bên trong chuỗi nhưng không tạo lại các timestamp mà cả giờ bị thiếu. Vì `resample(...).dropna()` bỏ giờ không có quan sát, chuỗi đầu ra còn các khoảng nhảy đã thống kê ở Chương 3. Việc nêu rõ bước này giúp phân biệt hai vấn đề: thiếu giá trị trong một hàng đã có và thiếu hoàn toàn một hàng thời gian. Pipeline hiện tại xử lý vấn đề thứ nhất, còn semantics lag theo thời gian của vấn đề thứ hai vẫn là hạn chế.
+
+Hình 4.1 trình bày đồng thời trục thời gian và số lượng qua từng bước. Train gồm 27.334 dòng, sau warm-up còn 27.310 mẫu và chỉ dùng học scaler/model. Demo gồm 6.834 dòng; hàm tiêm tạo 546 điểm trước warm-up. Khi đặc trưng loại 24 hàng đầu, còn 6.810 mẫu và 545 nhãn tiêm. Một `night_spike` nằm trong vùng warm-up nên không có vector đầu vào và không tham gia metric.
+
+![Phân chia và quy trình dữ liệu](../reports/figures/Hinh_4.1_PhanBo_DuLieu.png)
+
+*Hình 4.1 — Timeline Train/Demo và số lượng qua bước đặc trưng, tiêm nhãn, huấn luyện, đánh giá. Nguồn: các CSV và pipeline của đề tài.*
+
+Hàm tiêm luôn thao tác trên `df_demo.copy()` và dùng `numpy.random.default_rng(42)`. Các nhóm được chọn không thay thế; nhóm điện áp lấy từ hàng chưa mang nhãn, còn nhóm ban đêm tiếp tục lọc hàng chưa mang nhãn. Vì vậy, ba nhãn không chồng nhau. Tổng tỷ lệ danh nghĩa 8% được dùng làm căn cứ thực nghiệm cho `contamination=0,08` như đã giải thích tại Mục 2.4. Bảng 4.2 phân biệt tỷ lệ yêu cầu, miền chọn và số lượng thực tế.
+
+*Bảng 4.2 — Cấu hình tiêm ba kịch bản tổng hợp*
+
+| Kịch bản | Miền chọn và phép thay đổi | Trước warm-up | Trong 6.810 mẫu hợp lệ |
+|---|---|---:|---:|
+| `power_surge` | Giờ 08:00–22:00; nhân công suất 3,0–5,0 | 205 | 205 |
+| `voltage_drop` | Hàng chưa gán nhãn; trừ điện áp 20–40 V | 205 | 205 |
+| `night_spike` | Giờ 01:00–05:00, hàng chưa gán nhãn; nhân công suất 2,0–3,5 | 136 | 135 |
+| Tổng | Các index không chồng nhau, seed 42 | 546 | 545 |
+
+Train không nhận ba phép tiêm này. Riêng TC07 lấy bản sao 1.000 dòng đầu của Train và gọi hàm tiêm hai lần để kiểm thử tính tái lập; DataFrame thử nghiệm đó không được lưu và không tham gia `model.fit()`.
+
+## 4.5. Tích hợp dashboard
+
+Ở chế độ lịch sử, dashboard gọi `extract_features()` trên DataFrame Demo, `scaler.transform()`, rồi `model.decision_function()`. Kết quả được căn theo index đặc trưng để nhãn tiêm và phép đo cùng thời điểm. Bộ lọc ngày chỉ điều chỉnh phạm vi trình bày. KPI gồm tổng mẫu đã đánh giá, tỷ lệ bình thường, số bất thường và severity cao nhất; các mẫu warm-up được loại khỏi phép tính.
+
+Bundle được nạp bằng `st.cache_resource`, còn Demo được nạp bằng `st.cache_data`. Cơ chế cache giảm thao tác đọc lặp khi widget làm Streamlit rerun, đồng thời không làm thay đổi tham số mô hình. Khi bundle hoặc Demo không tồn tại, `main()` hiển thị lỗi và dừng nhánh xử lý. Khi khoảng ngày không có mẫu hợp lệ, giao diện hiển thị thông báo riêng. Những trạng thái này ngăn dashboard thay thế dữ liệu thiếu bằng một tỷ lệ “bình thường” gây hiểu nhầm.
+
+Biểu đồ lịch sử đánh dấu điểm cảnh báo trên chuỗi công suất và điện áp để người dùng đọc cảnh báo trong bối cảnh lân cận. Bảng chỉ nhận các hàng có dự đoán bất thường và trình bày thời gian, công suất, điện áp, điểm cảnh báo, dạng gợi ý, dấu hiệu nổi bật. Do lịch sử không ghi vào kho xử lý, người dùng có thể khảo sát lại toàn bộ Demo mà không làm tăng hàng đợi SQLite. Sự tách biệt này ngăn một lần đổi bộ lọc tạo hàng loạt bản ghi vận hành.
+
+Ở chế độ mô phỏng, `_step_stream_engine()` đọc từng hàng theo con trỏ. Buffer giữ tối đa 50 mẫu, đủ cho độ trễ lớn nhất 24 hàng. Một event chỉ được tạo khi đã đánh giá và \(d(x)<0\). `rt_event_keys` chống lặp trong phiên, còn khóa chính SQLite chống lặp giữa các lần ghi. Sau khi lưu, `render_alert_queue()` đọc toàn bộ kho, lọc theo trạng thái/dạng gợi ý, sắp xếp cảnh báo mới trước, và cung cấp nút tiếp nhận, đóng, ghi chú, xuất CSV.
+
+Khi khởi tạo hoặc reset, engine nạp 30 hàng đầu để giao diện có sẵn 24 hàng warm-up và sáu hàng đã đánh giá. AppTest xác nhận chính xác cấu trúc này. Play và Step chỉ thay đổi con trỏ và dữ liệu phiên; model bundle không bị sửa. Khi con trỏ tới cuối Demo, trạng thái phát được dừng. Reset làm rỗng buffer, vùng hiển thị và khóa sự kiện trong session rồi phát lại 30 hàng, trong khi lịch sử xử lý ở SQLite vẫn tồn tại theo mục tiêu lưu bền.
+
+Hàng đợi dùng hai multiselect cho trạng thái và dạng gợi ý. Sau lọc, dữ liệu được sắp theo `new`, `acknowledged`, `closed`, tiếp đến severity giảm dần. Selectbox xác định một `alert_id` để hiển thị bốn metric đo, mô tả dấu hiệu và ghi chú. Nút tiếp nhận đặt `acknowledged_at`; nút đóng đặt `closed_at`; `updated_at` được cập nhật trong cả hai trường hợp. CSV xuất ra chính phần đang lọc, giúp người vận hành chuyển danh sách sang quy trình báo cáo ngoài dashboard.
+
+Giao diện được đặt `base="light"` trong cả cấu hình khởi chạy gốc và cấu hình khi chạy từ `src`. CSS khai báo `color-scheme: only light` và màu nền/chữ cụ thể cho DataFrame, multiselect, selectbox, menu, input và nút. Điều này xử lý trường hợp browser đang ở dark theme. Bằng chứng tự động gồm test tải cấu hình theme từ nhiều thư mục chạy và AppTest kiểm tra bảng, bộ lọc, selectbox, text area cùng nút tải xuất hiện mà không ghi vào SQLite thật.
+
+Hai lớp theme có vai trò khác nhau. Cấu hình `.streamlit/config.toml` định nghĩa palette gốc trước khi trang được render. CSS xử lý các widget có DOM riêng và đặt cả màu của trạng thái hover/focus để lựa chọn vẫn đọc được. Test phụ trợ chạy từ hai thư mục khởi động nhằm phát hiện trường hợp Streamlit đọc nhầm cấu hình tương đối. Test hàng đợi thay `ALERT_DB_PATH` trước khi gọi hàm giao diện, vì vậy thao tác kiểm tra component không chạm vào `data/alert_history.sqlite3`.
+
+## 4.6. Chiến lược kiểm thử
+
+Mười test nghiệp vụ ưu tiên ranh giới có rủi ro cao: warm-up, đúng công thức, phân loại gợi ý, severity, tiêm dữ liệu, vòng đời SQLite, dashboard và pipeline mô hình. Chúng đọc đường dẫn từ gốc project thay vì phụ thuộc thư mục hiện hành. Test biến đổi dùng bản sao; test lưu trữ dùng `TemporaryDirectory`; test dashboard thay đường dẫn kho bằng SQLite tạm. Nếu thiếu Train, Demo hoặc bundle, helper báo rõ artefact còn thiếu.
+
+TC01–TC06 là unit test vì mỗi ca tập trung vào một hợp đồng hàm. TC03 tự tính năm đặc trưng từ phép đo UCI thay vì gọi lại cùng công thức để tạo expected. TC06 lấy score thật từ 1.000 dòng đầu Demo, sau đó kiểm tra miền giá trị, chiều đơn điệu và các mốc phân cấp. TC07 kiểm tra cả index, tỷ lệ nhân/trừ và không chồng nhãn; nhờ vậy seed giống nhau nhưng sai miền giờ vẫn bị phát hiện.
+
+TC08–TC10 là integration test. TC08 đi qua câu lệnh tạo bảng, upsert và update trạng thái trong một thư mục tạm. TC09 chạy toàn bộ `main()` bằng Streamlit AppTest, chuyển qua hai chế độ và kiểm tra 24/30 record đầu là warm-up với `is_anomaly=None`. TC10 chạy toàn bộ Demo qua extractor, scaler và model, rồi đối chiếu số mẫu/nhãn chính xác cùng khoảng metric. Khoảng AUC 0,91–0,94 và Recall 0,70–0,75 cho phép chênh lệch số thực nhỏ giữa phiên bản thư viện, trong khi confusion matrix vẫn phải có tổng 6.810.
+
+Lần nghiệm thu chạy lệnh `python -m unittest discover -s tests -p "test_*.py" -v`. Kết quả thực tế là 12/12 test đạt trong 8,305 giây: mười test nghiệp vụ trong Bảng 4.3 và hai test light theme. Cảnh báo `missing ScriptRunContext` xuất hiện khi AppTest chạy ở bare mode nhưng không tạo exception và không làm test thất bại.
+
+*Bảng 4.3 — Kết quả mười test nghiệp vụ dùng dữ liệu UCI*
+
+| Mã | Cấp | Đầu vào | Kết quả mong đợi | Kết quả thực tế | Trạng thái |
+|---|---|---|---|---|---|
+| TC01 | Unit | 24 dòng đầu Train | `extract_latest()` trả `None` | Trả `None` | Đạt |
+| TC02 | Unit | 25 dòng đầu Train | Đủ 9 đặc trưng đúng thứ tự, không NaN | 9/9 đúng thứ tự, không NaN | Đạt |
+| TC03 | Unit | Đoạn Train liên tiếp | Năm công thức khớp phép tính độc lập | Các giá trị khớp trong sai số số thực | Đạt |
+| TC04 | Unit | Bản sao mẫu có `voltage_diff_1h <= -15` | Ưu tiên `voltage_drop` | Trả `voltage_drop` | Đạt |
+| TC05 | Unit | Mẫu UCI trong/ngoài giờ đêm | Lần lượt `night_spike`/`power_surge` | Hai `subTest` trả đúng | Đạt |
+| TC06 | Unit | Score thật trên đoạn Demo | Severity trong [0,1], đơn điệu và đúng cấp | Tất cả điều kiện đúng | Đạt |
+| TC07 | Unit | Hai bản sao 1.000 dòng Train, seed 42 | Vị trí/giá trị/nhãn giống nhau; không chồng | Mỗi lần 80 nhãn: 30/30/20, giống nhau | Đạt |
+| TC08 | Integration | Một cảnh báo thật và SQLite tạm | Lưu, tiếp nhận, ghi chú, đóng; không trùng ID | Một dòng, trạng thái/ghi chú đúng | Đạt |
+| TC09 | Integration/UI | AppTest hai chế độ, Demo và SQLite tạm | Không exception; đúng warm-up và đủ điều khiển | Hai chế độ chạy, thành phần xuất hiện | Đạt |
+| TC10 | Integration | Toàn bộ Demo và bundle | 6.810 mẫu, 545 nhãn, metric trong ngưỡng | AUC 0,923131; Recall 0,728440; tổng CM 6.810 | Đạt |
+
+TC01–TC03 bảo vệ nguyên nhân mất 24 hàng và thứ tự đặc trưng. TC04–TC06 bảo vệ ba tầng hậu xử lý. TC07 kiểm tra hàm chuẩn bị dữ liệu mà không biến dữ liệu kiểm thử thành dữ liệu huấn luyện. TC08–TC10 kiểm tra luồng tích hợp từ artefact tới UI và metric. Hai test theme là kiểm tra phụ trợ, không được tính vào mười test nghiệp vụ.
+
+---
+
+<a id="chuong-5"></a>
+
+# CHƯƠNG 5: KẾT QUẢ, ĐÁNH GIÁ VÀ KẾT LUẬN
+
+## 5.1. Kết quả tổng thể
+
+Kết quả được tính trên 6.810 mẫu Demo đủ đặc trưng. Nhãn dương gồm 545 điểm được tiêm tổng hợp; nhãn âm gồm 6.265 điểm không được tiêm. Model dự đoán 764 điểm bất thường tại ngưỡng \(d(x)<0\). Bảng 5.1 tổng hợp các chỉ số từ cùng một lần tính, tránh trộn kết quả giữa các phiên bản dữ liệu hoặc bundle.
+
+*Bảng 5.1 — Chỉ số đánh giá tổng thể trên Demo hợp lệ*
+
+| Chỉ số | Kết quả |
+|---|---:|
+| Số mẫu đánh giá | 6.810 |
+| Nhãn tiêm tổng hợp | 545 |
+| Cảnh báo của mô hình | 764 |
+| ROC-AUC với \(-d(x)\) | 0,923131 |
+| Accuracy | 92,44% |
+| Precision | 51,96% |
+| Recall | 72,84% |
+| F1-score | 60,66% |
+
+ROC-AUC 0,923131 cho thấy score liên tục xếp hạng phần lớn điểm tiêm cao hơn điểm không tiêm. Hình 5.1 thể hiện đường ROC với 545 mẫu dương và 6.265 mẫu âm. Đường chéo là mức xếp hạng ngẫu nhiên; nó không phải ngưỡng đang dùng trên dashboard.
+
+![Đường cong ROC](../reports/figures/Hinh_5.1_ROC_Curve.png)
+
+*Hình 5.1 — ROC tính bằng `roc_curve(y_true, -decision_function)`, nhãn dương là nhãn tiêm tổng hợp. Nguồn: Demo và model bundle hiện tại.*
+
+Accuracy cao một phần do lớp không tiêm chiếm 92,00% dữ liệu. Recall 72,84% nghĩa là phát hiện 397/545 điểm tiêm, còn Precision 51,96% nghĩa là 397/764 cảnh báo trùng nhãn tiêm. Vì dữ liệu nền không có nhãn sự cố chuyên gia, 367 cảnh báo ngoài nhãn tiêm không thể được khẳng định là sai ngoài đời thực.
+
+Hình 5.2 chuẩn hóa màu theo từng hàng để tách hai câu hỏi. Trong 6.265 điểm không tiêm, 5.898 điểm được dự đoán bình thường và 367 điểm tạo cảnh báo. Trong 545 điểm được tiêm, 397 điểm được phát hiện và 148 điểm bị bỏ sót. Tổng bốn ô bằng 6.810.
+
+![Ma trận nhầm lẫn](../reports/figures/Hinh_5.2_Confusion_Matrix.png)
+
+*Hình 5.2 — Ma trận nhầm lẫn `[[5898, 367], [148, 397]]`, chuẩn hóa màu theo nhãn thực nghiệm. “FP” được diễn giải là cảnh báo ngoài nhãn tiêm. Nguồn: Demo và model bundle hiện tại.*
+
+## 5.2. Kết quả theo kịch bản
+
+Recall khác rõ giữa ba phép tiêm. Sụt điện áp đạt 193/205, tương đương 94,15%, vì phép trừ 20–40 V tạo tín hiệu trực tiếp trên `voltage_diff_1h` và `voltage_zscore_6h`. Đột biến công suất ban ngày đạt 127/205, tương đương 61,95%. Đột biến đêm đạt 77/135, tương đương 57,04%. Hình 5.3 thêm cột tổng thể 397/545 để liên hệ từng nhóm với Recall chung.
+
+![Recall theo kịch bản](../reports/figures/Hinh_5.3_Recall_Theo_Tung_Loai_Loi.png)
+
+*Hình 5.3 — Recall theo kịch bản tổng hợp và tổng thể: 127/205, 193/205, 77/135 và 397/545. Nguồn: Demo và model bundle hiện tại.*
+
+Kết quả không chứng minh mô hình “hiểu” tên kịch bản. Isolation Forest chỉ quan sát độ hiếm trong chín chiều. Kịch bản sụt áp tạo một độ lệch lớn so với IQR Train nên dễ cô lập. Hai kịch bản công suất nhân giá trị nền; khi nền ban đầu thấp, giá trị sau nhân vẫn có thể nằm gần miền quan sát thông thường. Như đã giải thích tại Mục 2.4, `contamination=0,08` được chọn để tỷ lệ bất thường kỳ vọng trên Train gần với tổng tỷ lệ tiêm danh nghĩa 8% của Demo. Sự tương ứng này chỉ là một điều kiện của protocol thực nghiệm; nó không làm cho phân phối theo thời gian và độ mạnh của ba kịch bản trở nên giống phân phối các điểm hiếm trên Train.
+
+## 5.3. Phân tích ba trường hợp cụ thể
+
+Ba trường hợp được chọn bằng quy tắc có thể tái lập: thời điểm sớm nhất trong nhóm TP, FN và FP theo nhãn tổng hợp. Các giá trị dưới đây được tính lại từ CSV và bundle; phần quan sát được tách khỏi giả thuyết nguyên nhân.
+
+**TP — 06/02/2010 09:00, `voltage_drop`.** Quan sát: điện áp là 206,428 V; `voltage_diff_1h=-32,880` V và `voltage_zscore_6h=-2,025`. Score \(d(x)=-0,007995\) nằm vừa phía cảnh báo, nên điểm tiêm được phát hiện. Công suất là 1,627 kW và `power_diff_1h=0,163` kW. Dữ liệu cho thấy hai đặc trưng điện áp lệch mạnh và cùng hướng. Giả thuyết hợp lý là phép tiêm điện áp đã tạo đường đi ngắn trong các cây dùng các chiều này; không thể suy ra cây nào đóng góp bao nhiêu từ chuỗi giải thích heuristic hiện tại.
+
+**FN — 08/02/2010 03:00, `night_spike`.** Quan sát: công suất sau tiêm là 0,854 kW; `power_diff_1h=0,558` kW, `power_dev_24h=0,811`, `power_zscore_6h=0,526` và `is_night=1`. Score \(d(x)=0,020665\) vẫn ở phía bình thường. Đây là trường hợp mức tăng tương đối đủ thỏa quy tắc gợi ý đột biến đêm nếu có cảnh báo, nhưng vector chín chiều chưa hiếm đủ theo rừng. Giả thuyết cần kiểm tra thêm là công suất nền thấp làm giá trị tuyệt đối sau nhân còn nằm trong miền tải thường gặp, trong khi các chiều điện áp và hệ số công suất không tăng độ cô lập.
+
+**FP theo nhãn tổng hợp — 06/02/2010 10:00.** Quan sát: hàng này mang nhãn `normal` nhưng có \(d(x)=-0,020241\). Công suất là 2,580 kW, `power_diff_1h=0,953` kW, điện áp 236,992 V và `voltage_diff_1h=+30,563` V. Nó đứng ngay sau điểm sụt áp được tiêm lúc 09:00, nên phép sai phân dùng mẫu trước vẫn chịu ảnh hưởng của thao tác tiêm. Trường hợp này cho thấy nhãn chỉ đánh dấu hàng bị sửa, trong khi đặc trưng độ trễ có thể truyền ảnh hưởng sang hàng kế tiếp. Vì vậy, gọi đây là “cảnh báo ngoài nhãn tiêm” chính xác hơn “cảnh báo sai”; một protocol theo cửa sổ sự kiện có thể đánh giá công bằng hơn cho đặc trưng sai phân.
+
+Ba ví dụ giải thích hai thành phần của sai số. Một phần đến từ độ mạnh và bối cảnh của phép tiêm. Phần còn lại đến từ cách đặt nhãn theo một timestamp trong khi vector đặc trưng phụ thuộc nhiều hàng. Phân tích này cũng cho thấy lý do không dùng ba quy tắc hậu xử lý làm ground truth của model.
+
+## 5.4. Đối chiếu mục tiêu
+
+Bảng 5.2 truy vết các mục tiêu ở Chương 1 tới bằng chứng hiện thực. “Đạt” chỉ dùng khi có artefact hoặc test tương ứng.
+
+*Bảng 5.2 — Đối chiếu kết quả với mục tiêu*
+
+| Mã | Bằng chứng | Đánh giá |
+|---|---|---|
+| MT01 | Chia thời gian 27.334/6.834; tiêm chỉ ở Demo; hash Train/Demo/bundle không đổi sau nghiệm thu | Đạt |
+| MT02 | Bundle lưu đúng 9 tên; TC01–TC03 kiểm tra warm-up, thứ tự và công thức | Đạt |
+| MT03 | ROC-AUC 0,923131 > 0,90; Recall 72,84% > 70% | Đạt trên nhãn tổng hợp |
+| MT04 | Dashboard có hai chế độ; TC08–TC09 kiểm tra SQLite, bộ lọc, chi tiết, nút xử lý và tải CSV | Đạt |
+| MT05 | 10/10 test nghiệp vụ và 2/2 test theme đạt | Đạt |
+
+MT03 cần được giới hạn theo protocol đã công bố. Việc vượt ngưỡng mục tiêu không đồng nghĩa mô hình đã đạt Recall tương tự trên lỗi thực hoặc trên hộ khác. Tương tự, MT04 xác nhận chức năng phần mềm trong AppTest và chạy cục bộ, chưa phải đánh giá usability với người vận hành thực tế.
+
+## 5.5. Hạn chế và hướng phát triển
+
+Các hướng phát triển trong Bảng 5.3 được ghép trực tiếp với hạn chế đo được, thay vì mở rộng chung chung.
+
+*Bảng 5.3 — Hạn chế và hướng phát triển tương ứng*
+
+| Hạn chế hiện tại | Bằng chứng | Hướng phát triển ưu tiên |
+|---|---|---|
+| Nhãn chỉ là kịch bản tổng hợp | Không có xác nhận sự cố chuyên gia trong UCI | Thu thập sự kiện có xác minh; xây protocol huấn luyện/kiểm định ngoài thời gian |
+| Một hộ gia đình | Toàn bộ Train/Demo thuộc cùng nguồn | Đánh giá nhiều hộ, nhiều mùa và thiết bị; báo cáo độ ổn định giữa nhóm |
+| Độ trễ dùng số hàng | 120 mẫu Train và 72 mẫu Demo có lag 24 hàng khác 24 giờ | Tái lập lưới giờ hoặc join theo timestamp trước khi tính lag |
+| Nhãn điểm không bao phủ ảnh hưởng độ trễ | FP đầu tiên là hàng sau điểm tiêm điện áp | Đánh giá theo cửa sổ sự kiện và quy định vùng dung sai thời gian |
+| Recall kịch bản công suất còn thấp | `power_surge` 61,95%; `night_spike` 57,04% | Hiệu chỉnh ngưỡng trên validation theo thời gian; bổ sung đặc trưng bền vững và so sánh mô hình |
+| Severity chưa hiệu chuẩn | Công thức sigmoid cố định hệ số 30 | Hiệu chuẩn trên nhãn chuyên gia hoặc đổi tên thành mức ưu tiên thuần túy |
+| Giải thích median/IQR thiên lệch với biến nhị phân | `is_night` có IQR=0 | Tách giải thích biến nhị phân; dùng phân tích đường đi/counterfactual thích hợp |
+| Chưa có so sánh thực nghiệm | Không có ablation scaler hay baseline cùng protocol | So sánh Isolation Forest không scale, LOF, One-Class SVM và autoencoder trên cùng split |
+| Dashboard chạy cục bộ | SQLite và mô phỏng từ CSV | Thêm ingest thật, phân quyền, audit log, giám sát drift và cơ chế retrain |
+
+Concept drift là rủi ro khi hành vi tiêu thụ thay đổi theo mùa, thiết bị hoặc hộ sử dụng [9]. Phiên bản tiếp theo nên theo dõi phân phối đặc trưng và tỷ lệ cảnh báo theo cửa sổ, nhưng chỉ retrain sau khi có quy trình phê duyệt và lưu phiên bản bundle. Trước khi mở rộng mô hình sâu, cần sửa semantics thời gian và protocol nhãn sự kiện vì hai yếu tố này ảnh hưởng trực tiếp tính đúng của mọi so sánh.
+
+## 5.6. Kết luận
+
+Đồ án đã xây dựng một pipeline đầu cuối từ dữ liệu UCI tới dashboard xử lý cảnh báo. RobustScaler và Isolation Forest chỉ học từ 27.310 mẫu Train; 6.810 mẫu Demo cùng 545 nhãn tiêm được giữ cho đánh giá. Model bundle hiện tại đạt ROC-AUC 0,923131, Recall 72,84% và tạo 764 cảnh báo. Kết quả tốt nhất thuộc về kịch bản sụt điện áp; hai kịch bản công suất cho thấy dư địa cải thiện.
+
+Giá trị chính của hệ thống nằm ở tính nhất quán giữa huấn luyện và suy luận, khả năng tái lập số liệu, phân biệt rõ dự đoán với hậu xử lý, và vòng đời cảnh báo có lưu trữ. Mười test nghiệp vụ cùng hai test theme bảo vệ các ranh giới quan trọng. Phạm vi kết luận vẫn là phát hiện kịch bản tổng hợp trên dữ liệu một hộ gia đình. Bước tiếp theo có giá trị nhất là chuẩn hóa trục thời gian, xây nhãn sự kiện có xác minh và so sánh các mô hình trên cùng protocol.
+
+---
+
+<a id="tai-lieu-tham-khao"></a>
+
+# TÀI LIỆU THAM KHẢO
+
+[1] G. Hebrail and A. Berard, “Individual Household Electric Power Consumption,” UCI Machine Learning Repository, 2012. doi: 10.24432/C58K54.
+
+[2] V. Chandola, A. Banerjee, and V. Kumar, “Anomaly Detection: A Survey,” *ACM Computing Surveys*, vol. 41, no. 3, art. 15, 2009. doi: 10.1145/1541880.1541882.
+
+[3] F. T. Liu, K. M. Ting, and Z.-H. Zhou, “Isolation Forest,” in *Proc. 8th IEEE International Conference on Data Mining*, 2008, pp. 413–422. doi: 10.1109/ICDM.2008.17.
+
+[4] F. T. Liu, K. M. Ting, and Z.-H. Zhou, “Isolation-Based Anomaly Detection,” *ACM Transactions on Knowledge Discovery from Data*, vol. 6, no. 1, art. 3, 2012. doi: 10.1145/2133360.2133363.
+
+[5] J. Wang, C. Gu, and K. Liu, “Anomaly electricity detection method based on entropy weight method and isolated forest algorithm,” *Frontiers in Energy Research*, vol. 10, 2022. doi: 10.3389/fenrg.2022.984473.
+
+[6] W. Dai, X. Liu, A. Heller, and P. S. Nielsen, “Smart Meter Data Anomaly Detection using Variational Recurrent Autoencoders with Attention,” arXiv:2206.07519, 2022. doi: 10.48550/arXiv.2206.07519.
+
+[7] Scikit-learn Developers, “RobustScaler,” *Scikit-learn API Reference*. [Online]. Available: https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.RobustScaler.html. [Accessed: Sep. 10, 2026].
+
+[8] Scikit-learn Developers, “IsolationForest,” *Scikit-learn API Reference*. [Online]. Available: https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.IsolationForest.html. [Accessed: Sep. 10, 2026].
+
+[9] J. Gama, I. Žliobaitė, A. Bifet, M. Pechenizkiy, and A. Bouchachia, “A Survey on Concept Drift Adaptation,” *ACM Computing Surveys*, vol. 46, no. 4, art. 44, 2014. doi: 10.1145/2523813.
+
+---
+
+<a id="phu-luc"></a>
+
+# PHỤ LỤC
+
+## Phụ lục A. Cài đặt và vận hành
+
+Từ thư mục gốc project, cài thư viện và chuẩn bị dữ liệu:
+
+```powershell
+python -m pip install -r requirements.txt
 python src/01_data_prep.py
-```
-*Kết quả đầu ra:* Tạo ra `data/train_hourly.csv` (27.310 dòng) và `data/demo_stream.csv` (6.811 dòng).
-
-#### Bước 2: Huấn luyện Mô hình và Đóng gói
-Lệnh này sẽ trích xuất 9 đặc trưng, huấn luyện `RobustScaler` và `IsolationForest`, đánh giá hiệu năng trên tập Demo và xuất gói mô hình `model_bundle.pkl`:
-```bash
 python src/02_train.py
 ```
-*Kết quả đầu ra:* Xuất file `models/model_bundle.pkl` và in ra Classification Report (ROC-AUC: 0.9231).
 
-#### Bước 3: Khởi chạy Giao diện Giám sát Streamlit Dashboard
-Khởi chạy ứng dụng Web theo dõi trực quan:
-```bash
+Khởi chạy dashboard:
+
+```powershell
 python -m streamlit run src/04_dashboard.py
 ```
-Ứng dụng sẽ tự động mở tại địa chỉ trình duyệt: `http://localhost:8501`.
 
-#### Bước 4 (Tùy chọn): Chạy Bộ Phát luồng Độc lập (Headless Stream Producer)
-Mở một cửa sổ Terminal riêng biệt để mô phỏng đồng hồ thông minh IoT liên tục đẩy dữ liệu vào bộ đệm:
-```bash
-python src/03_producer.py --speed 1.0
+Chạy toàn bộ test:
+
+```powershell
+python -m unittest discover -s tests -p "test_*.py" -v
 ```
-Các tham số mở rộng:
-- `--speed`: Tốc độ phát mỗi bản ghi (giây, mặc định 1.0s).
-- `--limit`: Giới hạn số lượng bản ghi phát (ví dụ `--limit 500`).
-- `--append`: Ghi tiếp nối vào file bộ đệm hiện có.
 
----
+Tái tạo bằng chứng và hình:
 
-## Phụ lục B: Bảng Tra cứu Mã Lỗi và Hướng dẫn Xử lý Kỹ thuật An toàn
+```powershell
+python scripts/collect_report_evidence.py
+python scripts/generate_report_figures.py
+```
 
-| Mã Sự cố | Định danh Kỹ thuật | Dấu hiệu Nhận biết trên Dashboard | Mức độ Nguy cơ | Khuyến nghị Hành động Khắc phục |
-|:---:|:---|:---|:---:|:---|
-| **E_01** | `power_surge`<br>(Đột biến công suất) | Công suất P tăng vọt gấp 3 đến 5 lần so với mức nền hôm trước; Badge Đỏ; XAI báo độ lệch lớn ở `power_dev_24h` và `power_zscore_6h`. | **RẤT CAO** (Nguy cơ quá tải, chập cháy cáp điện) | 1. Kiểm tra ngay các ổ cắm công suất lớn (bếp từ, bình nóng lạnh).<br/>2. Kiểm tra xem động cơ máy bơm hoặc máy lạnh có bị kẹt cơ học không.<br/>3. Ngắt bớt phụ tải không thiết yếu để giảm tải cho aptomat tổng. |
-| **E_02** | `voltage_drop`<br>(Sụt điện áp lưới) | Điện áp U giảm đột ngột từ -20 V đến -40 V (xuống dưới 210 V); XAI báo `voltage_diff_1h` âm sâu. | **CAO** (Nguy cơ cháy cuộn dây máy nén động cơ) | 1. Ngắt ngay các thiết bị có động cơ nhạy cảm (tủ lạnh, điều hòa inverter).<br/>2. Kiểm tra cọc siết dây nguồn tại hộp công tơ xem có bị nóng chảy/lỏng ốc không.<br/>3. Báo cho điện lực khu vực kiểm tra điện áp pha của biến áp trạm. |
-| **E_03** | `night_spike`<br>(Bất thường ban đêm) | Công suất tăng gấp 2 đến 3,5 lần trong khung giờ 01:00 đến 05:00 sáng; cờ `is_night = 1`. | **TRUNG BÌNH ĐẾN CAO** (Nguy cơ rò điện, kẹt rơ-le) | 1. Kiểm tra rơ-le ngắt nhiệt của bình nước nóng xem có bị dính tiếp điểm không.<br/>2. Kiểm tra dòng rò qua tiếp địa bằng đồng hồ kẹp dòng.<br/>3. Kiểm tra các nhánh dây đi ngầm trong tường ẩm ướt. |
+`generate_report_figures.py` đọc trực tiếp Train, Demo và bundle; script kiểm tra số mẫu, nhãn, thứ tự đặc trưng, tham số model và metric trước khi ghi 10 PNG ở 300 DPI cùng bốn sơ đồ SVG. Nó không gọi `fit()` và không sửa CSV hoặc bundle.
 
----
+## Phụ lục B. Dấu vân tay artefact nghiệm thu
 
-## Tài liệu Tham khảo (References)
+Các SHA-256 dưới đây được ghi trước và đối chiếu lại sau quá trình sinh hình, test và thu thập minh chứng:
 
-1. **Liu, F. T., Ting, K. M., & Zhou, Z. H. (2008).** *Isolation Forest.* In 2008 Eighth IEEE International Conference on Data Mining (pp. 413-422). IEEE. DOI: `10.1109/ICDM.2008.17`.
-2. **Liu, F. T., Ting, K. M., & Zhou, Z. H. (2012).** *Isolation-based anomaly detection.* ACM Transactions on Knowledge Discovery from Data (TKDD), 6(1), 1-39.
-3. **Hébant, G. (2012).** *Individual household electric power consumption Data Set.* UCI Machine Learning Repository. Available: `https://archive.ics.uci.edu/dataset/235/`.
-4. **Hawkins, D. M. (1980).** *Identification of Outliers.* Monographs on Applied Probability and Statistics, Chapman and Hall, London.
-5. **Rousseeuw, P. J., & Croux, C. (1993).** *Alternatives to the median absolute deviation.* Journal of the American Statistical Association, 88(424), 1273-1283.
-6. **Breunig, M. M., Kriegel, H. P., Ng, R. T., & Sander, J. (2000).** *LOF: identifying density-based local outliers.* In Proceedings of the 2000 ACM SIGMOD international conference on Management of data (pp. 93-104).
-7. **Chandola, V., Banerjee, A., & Kumar, V. (2009).** *Anomaly detection: A survey.* ACM Computing Surveys (CSUR), 41(3), 1-58.
-8. **Pedregosa, F., Varoquaux, G., Gramfort, A., Michel, V., Thirion, B., Grisel, O., ... & Duchesnay, É. (2011).** *Scikit-learn: Machine learning in Python.* Journal of Machine Learning Research, 12, 2825-2830.
-9. **McKinney, W. (2010).** *Data structures for statistical computing in Python.* In Proceedings of the 9th Python in Science Conference (pp. 51-56).
-10. **Lundberg, S. M., & Lee, S. I. (2017).** *A unified approach to interpreting model predictions.* Advances in Neural Information Processing Systems (NeurIPS), 30, 4765-4774.
-11. **Ribeiro, M. T., Singh, S., & Guestrin, C. (2016).** *"Why should I trust you?": Explaining the predictions of any classifier.* In Proceedings of the 22nd ACM SIGKDD international conference on knowledge discovery and data mining (pp. 1135-1144).
-12. **Gama, J., Žliobaitė, I., Bifet, A., Pechenizkiy, M., & Bouchachia, A. (2014).** *A survey on concept drift adaptation.* ACM Computing Surveys (CSUR), 46(4), 1-37.
+| Artefact | SHA-256 |
+|---|---|
+| `data/train_hourly.csv` | `14033277946329d3d455e8a8979c32f4f78971438dca9320dc0d4071ea902713` |
+| `data/demo_stream.csv` | `e0869fc1ecf44e2c86f01a612ce62384674c19b5fb311dbcd093d8736f408353` |
+| `models/model_bundle.pkl` | `c98b52b3270d4013d3df6ce902f3541e68ebe29ff98848ba98115993387ecf01` |
+| `data/alert_history.sqlite3` | `87a810b18e8ab993677831ad6a3e62e8566a527927f86b1936db41a99319130f` |
+
+## Phụ lục C. Quy ước diễn giải kết quả
+
+- “Điểm tiêm” là hàng có `is_anomaly=1` trong Demo sau tiêm.
+- “Cảnh báo” là hàng có `decision_function < 0`.
+- “FP theo nhãn tổng hợp” là cảnh báo tại hàng không được tiêm; thuật ngữ không khẳng định trạng thái vật lý thực.
+- `power_dev_24h` là độ lệch với hàng cách 24 vị trí trong hiện thực hiện tại.
+- Severity là phép ánh xạ đơn điệu để ưu tiên hiển thị, không phải xác suất sự cố.

@@ -36,9 +36,12 @@ reports/*
 !reports/figures/
 
 # Streamlit
-.streamlit/
+**/.streamlit/*
+!**/.streamlit/config.toml
+data/alert_history.sqlite3
 
 # OS
 .DS_Store
 Thumbs.db
 ~$*.docx
+~WRL*.tmp

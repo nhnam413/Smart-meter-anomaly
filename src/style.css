@@ -4,7 +4,7 @@
 
 /* Khoa che do sang (Light mode) bat buoc tren moi thanh phan */
 :root {
-    color-scheme: light !important;
+    color-scheme: only light !important;
     --bg: #F8FAFC;
     --surface: #FFFFFF;
     --surface-subtle: #F1F5F9;
@@ -40,7 +40,7 @@
 html, body {
     background-color: var(--bg) !important;
     color: var(--text) !important;
-    color-scheme: light !important;
+    color-scheme: only light !important;
 }
 
 /* An header va footer mac dinh cua Streamlit */
@@ -67,7 +67,7 @@ header[data-testid="stHeader"] {
 .stApp {
     background-color: var(--bg) !important;
     color: var(--text) !important;
-    color-scheme: light !important;
+    color-scheme: only light !important;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
 
@@ -302,6 +302,74 @@ div[data-testid="stTextInput"] input {
     color: var(--text) !important;
     font-size: 0.85em !important;
     background-color: transparent !important;
+}
+
+/* Native controls: the select's painted surface is its inner div, not its wrapper.
+   Canvas dataframes use the native theme in src/.streamlit/config.toml. */
+[data-testid="stSelectbox"] [data-baseweb="select"] > div,
+[data-testid="stMultiSelect"] [data-baseweb="select"] > div,
+[data-testid="stTextArea"] [data-baseweb="textarea"],
+[data-testid="stTextArea"] textarea {
+    background-color: var(--surface) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+    color-scheme: only light !important;
+}
+
+[data-testid="stSelectbox"] [data-baseweb="select"] input,
+[data-testid="stMultiSelect"] [data-baseweb="select"] input {
+    color: var(--text) !important;
+    -webkit-text-fill-color: var(--text) !important;
+    caret-color: var(--text) !important;
+    background-color: transparent !important;
+}
+
+[data-testid="stMultiSelect"] [data-baseweb="tag"] {
+    background-color: var(--primary-light) !important;
+    color: var(--primary-dark) !important;
+    border-color: #BFDBFE !important;
+}
+
+/* Dropdowns live in a portal outside the widget container. */
+[data-baseweb="popover"] [role="listbox"],
+[data-baseweb="popover"] [role="option"] {
+    background-color: var(--surface) !important;
+    color: var(--text) !important;
+    color-scheme: only light !important;
+}
+
+[data-baseweb="popover"] [role="option"]:hover,
+[data-baseweb="popover"] [role="option"][aria-selected="true"] {
+    background-color: var(--primary-light) !important;
+    color: var(--primary-dark) !important;
+}
+
+[data-testid="stDownloadButton"] button {
+    background-color: var(--surface) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+}
+
+[data-testid="stDownloadButton"] button:hover:not(:disabled) {
+    background-color: var(--primary-light) !important;
+    border-color: var(--primary) !important;
+}
+
+[data-testid="stDownloadButton"] button:disabled {
+    background-color: var(--surface-subtle) !important;
+    color: var(--text-muted) !important;
+}
+
+/* Global markdown text rules must not darken text on primary buttons. */
+[data-testid="stButton"] button[kind="primary"] p {
+    color: #FFFFFF !important;
+}
+
+[data-testid="stSelectbox"] [data-baseweb="select"]:focus-within > div,
+[data-testid="stMultiSelect"] [data-baseweb="select"]:focus-within > div,
+[data-testid="stTextArea"] [data-baseweb="textarea"]:focus-within {
+    border-color: var(--primary) !important;
+    outline-color: var(--primary) !important;
 }
 
 /* Radio Button - Co dinh hoan toan sang Light Mode khong bi den */

@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="690" viewBox="0 0 1080 690" role="img">
+<title>Luồng suy luận tuần tự của một mẫu</title>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs>
+<rect width="1080" height="690" fill="white"/>
+<g font-family="DejaVu Sans, Arial, sans-serif" font-size="17" fill="#0f172a">
+<text x="540" y="34" text-anchor="middle" font-size="25" fill="#0f172a" font-weight="bold">
+<tspan x="540" dy="0">Luồng suy luận tuần tự của một mẫu</tspan>
+</text>
+<rect x="330" y="70" width="420" height="55" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="540.0" y="102.94" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="normal">
+<tspan x="540.0" dy="0">Nhận dòng Demo theo con trỏ</tspan>
+</text>
+<rect x="330" y="165" width="420" height="60" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="540.0" y="200.44" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="normal">
+<tspan x="540.0" dy="0">Thêm vào bộ đệm FIFO, tối đa 50 mẫu</tspan>
+</text>
+<polyline points="540,125 540,165" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="330" y="265" width="420" height="60" rx="10" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+<text x="540.0" y="300.44" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="normal">
+<tspan x="540.0" dy="0">Đủ 25 mẫu và trích được đặc trưng?</tspan>
+</text>
+<polyline points="540,225 540,265" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="25" y="365" width="245" height="75" rx="10" fill="#f8fafc" stroke="#64748b" stroke-width="2"/>
+<text x="147.5" y="395.615" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="normal">
+<tspan x="147.5" dy="0">warming_up</tspan>
+<tspan x="147.5" dy="24.65">is_anomaly = None</tspan>
+</text>
+<polyline points="330,295 147,295 147,365" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="245" y="284" text-anchor="middle" font-size="15" fill="#475569" font-weight="normal">
+<tspan x="245" dy="0">Chưa</tspan>
+</text>
+<rect x="330" y="365" width="420" height="75" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="540.0" y="395.615" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="normal">
+<tspan x="540.0" dy="0">Scaler.transform → decision_function</tspan>
+<tspan x="540.0" dy="24.65">Dùng bundle đã học từ Train</tspan>
+</text>
+<polyline points="540,325 540,365" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="571" y="350" text-anchor="middle" font-size="15" fill="#475569" font-weight="normal">
+<tspan x="571" dy="0">Có</tspan>
+</text>
+<rect x="330" y="485" width="420" height="55" rx="10" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+<text x="540.0" y="517.94" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="normal">
+<tspan x="540.0" dy="0">Điểm quyết định &lt; 0?</tspan>
+</text>
+<polyline points="540,440 540,485" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="790" y="480" width="265" height="70" rx="10" fill="#ecfdf5" stroke="#059669" stroke-width="2"/>
+<text x="922.5" y="508.115" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="normal">
+<tspan x="922.5" dy="0">Dự báo bình thường</tspan>
+<tspan x="922.5" dy="24.65">Không tạo cảnh báo</tspan>
+</text>
+<polyline points="750,512 790,512" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="902" y="463" text-anchor="middle" font-size="15" fill="#475569" font-weight="normal">
+<tspan x="902" dy="0">Không</tspan>
+</text>
+<rect x="330" y="590" width="420" height="75" rx="10" fill="#fef2f2" stroke="#dc2626" stroke-width="2"/>
+<text x="540.0" y="620.615" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="normal">
+<tspan x="540.0" dy="0">Tính severity, gợi ý loại và dấu hiệu</tspan>
+<tspan x="540.0" dy="24.65">Upsert cảnh báo theo alert_id</tspan>
+</text>
+<polyline points="540,540 540,590" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="570" y="575" text-anchor="middle" font-size="15" fill="#475569" font-weight="normal">
+<tspan x="570" dy="0">Có</tspan>
+</text>
+<text x="145" y="515" text-anchor="middle" font-size="16" fill="#475569" font-weight="normal">
+<tspan x="145" dy="0">Cập nhật hiển thị;</tspan>
+<tspan x="145" dy="23.2">chờ dòng tiếp theo.</tspan>
+</text>
+</g></svg>

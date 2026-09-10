@@ -4,7 +4,10 @@ Giao dien gom 2 che do: Phan tich lich su va Giam sat thoi gian thuc.
 """
 
 import os
+import sqlite3
 import time
+from contextlib import closing
+from datetime import datetime
 from typing import Optional, Union
 
 import joblib
@@ -36,8 +39,67 @@ CHART_THEME = dict(
 
 TABLE_COLS = [
     "Thời gian", "Công suất (kW)", "Điện áp (V)",
-    "Mức độ (Severity)", "Phân loại lỗi (AI)", "Nguyên nhân chính (XAI)"
+    "Điểm cảnh báo", "Dạng gợi ý", "Dấu hiệu nổi bật"
 ]
+
+ALERT_DB_PATH = os.path.join(os.path.dirname(DEMO_STREAM_PATH), "alert_history.sqlite3")
+STATUS_LABELS = {"new": "Mới", "acknowledged": "Đã tiếp nhận", "closed": "Đã đóng"}
+
+
+def init_alert_store() -> None:
+    """Kho nho gon luu trang thai xu ly, khong phu thuoc Session State."""
+    with closing(sqlite3.connect(ALERT_DB_PATH)) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS alerts (
+                alert_id TEXT PRIMARY KEY, data_time TEXT NOT NULL,
+                power REAL NOT NULL, voltage REAL NOT NULL,
+                severity REAL NOT NULL, severity_level TEXT NOT NULL,
+                anomaly_type TEXT NOT NULL, explanation TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'new', note TEXT NOT NULL DEFAULT '',
+                acknowledged_at TEXT, closed_at TEXT, updated_at TEXT NOT NULL
+            )
+        """)
+        conn.commit()
+
+
+def save_alert(event: dict) -> None:
+    now = datetime.now().isoformat(timespec="seconds")
+    with closing(sqlite3.connect(ALERT_DB_PATH)) as conn:
+        conn.execute("""
+            INSERT INTO alerts (
+                alert_id, data_time, power, voltage, severity, severity_level,
+                anomaly_type, explanation, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(alert_id) DO UPDATE SET
+                power=excluded.power, voltage=excluded.voltage,
+                severity=excluded.severity, severity_level=excluded.severity_level,
+                anomaly_type=excluded.anomaly_type, explanation=excluded.explanation,
+                updated_at=excluded.updated_at
+        """, (
+            event["alert_id"], event["data_time"], event["power"], event["voltage"],
+            event["severity"], event["severity_level"], event["anomaly_type"],
+            event["explanation"], now,
+        ))
+        conn.commit()
+
+
+def load_alerts() -> pd.DataFrame:
+    with closing(sqlite3.connect(ALERT_DB_PATH)) as conn:
+        return pd.read_sql_query("SELECT * FROM alerts ORDER BY data_time DESC", conn)
+
+
+def update_alert(alert_id: str, status: str, note: str) -> None:
+    now = datetime.now().isoformat(timespec="seconds")
+    acknowledged_at = now if status == "acknowledged" else None
+    closed_at = now if status == "closed" else None
+    with closing(sqlite3.connect(ALERT_DB_PATH)) as conn:
+        conn.execute("""
+            UPDATE alerts SET status=?, note=?,
+                acknowledged_at=COALESCE(?, acknowledged_at),
+                closed_at=COALESCE(?, closed_at), updated_at=?
+            WHERE alert_id=?
+        """, (status, note, acknowledged_at, closed_at, now, alert_id))
+        conn.commit()
 
 
 # ==============================================================================
@@ -132,7 +194,7 @@ def build_power_line_chart(df: pd.DataFrame) -> go.Figure:
 
 
 def build_voltage_line_chart(df: pd.DataFrame) -> go.Figure:
-    """Bieu do duong dien ap (V) kem dai an toan 220-250V."""
+    """Bieu do dien ap voi dai tham chieu cau hinh cho dashboard."""
     fig = go.Figure()
     if df.empty or "Voltage" not in df.columns:
         fig.update_layout(**CHART_THEME, title="Chưa có dữ liệu")
@@ -143,7 +205,7 @@ def build_voltage_line_chart(df: pd.DataFrame) -> go.Figure:
         y0=220, y1=250,
         fillcolor=COLORS["success_rgba_08"],
         line_width=0,
-        annotation_text="Vùng an toàn (220–250V)",
+        annotation_text="Dải tham chiếu (220–250V)",
         annotation_position="top left",
         annotation_font=dict(color=COLORS["success_dark"], size=10),
     )
@@ -160,7 +222,7 @@ def build_voltage_line_chart(df: pd.DataFrame) -> go.Figure:
 
     # Diem su co dien ap
     if "is_anomaly" in df.columns:
-        anom_df = df[df["is_anomaly"] == 1]
+        anom_df = df[(df["is_anomaly"] == 1) & (df.get("anomaly_type", "") == "voltage_drop")]
         if not anom_df.empty:
             fig.add_trace(go.Scatter(
                 x=anom_df.index,
@@ -357,16 +419,20 @@ def render_kpi(label: str, value: str, subtext: str = "", card_theme: str = "pri
 
 def render_chart_grid(df: pd.DataFrame, key_prefix: str, is_realtime: bool = False):
     """Luoi bieu do 2 cot."""
-    col_l, col_r = st.columns([1.5, 1.1])
+    col_l, col_r = st.columns(2 if is_realtime else [1.5, 1.1])
     with col_l:
-        st.plotly_chart(build_power_line_chart(df), key=f"{key_prefix}_power_chart")
-        st.plotly_chart(build_voltage_line_chart(df), key=f"{key_prefix}_voltage_chart")
+        st.plotly_chart(build_power_line_chart(df), theme=None, key=f"{key_prefix}_power_chart")
     with col_r:
-        st.plotly_chart(build_anomaly_donut_chart(df), key=f"{key_prefix}_donut_chart")
         if is_realtime:
-            st.plotly_chart(build_hourly_distribution_chart(df), key=f"{key_prefix}_hourly_chart")
+            st.plotly_chart(build_voltage_line_chart(df), theme=None, key=f"{key_prefix}_voltage_chart")
         else:
-            st.plotly_chart(build_anomaly_heatmap(df), key=f"{key_prefix}_heatmap_chart")
+            st.plotly_chart(build_anomaly_donut_chart(df), theme=None, key=f"{key_prefix}_donut_chart")
+    if not is_realtime:
+        col_l, col_r = st.columns([1.5, 1.1])
+        with col_l:
+            st.plotly_chart(build_voltage_line_chart(df), theme=None, key=f"{key_prefix}_voltage_chart")
+        with col_r:
+            st.plotly_chart(build_anomaly_heatmap(df), theme=None, key=f"{key_prefix}_heatmap_chart")
 
 
 def format_anomaly_table_data(anom_df: pd.DataFrame) -> pd.DataFrame:
@@ -375,9 +441,9 @@ def format_anomaly_table_data(anom_df: pd.DataFrame) -> pd.DataFrame:
     df_out["Thời gian"] = df_out.index.strftime(DATETIME_MINUTE_FORMAT)
     df_out["Công suất (kW)"] = df_out[TARGET_COL].map(lambda x: f"{x:.3f}")
     df_out["Điện áp (V)"] = df_out["Voltage"].map(lambda x: f"{x:.1f}")
-    df_out["Mức độ (Severity)"] = df_out["severity"].map(lambda x: f"{x*100:.1f}%")
-    df_out["Phân loại lỗi (AI)"] = df_out["anomaly_type"].map(lambda x: TYPE_LABELS.get(x, x))
-    df_out["Nguyên nhân chính (XAI)"] = df_out["explanation"]
+    df_out["Điểm cảnh báo"] = df_out["severity"].map(lambda x: f"{x*100:.1f}/100")
+    df_out["Dạng gợi ý"] = df_out["anomaly_type"].map(lambda x: TYPE_LABELS.get(x, x))
+    df_out["Dấu hiệu nổi bật"] = df_out["explanation"]
     return df_out[TABLE_COLS]
 
 
@@ -392,16 +458,16 @@ def render_anomaly_table(df_anom: pd.DataFrame, height: int = 300):
         ts = row.get("Thời gian", "—")
         power = row.get("Công suất (kW)", "—")
         voltage = row.get("Điện áp (V)", "—")
-        severity = row.get("Mức độ (Severity)", "—")
-        anomaly_type = row.get("Phân loại lỗi (AI)", "—")
-        explanation = row.get("Nguyên nhân chính (XAI)", "—")
+        severity = row.get("Điểm cảnh báo", "—")
+        anomaly_type = row.get("Dạng gợi ý", "—")
+        explanation = row.get("Dấu hiệu nổi bật", "—")
 
         # Badge severity
         try:
-            sev_num = float(str(severity).replace("%", ""))
-            if sev_num >= 60.0:
+            sev_num = float(str(severity).split("/")[0])
+            if sev_num >= 70.0:
                 sev_badge = f'<span class="badge-pill badge-red">{severity}</span>'
-            elif sev_num >= 30.0:
+            elif sev_num >= 50.0:
                 sev_badge = f'<span class="badge-pill badge-amber">{severity}</span>'
             else:
                 sev_badge = f'<span class="badge-pill badge-blue">{severity}</span>'
@@ -427,7 +493,7 @@ def render_anomaly_table(df_anom: pd.DataFrame, height: int = 300):
     html_code = (
         f'<div class="custom-table-container" style="max-height:{height}px;">'
         f'<table class="custom-table">'
-        f'<thead><tr><th style="width:16%;">Thời gian</th><th style="width:13%;">Công suất (kW)</th><th style="width:12%;">Điện áp (V)</th><th style="width:15%; text-align:center;">Mức độ (Severity)</th><th style="width:18%; text-align:center;">Phân loại lỗi (AI)</th><th style="width:26%;">Nguyên nhân chính (XAI)</th></tr></thead>'
+        f'<thead><tr><th style="width:16%;">Thời gian</th><th style="width:13%;">Công suất (kW)</th><th style="width:12%;">Điện áp (V)</th><th style="width:15%; text-align:center;">Điểm cảnh báo</th><th style="width:18%; text-align:center;">Dạng gợi ý</th><th style="width:26%;">Dấu hiệu nổi bật</th></tr></thead>'
         f'<tbody>{tbody}</tbody>'
         f'</table></div>'
     )
@@ -461,19 +527,20 @@ def render_history_view(bundle, df_demo: pd.DataFrame):
     if reset_filter:
         start_date, end_date = min_date, max_date
 
-    mask = (df_demo.index.date >= start_date) & (df_demo.index.date <= end_date)
-    df_filtered = df_demo[mask].copy()
-
-    if df_filtered.empty:
+    display_mask = (df_demo.index.date >= start_date) & (df_demo.index.date <= end_date)
+    if not display_mask.any():
         st.info("Không có bản ghi nào trong khoảng thời gian đã chọn.")
         return
 
-    # Suy dien
-    df_feat = extract_features(df_filtered)
+    # Tinh dac trung tren toan bo chuoi de giu ngu canh truoc ngay loc.
+    df_feat = extract_features(df_demo)
+    if df_feat.empty:
+        st.info("Chưa đủ dữ liệu lịch sử để trích xuất đặc trưng.")
+        return
     X = scaler.transform(df_feat[feat_names].values)
     scores = model.decision_function(X)
 
-    df_eval = df_filtered.loc[df_feat.index].copy()
+    df_eval = df_demo.loc[df_feat.index].copy()
     df_eval["raw_score"] = scores
     df_eval["severity"] = [calc_severity(s) for s in scores]
     df_eval["severity_level"] = [get_severity_level(s) for s in df_eval["severity"]]
@@ -489,6 +556,11 @@ def render_history_view(bundle, df_demo: pd.DataFrame):
             expls.append("—")
     df_eval["anomaly_type"] = types
     df_eval["explanation"] = expls
+    df_eval = df_eval[(df_eval.index.date >= start_date) & (df_eval.index.date <= end_date)]
+
+    if df_eval.empty:
+        st.info("Khoảng đã chọn chưa có mẫu nào đủ ngữ cảnh để đánh giá.")
+        return
 
     #  phần hiển thị các thông tin về dữ liệu đã duyệt 
     total_pts = len(df_eval)
@@ -501,7 +573,7 @@ def render_history_view(bundle, df_demo: pd.DataFrame):
     with k1:
         render_kpi("Tổng Số Mẫu", f"{total_pts:,}", f"Từ {start_date.strftime(DATE_FORMAT)} đến {end_date.strftime(DATE_FORMAT)}", "primary")
     with k2:
-        render_kpi("Tổng Bất Thường", f"{anom_pts:,}", f"Tỷ lệ: {anom_rate:.1f}% tổng tải", "red")
+        render_kpi("Tổng Bất Thường", f"{anom_pts:,}", f"Tỷ lệ: {anom_rate:.1f}% mẫu đã đánh giá", "red")
     with k3:
         render_kpi("Khung Giờ Đỉnh Lỗi", f"{peak_hour:02d}:00", f"{peak_count} sự cố phát hiện", "accent")
     with k4:
@@ -515,8 +587,8 @@ def render_history_view(bundle, df_demo: pd.DataFrame):
 
     st.markdown(
         f'<div class="anomaly-table-header">'
-        f'<h4>Danh sách chi tiết các điểm bất thường phát hiện</h4>'
-        f'<span class="table-count">{len(anom_logs):,} điểm sự cố</span>'
+        f'<h4>Danh sách điểm bất thường được mô hình phát hiện</h4>'
+        f'<span class="table-count">{len(anom_logs):,} điểm cảnh báo</span>'
         f'</div>',
         unsafe_allow_html=True
     )
@@ -553,7 +625,8 @@ def _step_stream_engine(df_demo: pd.DataFrame, bundle, n_steps: int = 1):
         if len(st.session_state.rt_buffer) > 50:
             st.session_state.rt_buffer.pop(0)
 
-        is_anom, severity, anom_type, expl = 0, 0.0, "normal", "—"
+        is_anom, severity, anom_type, expl = None, None, "unknown", "—"
+        raw_score, evaluation_status = None, "warming_up"
         if len(st.session_state.rt_buffer) >= 25:
             buf_df = pd.DataFrame(st.session_state.rt_buffer).set_index("datetime")
             latest_feat = extract_latest(buf_df)
@@ -562,6 +635,8 @@ def _step_stream_engine(df_demo: pd.DataFrame, bundle, n_steps: int = 1):
                 raw_score = float(model.decision_function(X)[0])
                 severity = calc_severity(raw_score)
                 is_anom = 1 if raw_score < 0 else 0
+                evaluation_status = "evaluated"
+                anom_type = "normal"
                 if is_anom:
                     anom_type = classify_type(latest_feat)
                     expl = explain_anomaly(latest_feat, medians, iqrs)
@@ -571,6 +646,8 @@ def _step_stream_engine(df_demo: pd.DataFrame, bundle, n_steps: int = 1):
             TARGET_COL: float(row.get(TARGET_COL, 0.0)),
             "Voltage": float(row.get("Voltage", 0.0)),
             "severity": severity,
+            "raw_score": raw_score,
+            "evaluation_status": evaluation_status,
             "is_anomaly": is_anom,
             "anomaly_type": anom_type,
             "explanation": expl,
@@ -582,14 +659,15 @@ def _step_stream_engine(df_demo: pd.DataFrame, bundle, n_steps: int = 1):
         ts_key = dt.strftime(DATETIME_FORMAT)
         if is_anom == 1 and ts_key not in st.session_state.rt_event_keys:
             st.session_state.rt_event_keys.add(ts_key)
-            st.session_state.rt_anomaly_events.append({
-                "Thời gian": ts_key,
-                "Công suất (kW)": f"{record[TARGET_COL]:.3f}",
-                "Điện áp (V)": f"{record['Voltage']:.1f}",
-                "Mức độ (Severity)": f"{severity*100:.1f}%",
-                "Phân loại lỗi (AI)": TYPE_LABELS.get(anom_type, anom_type),
-                "Nguyên nhân chính (XAI)": expl,
-            })
+            event = {
+                "alert_id": f"ALT-{dt.strftime('%Y%m%d%H%M%S')}",
+                "data_time": dt.isoformat(),
+                "power": record[TARGET_COL], "voltage": record["Voltage"],
+                "severity": severity, "severity_level": get_severity_level(severity),
+                "anomaly_type": anom_type, "explanation": expl,
+            }
+            st.session_state.rt_anomaly_events.append(event)
+            save_alert(event)
 
     st.session_state.rt_cursor = cursor
 
@@ -603,6 +681,74 @@ def _reset_stream(df_demo: pd.DataFrame, bundle):
     st.session_state.rt_anomaly_events = []
     st.session_state.rt_event_keys = set()
     _step_stream_engine(df_demo, bundle, n_steps=30)
+
+
+def render_alert_queue() -> None:
+    """Hang doi canh bao co loc, chi tiet va thao tac xu ly."""
+    alerts = load_alerts()
+    st.markdown("#### Cảnh báo cần xử lý")
+    if alerts.empty:
+        st.info("Chưa ghi nhận cảnh báo nào.")
+        return
+
+    f1, f2 = st.columns(2)
+    with f1:
+        status_filter = st.multiselect(
+            "Trạng thái", list(STATUS_LABELS), default=["new", "acknowledged"],
+            format_func=lambda x: STATUS_LABELS[x], key="alert_status_filter")
+    with f2:
+        type_values = sorted(alerts["anomaly_type"].unique().tolist())
+        type_filter = st.multiselect(
+            "Dạng gợi ý", type_values, default=type_values,
+            format_func=lambda x: TYPE_LABELS.get(x, x), key="alert_type_filter")
+
+    filtered = alerts[
+        alerts["status"].isin(status_filter) & alerts["anomaly_type"].isin(type_filter)
+    ].copy()
+    filtered["status_order"] = filtered["status"].map({"new": 0, "acknowledged": 1, "closed": 2})
+    filtered = filtered.sort_values(["status_order", "severity", "data_time"], ascending=[True, False, True])
+
+    if filtered.empty:
+        st.info("Không có cảnh báo phù hợp với bộ lọc.")
+        return
+
+    table_df = pd.DataFrame({
+        "Mã cảnh báo": filtered["alert_id"],
+        "Thời điểm dữ liệu": pd.to_datetime(filtered["data_time"]).dt.strftime(DATETIME_MINUTE_FORMAT),
+        "Trạng thái": filtered["status"].map(STATUS_LABELS),
+        "Điểm cảnh báo": (filtered["severity"] * 100).round(1),
+        "Dạng gợi ý": filtered["anomaly_type"].map(lambda x: TYPE_LABELS.get(x, x)),
+        "Công suất (kW)": filtered["power"].round(3),
+        "Điện áp (V)": filtered["voltage"].round(1),
+        "Dấu hiệu nổi bật": filtered["explanation"],
+    })
+    # Canvas colors come from the script-level light theme, not CSS on <table>.
+    st.dataframe(table_df, width="stretch", hide_index=True, height=280, key="alert_queue_table")
+    st.download_button(
+        "Tải CSV theo bộ lọc", table_df.to_csv(index=False).encode("utf-8-sig"),
+        file_name="bao_cao_canh_bao.csv", mime="text/csv", key="download_alerts")
+
+    selected_id = st.selectbox(
+        "Chọn cảnh báo để xem và xử lý", filtered["alert_id"].tolist(), key="selected_alert_id")
+    selected = alerts.loc[alerts["alert_id"] == selected_id].iloc[0]
+    st.markdown("##### Chi tiết cảnh báo")
+    d1, d2, d3, d4 = st.columns(4)
+    d1.metric("Công suất", f"{selected['power']:.3f} kW")
+    d2.metric("Điện áp", f"{selected['voltage']:.1f} V")
+    d3.metric("Điểm quy đổi", f"{selected['severity'] * 100:.1f}/100")
+    d4.metric("Điểm quyết định", "< 0 (bất thường)")
+    st.caption(f"Dấu hiệu nổi bật: {selected['explanation']}")
+
+    note = st.text_area("Ghi chú xử lý", value=selected["note"] or "", key=f"note_{selected_id}")
+    a1, a2 = st.columns(2)
+    with a1:
+        if st.button("Tiếp nhận cảnh báo", key=f"ack_{selected_id}", disabled=selected["status"] == "closed"):
+            update_alert(selected_id, "acknowledged", note)
+            st.rerun()
+    with a2:
+        if st.button("Đóng cảnh báo", key=f"close_{selected_id}"):
+            update_alert(selected_id, "closed", note)
+            st.rerun()
 
 
 def render_realtime_view(bundle, df_demo: pd.DataFrame):
@@ -678,21 +824,26 @@ def render_realtime_view(bundle, df_demo: pd.DataFrame):
 
     total_streamed = st.session_state.rt_cursor
     total_anoms = len(st.session_state.rt_anomaly_events)
-    anom_rate = (total_anoms / max(1, total_streamed) * 100)
+    session_evaluated = max(0, total_streamed - 24)
+    anom_rate = (total_anoms / max(1, session_evaluated) * 100)
+    stored_alerts = load_alerts()
+    open_alerts = int(stored_alerts["status"].isin(["new", "acknowledged"]).sum()) if not stored_alerts.empty else 0
     latest_power = float(disp_df[TARGET_COL].iloc[-1]) if (not disp_df.empty and TARGET_COL in disp_df.columns) else 0.0
 
     k1, k2, k3, k4 = st.columns(4)
     with k1:
-        render_kpi("Số Mẫu Đã Phát", f"{total_streamed:,}", f"Tiến độ: {total_streamed:,}/{len(df_demo):,} mẫu", "primary")
+        render_kpi("Mẫu Đã Đánh Giá", f"{session_evaluated:,}", f"Đã nhận {total_streamed:,}/{len(df_demo):,} mẫu", "primary")
     with k2:
-        render_kpi("Bất Thường Đã Bắt", f"{total_anoms:,}", f"Tỷ lệ: {anom_rate:.1f}% luồng", "red")
+        render_kpi("Cảnh Báo Trong Phiên", f"{total_anoms:,}", f"Tỷ lệ: {anom_rate:.1f}% mẫu đã đánh giá", "red")
     with k3:
         render_kpi("Công Suất Hiện Tại", f"{latest_power:.3f} kW", "Tải tiêu thụ tức thời", "green")
     with k4:
-        render_kpi("Trạng Thái Stream", "PLAYING" if is_playing else "PAUSED", f"Tốc độ: {speed_option}s / mẫu", "accent" if is_playing else "primary")
+        render_kpi("Cần Xử Lý", f"{open_alerts:,}", "Cảnh báo mới hoặc đã tiếp nhận", "accent" if open_alerts else "green")
 
     # Thanh thong bao trang thai
-    if not disp_df.empty and "is_anomaly" in disp_df.columns and disp_df["is_anomaly"].iloc[-1] == 1:
+    if not disp_df.empty and disp_df["evaluation_status"].iloc[-1] == "warming_up":
+        st.info("Đang tích lũy đủ 24 mẫu lịch sử; mẫu mới nhất chưa được mô hình đánh giá.")
+    elif not disp_df.empty and "is_anomaly" in disp_df.columns and disp_df["is_anomaly"].iloc[-1] == 1:
         last = disp_df.iloc[-1]
         type_str = TYPE_LABELS.get(last['anomaly_type'], last['anomaly_type']).upper()
         alert_html = (
@@ -705,26 +856,14 @@ def render_realtime_view(bundle, df_demo: pd.DataFrame):
         st.markdown(alert_html, unsafe_allow_html=True)
     else:
         st.markdown(
-            '<div class="alert-bar-success"><span class="alert-tag">TRẠNG THÁI LƯỚI ĐIỆN:</span> Vận hành bình thường — Điện áp và công suất tiêu thụ trong ngưỡng an toàn ổn định.</div>',
+            '<div class="alert-bar-success"><span class="alert-tag">KẾT QUẢ MẪU MỚI NHẤT:</span> Mô hình không đánh dấu bất thường.</div>',
             unsafe_allow_html=True
         )
 
     render_chart_grid(disp_df, key_prefix="rt", is_realtime=True)
 
-    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
-    st.markdown(
-        f'<div class="anomaly-table-header">'
-        f'<h4>Bảng nhật ký sự cố bất thường (Chỉ ghi nhận lỗi)</h4>'
-        f'<span class="table-count">{total_anoms:,} sự cố ghi nhận</span>'
-        f'</div>',
-        unsafe_allow_html=True
-    )
-
-    if st.session_state.rt_anomaly_events:
-        event_df = pd.DataFrame(st.session_state.rt_anomaly_events[::-1])
-        render_anomaly_table(event_df[TABLE_COLS], height=280)
-    else:
-        st.info("Chưa ghi nhận sự cố bất thường nào trong phiên phát luồng này.")
+    st.caption(f"Hai biểu đồ trên hiển thị tối đa {MAX_DISPLAY_POINTS} mẫu gần nhất; KPI tính trên toàn phiên mô phỏng.")
+    render_alert_queue()
 
     if is_playing:
         time.sleep(speed_option)
@@ -743,6 +882,7 @@ def main():
         initial_sidebar_state="collapsed",
     )
     load_custom_css()
+    init_alert_store()
 
     st.markdown('<div class="dashboard-main-title">Smart Meter Anomaly Detection System</div>', unsafe_allow_html=True)
 

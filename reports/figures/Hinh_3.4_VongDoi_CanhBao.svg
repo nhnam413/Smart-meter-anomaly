@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="420" viewBox="0 0 1080 420" role="img">
+<title>Vòng đời xử lý cảnh báo trong giao diện</title>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs>
+<rect width="1080" height="420" fill="white"/>
+<g font-family="DejaVu Sans, Arial, sans-serif" font-size="17" fill="#0f172a">
+<text x="540" y="34" text-anchor="middle" font-size="25" fill="#0f172a" font-weight="bold">
+<tspan x="540" dy="0">Vòng đời xử lý cảnh báo trong giao diện</tspan>
+</text>
+<rect x="40" y="155" width="230" height="75" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="155.0" y="185.615" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="normal">
+<tspan x="155.0" dy="0">Mới</tspan>
+<tspan x="155.0" dy="24.65">new</tspan>
+</text>
+<rect x="415" y="155" width="250" height="75" rx="10" fill="#fff7ed" stroke="#d97706" stroke-width="2"/>
+<text x="540.0" y="185.615" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="normal">
+<tspan x="540.0" dy="0">Đã tiếp nhận</tspan>
+<tspan x="540.0" dy="24.65">acknowledged</tspan>
+</text>
+<rect x="810" y="155" width="230" height="75" rx="10" fill="#ecfdf5" stroke="#059669" stroke-width="2"/>
+<text x="925.0" y="185.615" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="normal">
+<tspan x="925.0" dy="0">Đã đóng</tspan>
+<tspan x="925.0" dy="24.65">closed</tspan>
+</text>
+<polyline points="270,192 415,192" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="340" y="139" text-anchor="middle" font-size="15" fill="#475569" font-weight="normal">
+<tspan x="340" dy="0">Tiếp nhận + ghi chú</tspan>
+</text>
+<polyline points="665,192 810,192" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="737" y="139" text-anchor="middle" font-size="15" fill="#475569" font-weight="normal">
+<tspan x="737" dy="0">Đóng + ghi chú</tspan>
+</text>
+<polyline points="155,230 155,295 925,295 925,230" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="540" y="285" text-anchor="middle" font-size="15" fill="#475569" font-weight="normal">
+<tspan x="540" dy="0">Đóng trực tiếp</tspan>
+</text>
+<text x="540" y="85" text-anchor="middle" font-size="18" fill="#0f172a" font-weight="normal">
+<tspan x="540" dy="0">Mô hình phát hiện → tạo mã theo thời điểm dữ liệu → lưu SQLite</tspan>
+</text>
+<text x="540" y="357" text-anchor="middle" font-size="18" fill="#475569" font-weight="normal">
+<tspan x="540" dy="0">Lưu lại cùng ID cập nhật số đo, giữ trạng thái và ghi chú.</tspan>
+<tspan x="540" dy="26.099999999999998">Mẫu mới bình thường không tự đóng cảnh báo đang chờ.</tspan>
+</text>
+</g></svg>

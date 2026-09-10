@@ -26,14 +26,14 @@ Hệ thống đóng vai trò như một **Trung tâm điều hành giám sát ph
 
 ## 2. Kiến trúc Hệ thống & Luồng Dữ liệu (End-to-End Pipeline)
 
-Hệ thống được thiết kế theo kiến trúc **4 tầng khép kín**, đảm bảo tính độc lập giữa khâu phát luồng IoT và khâu phân tích suy luận trực quan:
+Hệ thống được thiết kế theo kiến trúc **4 tầng khép kín**. Dashboard nạp `demo_stream.csv` và mô phỏng lần lượt từng bản ghi trong `st.session_state`; `03_producer.py` là tiện ích độc lập để ghi dữ liệu demo ra tệp JSON Lines.
 
 ```mermaid
 flowchart TD
     subgraph Data_Layer ["1. Tầng Dữ liệu và Mô phỏng"]
-        A["Dữ liệu thô UCI - 2.07M dòng<br/>household_power_consumption.txt"] -->|01_data_prep.py - Resample 1h| B["train_hourly.csv - 80%<br/>27.243 dòng chuẩn"]
-        A -->|Tiêm 3 dạng lỗi E_01, E_02, E_03| C["demo_stream.csv - 20%<br/>6.810 dòng kiểm định"]
-        C -->|03_producer.py - Headless IoT Stream| D[("stream_buffer.jsonl<br/>IoT Real-time Buffer")]
+        A["Dữ liệu thô UCI - 2.07M dòng<br/>household_power_consumption.txt"] -->|01_data_prep.py - Resample 1h| B["train_hourly.csv - 80%<br/>27.334 dòng chuẩn"]
+        A -->|Tiêm 3 dạng lỗi E_01, E_02, E_03| C["demo_stream.csv - 20%<br/>6.834 dòng kiểm định"]
+        C -.->|03_producer.py - tiện ích độc lập| D[("stream_buffer.jsonl<br/>JSON Lines")]
     end
 
     subgraph Feature_ML_Layer ["2. Kỹ thuật Đặc trưng và Huấn luyện"]
@@ -42,7 +42,7 @@ flowchart TD
     end
 
     subgraph Realtime_Inference ["3. Đệm trượt và Suy luận XAI"]
-        D -->|Cửa sổ trượt 25 giờ - extract_latest| G["Stateful Sliding Window - tối thiểu 25h"]
+        C -->|04_dashboard.py nạp và mô phỏng từng bản ghi| G["Stateful Sliding Window - tối thiểu 25h"]
         F -.->|Tải Scaler và Model| G
         G --> H["Isolation Forest Score"]
         H --> I["Tính điểm Severity<br/>Hàm Sigmoid phi tuyến"]
@@ -109,21 +109,18 @@ Hệ thống tự động lọc ra **Top-3 đặc trưng có $\text{Deviation} >
 ```
 smart-meter-anomaly/
 ├── .streamlit/
-│   └── config.toml                            # Cấu hình Server, Port 8501 và Light Theme chuẩn
+│   └── config.toml                            # Cấu hình Light Theme và server
 ├── data/
 │   ├── raw/
 │   │   └── household_power_consumption.txt    # 2.07M dòng dữ liệu gốc UCI (Tải về đặt tại đây)
-│   ├── train_hourly.csv                       # 27,243 dòng dữ liệu sạch huấn luyện (80%)
-│   ├── demo_stream.csv                        # 6,810 dòng kiểm định có tiêm lỗi phục vụ Demo (20%)
-│   └── stream_buffer.jsonl                    # Bộ đệm truyền tin IoT thời gian thực (JSON Lines)
+│   ├── train_hourly.csv                       # 27,334 dòng dữ liệu sạch huấn luyện (80%)
+│   ├── demo_stream.csv                        # 6,834 dòng kiểm định có tiêm lỗi phục vụ demo (20%)
+│   └── stream_buffer.jsonl                    # Đầu ra JSON Lines của producer độc lập
 ├── docs/
 │   ├── BAO_CAO_DO_AN.md                       # Báo cáo tổng hợp toàn văn đồ án
-│   ├── CHUONG_1_TONG_QUAN.md                  # Chương 1: Đặt vấn đề và 3 bài toán sự cố
-│   ├── CHUONG_2_CO_SO_LY_THUYET.md            # Chương 2: Toán học c(n), RobustScaler, iForest
-│   ├── CHUONG_3_THIET_KE_HE_THONG.md          # Chương 3: Kiến trúc 9 đặc trưng & Stream Buffer
-│   ├── CHUONG_4_HIEN_THUC_VA_KIEM_THU.md      # Chương 4: Hiện thực mã nguồn và 11 Kịch bản test
-│   ├── CHUONG_5_KET_QUA_VA_BAN_LUAN.md        # Chương 5: Kết quả thực nghiệm và 3 Case studies
-│   └── PHU_LUC_VA_TAI_LIEU_THAM_KHAO.md       # Sổ tay vận hành, Mã lỗi & Tài liệu tham khảo
+│   ├── BAO_CAO_FINAL.md                       # Bản báo cáo Markdown rút gọn
+│   ├── Bao_Cao_Do_An_Nganh_Hoan_Chinh_Synced.docx # Báo cáo Word đã đồng bộ
+│   └── Mau-bao-cao_Do An Nganh.docx            # Mẫu báo cáo Word
 ├── models/
 │   ├── feature_names.pkl                      # Danh sách 9 đặc trưng chuẩn hóa
 │   ├── isolation_forest_model.pkl             # Trọng số mô hình Isolation Forest
@@ -137,7 +134,7 @@ smart-meter-anomaly/
 │   ├── 03_producer.py                         # Trình phát luồng IoT giả lập độc lập
 │   ├── 04_dashboard.py                        # Ứng dụng Streamlit Dashboard 2 chế độ giám sát
 │   └── style.css                              # CSS tùy biến khóa cứng 100% Light Mode
-├── requirements.txt                           # Danh mục thư viện phụ thuộc ghim phiên bản
+├── requirements.txt                           # Danh mục thư viện và phiên bản tối thiểu
 └── README.md                                  # Tài liệu hướng dẫn dự án
 ```
 
@@ -171,20 +168,23 @@ Truy cập trình duyệt tại: `http://localhost:8501`.
 
 ---
 
-### Phương án B: Chạy Giám sát Luồng Thời Gian Thực (Dual-Terminal Streaming)
-Để kiểm nghiệm khả năng bắt lỗi thời gian thực từ luồng IoT, mở **2 cửa sổ Terminal song song**:
+### Phương án B: Giám sát Thời gian thực Mô phỏng
+Dashboard mô phỏng việc nhận từng bản ghi từ `data/demo_stream.csv` trong bộ nhớ phiên làm việc; không cần chạy producer ở terminal thứ hai.
 
-- **Terminal 1 (Chạy IoT Producer phát dữ liệu vào bộ đệm):**
-  ```bash
-  python src/03_producer.py --speed 1.0
-  ```
-  *(Các tham số: `--speed 0.5` để tăng tốc độ phát, `--limit 200` giới hạn số bản ghi, `--append` để ghi tiếp)*.
+```bash
+python -m streamlit run src/04_dashboard.py
+```
 
-- **Terminal 2 (Khởi chạy Web Dashboard):**
-  ```bash
-  python -m streamlit run src/04_dashboard.py
-  ```
-  *Trên thanh điều hướng Sidebar, chọn **"Chế độ Giám sát Thời gian thực"**, bật công tắc **"Tự động làm mới"** để quan sát đồng hồ đo Gauge, biểu đồ dòng điện và bảng cảnh báo nhảy theo từng giây.*
+Trên dashboard, chọn **"Thời gian thực (Real-Time Monitoring)"**, sau đó dùng **Play**, **Pause**, **Bước tiếp +1** hoặc **Khởi động lại** để điều khiển luồng mô phỏng. Tốc độ phát được chọn trực tiếp trên giao diện.
+
+### Tiện ích tùy chọn: Xuất dữ liệu demo ra JSON Lines
+`03_producer.py` phát các bản ghi trong `demo_stream.csv` vào `data/stream_buffer.jsonl` để quan sát hoặc tích hợp với một consumer khác. Dashboard hiện không đọc tệp này.
+
+```bash
+python src/03_producer.py --speed 1.0
+```
+
+Các tham số hỗ trợ: `--speed 0.5` để tăng tốc, `--limit 200` để giới hạn số bản ghi, và `--append` để ghi nối tiếp.
 
 ---
 
@@ -207,7 +207,7 @@ python -m streamlit run src/04_dashboard.py
 
 ## 7. Kết quả Thực nghiệm và Đo đạc
 
-Kết quả thẩm định độc lập trên $6,810$ mẫu đo đạc kiểm thử (`data/demo_stream.csv`):
+Kết quả thẩm định trên $6,810$ mẫu có đặc trưng hợp lệ, trích từ $6,834$ bản ghi của `data/demo_stream.csv`:
 
 | Chỉ số Đánh giá | Giá trị Đạt được | Ý nghĩa Kỹ thuật Thực tế |
 |:---|:---:|:---|
@@ -216,9 +216,9 @@ Kết quả thẩm định độc lập trên $6,810$ mẫu đo đạc kiểm th
 | **Recall (Lớp Bất thường)** | **72.84%** | Độ bao phủ phát hiện sự cố, hạn chế tối đa việc lọt sự cố nguy hiểm |
 | **Precision (Lớp Bất thường)**| **51.96%** | Tỷ lệ cảnh báo đúng thực tế (chấp nhận đánh đổi để tăng tối đa Recall an toàn) |
 | **Macro Average Precision** | **74.76%** | Trung bình cộng không trọng số giữa 2 lớp |
-| **Độ nhạy bắt Power Surge** | **94.1%** | Bắt trúng hầu hết các đột biến phụ tải giờ cao điểm |
-| **Độ nhạy bắt Voltage Drop** | **92.7%** | Bắt trúng hầu hết các sự cố sụt áp lưới nguy hiểm |
-| **Độ nhạy bắt Night Spike** | **83.6%** | Bắt trúng phụ tải rạng sáng bất thường do rò điện / dính tiếp điểm rơ-le |
+| **Độ nhạy bắt Power Surge** | **61.95%** | Tỷ lệ nhận diện các đột biến phụ tải giờ cao điểm trong tập demo |
+| **Độ nhạy bắt Voltage Drop** | **94.15%** | Tỷ lệ nhận diện các sự cố sụt áp lưới trong tập demo |
+| **Độ nhạy bắt Night Spike** | **57.04%** | Tỷ lệ nhận diện phụ tải rạng sáng bất thường trong tập demo |
 
 ---
 
@@ -234,7 +234,7 @@ Kết quả thẩm định độc lập trên $6,810$ mẫu đo đạc kiểm th
 
 ## 9. Hồ sơ Báo cáo Toàn diện (Documentation)
 
-Báo cáo đồ án tốt nghiệp toàn diện được tổng hợp trong một tài liệu duy nhất tại thư mục `docs/`:
+Báo cáo đồ án có bản Markdown toàn diện và các bản bổ sung trong thư mục `docs/`:
 - **[Báo Cáo Toàn Diện Đồ Án Tốt Nghiệp (Toàn Văn 5 Chương & Phụ Lục)](docs/BAO_CAO_DO_AN.md)**
   - *Chương 1:* Tổng quan hệ thống và 3 bài toán sự cố cốt lõi
   - *Chương 2:* Cơ sở lý thuyết, phân tích toán học độ phức tạp O(n log n), RobustScaler và Isolation Forest
