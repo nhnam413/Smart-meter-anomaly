@@ -319,39 +319,39 @@ ROC-AUC đánh giá thứ hạng liên tục của \(-d(x)\) trên nhiều ngư�
 
 ## 3.1. Tác nhân và yêu cầu
 
-Tác nhân chính là người vận hành nguyên mẫu. Người này cần xem dữ liệu lịch sử, quan sát luồng mô phỏng và quản lý cảnh báo. Tác nhân kỹ thuật phụ là người huấn luyện mô hình, chịu trách nhiệm chuẩn bị dữ liệu và tạo model bundle trước khi dashboard chạy. Các yêu cầu chức năng trong Bảng 3.1 được rút ra từ ba luồng sử dụng chính và có thể truy vết tới test ở Chương 4.
+Tác nhân chính là người vận hành nguyên mẫu. Người này cần xem dữ liệu lịch sử, quan sát luồng mô phỏng và quản lý cảnh báo. Tác nhân kỹ thuật phụ là người huấn luyện mô hình, chịu trách nhiệm chuẩn bị dữ liệu và tạo model bundle trước khi dashboard chạy. Các yêu cầu chức năng trong Bảng 3.1 được rút ra từ ba luồng sử dụng chính và các chức năng hiện có trong mã nguồn.
 
 *Bảng 3.1 — Yêu cầu chức năng*
 
-| Mã | Yêu cầu | Tiêu chí chấp nhận |
-|---|---|---|
-| FR01 | Chuẩn bị dữ liệu theo giờ | Đọc UCI, xử lý thiếu, gom theo giờ và chia 80/20 theo thời gian |
-| FR02 | Tạo đặc trưng dùng chung | Huấn luyện và suy luận gọi cùng `extract_features()`/`extract_latest()` |
-| FR03 | Huấn luyện và lưu mô hình | Bundle chứa model, scaler, thứ tự đặc trưng, median và IQR |
-| FR04 | Phân tích lịch sử | Lọc khoảng ngày, hiển thị KPI, biểu đồ, bảng cảnh báo và chi tiết |
-| FR05 | Suy luận mô phỏng | Play, Pause, bước tiếp, tốc độ, reset và trạng thái warm-up |
-| FR06 | Diễn giải cảnh báo | Hiển thị severity, dạng gợi ý và ba dấu hiệu nổi bật |
-| FR07 | Quản lý vòng đời | Lưu duy nhất theo `alert_id`, tiếp nhận, ghi chú và đóng |
-| FR08 | Xuất kết quả | Tải danh sách cảnh báo đang lọc dưới dạng CSV |
+| Yêu cầu | Tiêu chí chấp nhận |
+|---|---|
+| Chuẩn bị dữ liệu theo giờ | Đọc UCI, xử lý thiếu, gom theo giờ và chia 80/20 theo thời gian |
+| Tạo đặc trưng dùng chung | Huấn luyện và suy luận gọi cùng `extract_features()`/`extract_latest()` |
+| Huấn luyện và lưu mô hình | Bundle chứa model, scaler, thứ tự đặc trưng, median và IQR |
+| Phân tích lịch sử | Lọc khoảng ngày, hiển thị KPI, biểu đồ và bảng điểm bất thường |
+| Suy luận mô phỏng | Play, Pause, bước tiếp, tốc độ, reset và trạng thái warm-up |
+| Diễn giải cảnh báo | Hiển thị severity, dạng gợi ý và tối đa ba dấu hiệu nổi bật |
+| Quản lý vòng đời | Lưu duy nhất theo `alert_id`, tiếp nhận, ghi chú và đóng |
+| Xuất kết quả | Tải danh sách cảnh báo đang lọc dưới dạng CSV |
 
-Ngoài chức năng, hệ thống cần bảo đảm tái lập, an toàn dữ liệu và khả năng đọc giao diện. Bảng 3.2 nêu các yêu cầu phi chức năng có bằng chứng kiểm tra trong phạm vi đồ án.
+Ngoài chức năng, hệ thống cần bảo đảm tái lập, an toàn dữ liệu và khả năng đọc giao diện. Bảng 3.2 nêu các yêu cầu phi chức năng gắn với cách triển khai hiện tại.
 
 *Bảng 3.2 — Yêu cầu phi chức năng*
 
-| Mã | Yêu cầu | Cách kiểm chứng |
-|---|---|---|
-| NFR01 | Tái lập | Cố định `random_state=42`; sinh hình hai lần cho cùng hash |
-| NFR02 | Không rò rỉ dữ liệu | Scaler/model chỉ `fit` trên Train; Demo chỉ `transform` và đánh giá |
-| NFR03 | Bảo vệ dữ liệu | Test dùng DataFrame sao chép, thư mục tạm và SQLite tạm |
-| NFR04 | Nhất quán giao diện sáng | Cấu hình theme và CSS ép bảng/widget về màu sáng độc lập browser theme |
-| NFR05 | Truy vết | ID cảnh báo theo thời điểm dữ liệu; bundle lưu đúng thứ tự đặc trưng |
-| NFR06 | Khả năng chạy cục bộ | Có lệnh chuẩn bị dữ liệu, huấn luyện, dashboard, test và tạo hình |
+| Yêu cầu | Cách kiểm chứng |
+|---|---|
+| Tái lập | Cố định seed 42 khi tiêm bất thường và huấn luyện Isolation Forest |
+| Không rò rỉ dữ liệu | Scaler/model chỉ `fit` trên Train; Demo chỉ `transform` và đánh giá |
+| Bảo vệ dữ liệu | Trích xuất đặc trưng trên bản sao; suy luận không ghi đè CSV đầu vào |
+| Nhất quán giao diện sáng | Cấu hình theme và CSS ép bảng/widget về màu sáng độc lập browser theme |
+| Truy vết | ID cảnh báo theo thời điểm dữ liệu; bundle lưu đúng thứ tự đặc trưng |
+| Khả năng chạy cục bộ | Chạy dashboard với CSV Demo và model bundle trên máy cục bộ |
 
 ## 3.2. Đặc tả ba Use Case chính
 
 ### 3.2.1. UC01 — Phân tích lịch sử
 
-**Tác nhân:** người vận hành. **Tiền điều kiện:** có Demo và model bundle. **Luồng chính:** người dùng chọn chế độ lịch sử, chọn khoảng ngày; hệ thống trích xuất đặc trưng cho phần dữ liệu, dùng scaler/model đã học để tính điểm, tổng hợp KPI và vẽ hai chuỗi công suất/điện áp; bảng bên dưới chỉ liệt kê điểm có \(d(x)<0\). Người dùng chọn một dòng để xem dữ liệu đo, severity, dạng gợi ý và dấu hiệu. **Ngoại lệ:** nếu khoảng ngày rỗng hoặc không đủ đặc trưng, giao diện hiển thị thông báo thay vì kết luận bình thường. **Hậu điều kiện:** thao tác xem lịch sử không ghi cảnh báo mới vào SQLite.
+**Tác nhân:** người vận hành. **Tiền điều kiện:** có Demo và model bundle. **Luồng chính:** người dùng chọn chế độ lịch sử, chọn khoảng ngày; hệ thống trích xuất đặc trưng cho phần dữ liệu, dùng scaler/model đã học để tính điểm, tổng hợp KPI và vẽ hai chuỗi công suất/điện áp; bảng bên dưới chỉ liệt kê điểm có \(d(x)<0\). Bảng hiển thị dữ liệu đo, severity, dạng gợi ý và dấu hiệu; chế độ này không có thao tác chọn dòng xem chi tiết. **Ngoại lệ:** nếu khoảng ngày rỗng hoặc không đủ đặc trưng, giao diện hiển thị thông báo thay vì kết luận bình thường. **Hậu điều kiện:** thao tác xem lịch sử không ghi cảnh báo mới vào SQLite.
 
 ### 3.2.2. UC02 — Suy luận mô phỏng tuần tự
 
@@ -363,17 +363,17 @@ Ngoài chức năng, hệ thống cần bảo đảm tái lập, an toàn dữ l
 
 ## 3.3. Kiến trúc mô-đun
 
-Hình 3.1 mô tả năm nhóm thành phần. `01_data_prep.py` chuyển dữ liệu thô thành Train và Demo. `features.py` là nguồn duy nhất của công thức đặc trưng và hậu xử lý. `02_train.py` khớp scaler/model rồi đóng gói thành bundle. `04_dashboard.py` đọc Demo và bundle để phục vụ hai chế độ, đồng thời giao tiếp với SQLite. Các test gọi trực tiếp từng mô-đun và dùng kho tạm để không ảnh hưởng lịch sử vận hành.
+Hình 3.1 mô tả các thành phần và dữ liệu trao đổi. `01_data_prep.py` chuyển dữ liệu thô thành Train và Demo. `features.py` là nguồn duy nhất của công thức đặc trưng và hậu xử lý. `02_train.py` khớp scaler/model rồi đóng gói thành bundle. `04_dashboard.py` đọc Demo và bundle để phục vụ hai chế độ, đồng thời giao tiếp với SQLite.
 
 ![Kiến trúc mô-đun](../reports/figures/Hinh_3.1_KienTruc_HeThong.svg)
 
-*Hình 3.1 — Kiến trúc mô-đun, artefact và hướng trao đổi dữ liệu. Nguồn: thiết kế của đề tài.*
+*Hình 3.1 — Kiến trúc mô-đun, artefact và hướng trao đổi dữ liệu. Nguồn: đối chiếu mã nguồn hiện tại của project.*
 
 Việc đặt đặc trưng trong một mô-đun chung tránh chênh lệch công thức giữa huấn luyện và dashboard. Bundle lưu đồng thời `model`, `scaler`, `features`, `medians`, `iqrs`; nhờ đó suy luận dùng đúng thứ tự cột và phần giải thích dùng đúng thống kê nền. CSV giữ dữ liệu đo/nhãn kiểm định, trong khi SQLite chỉ giữ cảnh báo vận hành. Hai loại lưu trữ này có vòng đời khác nhau và không cập nhật lẫn nhau.
 
 ## 3.4. Thiết kế đặc trưng và dữ liệu thời gian
 
-Từ các cột gốc `Global_active_power`, `Global_reactive_power`, `Voltage` và timestamp, hệ thống tạo chín đặc trưng theo Bảng 3.3. Không phải chín cột này được “bơm” vào dữ liệu; chúng được tính mỗi lần huấn luyện, đánh giá hoặc suy luận rồi đưa vào scaler dưới đúng thứ tự đã lưu.
+Từ các cột gốc `Global_active_power`, `Global_reactive_power`, `Voltage` và timestamp, hệ thống tạo chín đặc trưng theo Bảng 3.3. Các đặc trưng được tính mỗi lần huấn luyện, đánh giá hoặc suy luận rồi đưa vào scaler dưới đúng thứ tự đã lưu.
 
 *Bảng 3.3 — Cấu trúc chín đặc trưng*
 
@@ -387,7 +387,7 @@ Từ các cột gốc `Global_active_power`, `Global_reactive_power`, `Voltage` 
 | 6 | `power_zscore_6h` | Z-score trong cửa sổ tối đa 6 mẫu |
 | 7 | `voltage_diff_1h` | Điện áp hiện tại trừ mẫu trước, V |
 | 8 | `voltage_zscore_6h` | Z-score trong cửa sổ tối đa 6 mẫu |
-| 9 | `power_factor` | \(P/\sqrt{P^2+Q^2}\), giới hạn [0,1] |
+| 9 | `power_factor` | \(P/(\sqrt{P^2+Q^2}+\varepsilon)\), giới hạn [0,1] |
 
 Chu kỳ giờ được mã hóa để 23 giờ và 0 giờ gần nhau trong không gian đặc trưng:
 
@@ -410,7 +410,7 @@ z^{(6)}_t=\frac{x_t-\bar{x}_{t,6}}{s_{t,6}+\varepsilon}. \tag{3.3}
 
 `pandas.Series.std()` dùng độ lệch chuẩn mẫu; giá trị chưa xác định ở hàng đầu được thay bằng 0 trước khi cộng ε. Tuy nhiên, `power_dev_24h` vẫn thiếu ở 24 hàng đầu. `dropna()` vì thế loại đúng 24 hàng khỏi mỗi chuỗi: 27.334 thành 27.310 và 6.834 thành 6.810. Suy luận tuần tự cần 24 hàng lịch sử và mẫu thứ 25 để tạo vector đầu tiên. Warm-up này không phải dữ liệu bình thường và không được model chấm điểm.
 
-Tên hậu tố `_1h`, `_6h`, `_24h` phản ánh kỳ vọng chuỗi liên tục theo giờ, nhưng code thực tế dùng một, sáu và 24 **hàng**. Train thiếu tổng cộng 182 giờ tại năm khoảng trống; Demo thiếu 239 giờ tại ba khoảng trống. Trong số mẫu hợp lệ, có 120 hàng Train và 72 hàng Demo mà hàng cách 24 vị trí không cách đúng 24 giờ theo timestamp. Do đó, báo cáo gọi đây là độ trễ 24 mẫu. Đây cũng là hạn chế cần xử lý ở phiên bản tiếp theo bằng cách tái lập lưới giờ hoặc dùng phép nối theo timestamp.
+Tên hậu tố `_1h`, `_6h`, `_24h` phản ánh kỳ vọng chuỗi liên tục theo giờ, nhưng code thực tế dùng một, sáu và 24 **hàng**. Train thiếu tổng cộng 182 giờ tại năm khoảng trống; Demo thiếu 239 giờ tại ba khoảng trống. Trong số mẫu hợp lệ, có 120 hàng Train và 72 hàng Demo mà hàng cách 24 vị trí không cách đúng 24 giờ theo timestamp. Do đó, báo cáo gọi đây là độ trễ 24 mẫu.
 
 Hình 3.2 dùng Pearson trên 27.310 mẫu Train để kiểm tra quan hệ tuyến tính. `power_diff_1h` tương quan 0,618 với `power_zscore_6h`; `voltage_diff_1h` tương quan 0,666 với `voltage_zscore_6h`; hai biến động tức thời công suất và điện áp tương quan -0,543. Các hệ số cho thấy có thông tin liên quan nhưng không đồng nghĩa quan hệ nhân quả. Isolation Forest vẫn nhận đủ chín chiều.
 
@@ -424,9 +424,9 @@ Hình 3.3 đặt hai chế độ cạnh nhau. Phân tích lịch sử tính đ�
 
 ![Luồng suy luận](../reports/figures/Hinh_3.3_Luong_SuyLuan.svg)
 
-*Hình 3.3 — Luồng suy luận theo lô và theo tuần tự, gồm nhánh warm-up và nhánh tạo cảnh báo. Nguồn: thiết kế của đề tài.*
+*Hình 3.3 — Luồng suy luận theo lô và theo tuần tự, gồm nhánh warm-up và nhánh tạo cảnh báo. Nguồn: đối chiếu mã nguồn hiện tại của project.*
 
-Quy tắc `classify_type()` được áp dụng theo thứ tự. Nếu `voltage_diff_1h <= -15`, dạng gợi ý là `voltage_drop`. Nếu không, khi `is_night=1` và `power_zscore_6h > 0,8` hoặc `power_dev_24h > 0,8`, kết quả là `night_spike`. Các cảnh báo còn lại được gợi ý là `power_surge`. Quy tắc ưu tiên giúp một điểm thỏa nhiều điều kiện vẫn nhận một nhãn duy nhất; nó không chứng minh nguyên nhân vật lý.
+Quy tắc `classify_type()` được áp dụng theo thứ tự. Nếu `voltage_diff_1h <= -15`, dạng gợi ý là `voltage_drop`. Nếu không, khi `is_night=1` và (`power_zscore_6h > 0,8` hoặc `power_dev_24h > 0,8`), kết quả là `night_spike`. Các cảnh báo còn lại được gợi ý là `power_surge`. Quy tắc ưu tiên giúp một điểm thỏa nhiều điều kiện vẫn nhận một nhãn duy nhất; nó không chứng minh nguyên nhân vật lý.
 
 Phần giải thích tính cho mỗi đặc trưng:
 
@@ -464,11 +464,11 @@ SQLite được chọn vì dashboard cục bộ cần lưu trạng thái qua rer
 
 ## 3.7. Thiết kế giao diện
 
-Hình 3.5 là wireframe thống nhất của hai chế độ. Chế độ lịch sử đặt bộ lọc ngày và KPI trước biểu đồ, sau đó là bảng cảnh báo để hỗ trợ đi từ tổng quan đến chi tiết. Chế độ mô phỏng đặt điều khiển Play/Pause/Step/Reset và tốc độ trước vùng giám sát; hàng đợi xử lý nằm sau KPI để người vận hành tập trung vào cảnh báo mở. Cả hai dùng nền sáng cố định trong cấu hình Streamlit và CSS để tránh bảng đổi sang dark theme theo browser.
+Hình 3.5 là wireframe thống nhất của hai chế độ. Chế độ lịch sử đặt bộ lọc ngày và KPI trước biểu đồ, sau đó là bảng cảnh báo để hỗ trợ đi từ tổng quan đến chi tiết. Chế độ mô phỏng đặt điều khiển Play/Pause/Step/Reset và tốc độ trước vùng giám sát; hàng đợi xử lý nằm sau hai biểu đồ công suất và điện áp để người vận hành tập trung vào cảnh báo mở. Cả hai dùng nền sáng cố định trong cấu hình Streamlit và CSS để tránh bảng đổi sang dark theme theo browser.
 
 ![Wireframe dashboard](../reports/figures/Hinh_3.5_Wireframe.svg)
 
-*Hình 3.5 — Wireframe hai chế độ: phân tích lịch sử và giám sát mô phỏng. Nguồn: thiết kế của đề tài.*
+*Hình 3.5 — Wireframe hai chế độ: phân tích lịch sử và giám sát mô phỏng. Nguồn: đối chiếu mã nguồn hiện tại của project.*
 
 Giao diện phân biệt ba trạng thái dữ liệu: `warming_up`, bình thường đã đánh giá và bất thường đã đánh giá. Các ô chưa đủ lịch sử hiển thị thông báo “đang tích lũy đủ 24 mẫu lịch sử”, không đưa vào mẫu số tỷ lệ bình thường. Bảng cảnh báo ưu tiên trạng thái mới, sau đó severity giảm dần và thời điểm dữ liệu. Thiết kế này phục vụ tác vụ xử lý trực tiếp thay vì chỉ trình bày metric mô hình.
 

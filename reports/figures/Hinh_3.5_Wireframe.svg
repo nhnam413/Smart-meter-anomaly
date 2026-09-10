@@ -1,69 +1,67 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="680" viewBox="0 0 1080 680" role="img">
-<title>Phác thảo bố cục hai chế độ đang hiện thực</title>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1010" viewBox="0 0 1080 1010" role="img">
+<title>Bố cục chức năng của hai chế độ dashboard</title>
 <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker></defs>
-<rect width="1080" height="680" fill="white"/>
+<rect width="1080" height="1010" fill="white"/>
 <g font-family="DejaVu Sans, Arial, sans-serif" font-size="17" fill="#0f172a">
 <text x="540" y="34" text-anchor="middle" font-size="25" fill="#0f172a" font-weight="bold">
-<tspan x="540" dy="0">Phác thảo bố cục hai chế độ đang hiện thực</tspan>
+<tspan x="540" dy="0">Bố cục chức năng của hai chế độ dashboard</tspan>
 </text>
-<rect x="35" y="70" width="480" height="565" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
-<text x="275.0" y="357.94" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="normal">
-<tspan x="275.0" dy="0"></tspan>
-</text>
-<text x="275" y="108" text-anchor="middle" font-size="21" fill="#0f172a" font-weight="bold">
+<text x="275" y="88" text-anchor="middle" font-size="21" fill="#0f172a" font-weight="bold">
 <tspan x="275" dy="0">PHÂN TÍCH LỊCH SỬ</tspan>
 </text>
-<rect x="55" y="130" width="440" height="50" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
-<text x="275.0" y="159.8" text-anchor="middle" font-size="15" fill="#0f172a" font-weight="normal">
-<tspan x="275.0" dy="0">Chọn khoảng ngày</tspan>
+<rect x="35" y="125" width="480" height="95" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="275.0" y="177.62" text-anchor="middle" font-size="16" fill="#0f172a" font-weight="normal">
+<tspan x="275.0" dy="0">Bộ lọc ngày / Xem toàn bộ</tspan>
 </text>
-<rect x="55" y="200" width="440" height="55" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
-<text x="275.0" y="232.62" text-anchor="middle" font-size="16" fill="#0f172a" font-weight="normal">
-<tspan x="275.0" dy="0">KPI theo phạm vi đã chọn</tspan>
+<rect x="35" y="255" width="480" height="95" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="275.0" y="307.62" text-anchor="middle" font-size="16" fill="#0f172a" font-weight="normal">
+<tspan x="275.0" dy="0">4 KPI theo dữ liệu đã đánh giá</tspan>
 </text>
-<rect x="55" y="280" width="440" height="105" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
-<text x="275.0" y="338.26" text-anchor="middle" font-size="18" fill="#0f172a" font-weight="normal">
-<tspan x="275.0" dy="0">Biểu đồ công suất và điện áp</tspan>
+<rect x="35" y="385" width="480" height="95" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="275.0" y="437.62" text-anchor="middle" font-size="16" fill="#0f172a" font-weight="normal">
+<tspan x="275.0" dy="0">Công suất  |  Phân bố dạng bất thường</tspan>
 </text>
-<rect x="55" y="410" width="440" height="75" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
-<text x="275.0" y="452.94" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="normal">
-<tspan x="275.0" dy="0">Phân bố theo dạng và khung giờ</tspan>
+<rect x="35" y="515" width="480" height="95" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="275.0" y="567.62" text-anchor="middle" font-size="16" fill="#0f172a" font-weight="normal">
+<tspan x="275.0" dy="0">Điện áp  |  Phân bố theo giờ</tspan>
 </text>
-<rect x="55" y="510" width="440" height="95" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
-<text x="275.0" y="550.615" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="normal">
-<tspan x="275.0" dy="0">Danh sách điểm bất thường</tspan>
-<tspan x="275.0" dy="24.65">trong khoảng lịch sử</tspan>
+<rect x="35" y="645" width="480" height="95" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="275.0" y="686.02" text-anchor="middle" font-size="16" fill="#0f172a" font-weight="normal">
+<tspan x="275.0" dy="0">Bảng các điểm bất thường</tspan>
+<tspan x="275.0" dy="23.2">Số đo, điểm cảnh báo, loại, dấu hiệu</tspan>
 </text>
-<rect x="565" y="70" width="480" height="565" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
-<text x="805.0" y="357.94" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="normal">
-<tspan x="805.0" dy="0"></tspan>
-</text>
-<text x="805" y="108" text-anchor="middle" font-size="21" fill="#0f172a" font-weight="bold">
+<text x="805" y="88" text-anchor="middle" font-size="21" fill="#0f172a" font-weight="bold">
 <tspan x="805" dy="0">GIÁM SÁT MÔ PHỎNG</tspan>
 </text>
-<rect x="585" y="130" width="440" height="50" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
-<text x="805.0" y="159.8" text-anchor="middle" font-size="15" fill="#0f172a" font-weight="normal">
+<rect x="565" y="125" width="480" height="95" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="805.0" y="166.02" text-anchor="middle" font-size="16" fill="#0f172a" font-weight="normal">
 <tspan x="805.0" dy="0">Play / Pause / Bước tiếp / Khởi động lại</tspan>
+<tspan x="805.0" dy="23.2">Tốc độ và tiến độ phát luồng</tspan>
 </text>
-<rect x="585" y="200" width="440" height="55" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
-<text x="805.0" y="232.62" text-anchor="middle" font-size="16" fill="#0f172a" font-weight="normal">
-<tspan x="805.0" dy="0">KPI phiên và cảnh báo cần xử lý</tspan>
+<rect x="565" y="255" width="480" height="95" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="805.0" y="307.62" text-anchor="middle" font-size="16" fill="#0f172a" font-weight="normal">
+<tspan x="805.0" dy="0">4 KPI của phiên mô phỏng</tspan>
 </text>
-<rect x="585" y="280" width="440" height="105" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
-<text x="805.0" y="338.26" text-anchor="middle" font-size="18" fill="#0f172a" font-weight="normal">
-<tspan x="805.0" dy="0">Biểu đồ công suất và điện áp</tspan>
+<rect x="565" y="385" width="480" height="95" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="805.0" y="437.62" text-anchor="middle" font-size="16" fill="#0f172a" font-weight="normal">
+<tspan x="805.0" dy="0">Thông báo warm-up / cảnh báo mới nhất</tspan>
 </text>
-<rect x="585" y="410" width="440" height="75" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
-<text x="805.0" y="440.615" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="normal">
-<tspan x="805.0" dy="0">Lọc trạng thái / dạng gợi ý</tspan>
-<tspan x="805.0" dy="24.65">Hàng đợi cảnh báo + tải CSV</tspan>
+<rect x="565" y="515" width="480" height="95" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="805.0" y="556.02" text-anchor="middle" font-size="16" fill="#0f172a" font-weight="normal">
+<tspan x="805.0" dy="0">Biểu đồ công suất  |  Biểu đồ điện áp</tspan>
+<tspan x="805.0" dy="23.2">Tối đa 100 mẫu gần nhất</tspan>
 </text>
-<rect x="585" y="510" width="440" height="95" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
-<text x="805.0" y="550.615" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="normal">
+<rect x="565" y="645" width="480" height="95" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="805.0" y="686.02" text-anchor="middle" font-size="16" fill="#0f172a" font-weight="normal">
+<tspan x="805.0" dy="0">Hàng đợi: lọc trạng thái và dạng gợi ý</tspan>
+<tspan x="805.0" dy="23.2">Bảng cảnh báo / Tải CSV</tspan>
+</text>
+<rect x="565" y="775" width="480" height="95" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+<text x="805.0" y="816.02" text-anchor="middle" font-size="16" fill="#0f172a" font-weight="normal">
 <tspan x="805.0" dy="0">Chọn ID → chi tiết → ghi chú</tspan>
-<tspan x="805.0" dy="24.65">Tiếp nhận / Đóng cảnh báo</tspan>
+<tspan x="805.0" dy="23.2">Tiếp nhận / Đóng cảnh báo</tspan>
 </text>
-<text x="540" y="661" text-anchor="middle" font-size="16" fill="#475569" font-weight="normal">
-<tspan x="540" dy="0">Wireframe diễn tả vùng chức năng; ảnh chụp giao diện thật nằm ở Chương 4.</tspan>
+<text x="540" y="970" text-anchor="middle" font-size="16" fill="#0f172a" font-weight="normal">
+<tspan x="540" dy="0">Sơ đồ vùng chức năng theo mã giao diện hiện tại; không biểu diễn số liệu đo.</tspan>
 </text>
 </g></svg>

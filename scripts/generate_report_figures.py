@@ -331,7 +331,7 @@ def figure_3_2(train_features: pd.DataFrame, features: list[str]) -> None:
             value = corr.iloc[i, j]
             ax.text(j, i, format_float_vi(value), ha="center", va="center", fontsize=8, color="white" if abs(value) > .5 else "#0F172A")
     fig.colorbar(image, ax=ax, shrink=.88, label="Hệ số tương quan Pearson")
-    ax.set_title("Ma trận tương quan của 9 đặc trưng trên tập huấn luyện")
+    ax.set_title(f"Tương quan Pearson của 9 đặc trưng\n{format_int_vi(len(train_features))} mẫu Train hợp lệ")
     save(fig, "Hinh_3.2_MaTran_TuongQuan_9_DacTrung.png")
 
 
@@ -468,6 +468,14 @@ def figure_5_3(types: pd.Series, predicted: np.ndarray) -> None:
 
 def main() -> None:
     setup_style()
+    if sys.argv[1:] == ["--chapter", "3"]:
+        train = pd.read_csv(DATA_DIR / "train_hourly.csv", index_col="datetime", parse_dates=True)
+        train_features = extract_features(train)
+        figure_3_2(train_features, ENGINEERED_FEATURE_NAMES)
+        generate_diagrams(FIGURES_DIR)
+        print(f"Chapter 3: {len(train):,} input rows, {len(train_features):,} valid rows")
+        print(train_features.corr().round(6).to_string())
+        return
     train, demo, bundle, demo_features, decision, predicted, labels, types = load_inputs()
     train_features = extract_features(train)
     validate_inputs(train, demo, bundle, train_features, demo_features, decision, predicted, labels, types)

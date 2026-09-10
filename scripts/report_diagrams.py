@@ -35,72 +35,91 @@ class Diagram:
         path.write_text("\n".join(self.parts+['</g></svg>'])+"\n", encoding="utf-8")
 
 
+
 def generate_diagrams(folder: Path):
     folder.mkdir(parents=True, exist_ok=True)
-    d = Diagram("Kiến trúc mô-đun và các tệp trao đổi", 700)
-    d.box(40, 75, 230, 65, "UCI: số đo theo phút")
-    d.box(365, 75, 350, 65, "01_data_prep.py\nLàm sạch → tổng hợp → chia thời gian")
-    d.arrow("270,108 365,108")
-    d.box(100, 195, 340, 70, "train_hourly.csv\nĐầu vào huấn luyện")
-    d.box(640, 195, 340, 70, "Demo sau tiêm tổng hợp\ndemo_stream.csv", "#d97706", "#fff7ed")
-    d.arrow("470,140 470,166 270,166 270,195")
-    d.arrow("610,140 610,166 810,166 810,195")
-    d.box(100, 315, 340, 80, "02_train.py + features.py\nFit scaler → fit Isolation Forest")
-    d.arrow("270,265 270,315")
-    d.box(100, 445, 340, 80, "model_bundle.pkl\nmodel, scaler, features, medians, iqrs", size=16)
-    d.arrow("270,395 270,445")
-    d.box(640, 335, 340, 100, "04_dashboard.py + features.py\nLịch sử / mô phỏng tuần tự\nTransform → suy luận → hậu xử lý", "#059669", "#ecfdf5", 16)
-    d.arrow("810,265 810,335", "đọc CSV", (870,305))
-    d.arrow("440,485 555,485 555,385 640,385", "nạp bundle", (525,465))
-    d.box(640, 505, 340, 70, "SQLite: alerts\nLưu và cập nhật trạng thái", "#7c3aed", "#f5f3ff")
-    d.arrow("810,435 810,505", "cảnh báo mô phỏng", (902,475))
-    d.box(640, 615, 340, 55, "Người vận hành / CSV đã lọc", "#475569", "#f8fafc")
-    d.arrow("810,575 810,615")
-    d.text(270, 595, "03_producer.py xuất JSONL tùy chọn.\nDashboard hiện chưa đọc JSONL.", 16, color="#475569")
+    d = Diagram("Kiến trúc và luồng dữ liệu của hệ thống", 760)
+    d.box(350,65,380,65,"Dữ liệu UCI theo phút\n01_data_prep.py: làm sạch, gom giờ",size=16)
+    d.box(45,180,410,65,"train_hourly.csv\n80% đầu theo thời gian")
+    d.box(625,180,410,65,"demo_stream.csv\n20% cuối + bất thường tổng hợp")
+    d.arrow("440,130 440,155 250,155 250,180")
+    d.arrow("640,130 640,155 830,155 830,180")
+    d.box(45,295,410,85,"features.py → 9 đặc trưng\n02_train.py: fit RobustScaler\nvà Isolation Forest trên Train",size=16)
+    d.arrow("250,245 250,295")
+    d.box(45,425,410,75,"model_bundle.pkl\nmodel, scaler, features, medians, iqrs",size=16)
+    d.arrow("250,380 250,425")
+    d.box(625,300,410,110,"04_dashboard.py + features.py\nLịch sử / mô phỏng tuần tự\nTrích đặc trưng → transform → suy luận",size=16)
+    d.arrow("830,245 830,300")
+    d.arrow("455,462 540,462 540,355 625,355")
+    d.box(625,475,410,75,"SQLite: alerts\nLưu cảnh báo từ mô phỏng; đọc hàng đợi",size=16)
+    d.arrow("830,410 830,475")
+    d.box(625,610,410,85,"Người vận hành qua dashboard\nTiếp nhận / đóng / ghi chú\nXuất hàng đợi đã lọc ra CSV",size=16)
+    d.arrow("830,550 830,610")
+    d.box(45,600,410,95,"Tiện ích độc lập: 03_producer.py\ndemo_stream.csv → stream_buffer.jsonl\nDashboard không đọc JSONL",size=16)
     d.save(folder / "Hinh_3.1_KienTruc_HeThong.svg")
 
-    d = Diagram("Luồng suy luận tuần tự của một mẫu", 690)
-    d.box(330, 70, 420, 55, "Nhận dòng Demo theo con trỏ")
-    d.box(330, 165, 420, 60, "Thêm vào bộ đệm FIFO, tối đa 50 mẫu")
-    d.arrow("540,125 540,165")
-    d.box(330, 265, 420, 60, "Đủ 25 mẫu và trích được đặc trưng?", "#7c3aed", "#f5f3ff")
-    d.arrow("540,225 540,265")
-    d.box(25, 365, 245, 75, "warming_up\nis_anomaly = None", "#64748b", "#f8fafc")
-    d.arrow("330,295 147,295 147,365", "Chưa", (245,284))
-    d.box(330, 365, 420, 75, "Scaler.transform → decision_function\nDùng bundle đã học từ Train")
-    d.arrow("540,325 540,365", "Có", (571,350))
-    d.box(330, 485, 420, 55, "Điểm quyết định < 0?", "#7c3aed", "#f5f3ff")
-    d.arrow("540,440 540,485")
-    d.box(790, 480, 265, 70, "Dự báo bình thường\nKhông tạo cảnh báo", "#059669", "#ecfdf5")
-    d.arrow("750,512 790,512", "Không", (902,463))
-    d.box(330, 590, 420, 75, "Tính severity, gợi ý loại và dấu hiệu\nUpsert cảnh báo theo alert_id", "#dc2626", "#fef2f2")
-    d.arrow("540,540 540,590", "Có", (570,575))
-    d.text(145, 515, "Cập nhật hiển thị;\nchờ dòng tiếp theo.", 16, color="#475569")
+    d = Diagram("Luồng suy luận lịch sử và mô phỏng tuần tự", 1030)
+    for x,title in [(35,"PHÂN TÍCH LỊCH SỬ"),(565,"MÔ PHỎNG TUẦN TỰ")]:
+        d.text(x+240,78,title,21,True)
+    left=[
+        "Lọc khoảng ngày từ Demo",
+        "extract_features trên phần đã chọn\nKhông có vector hợp lệ: thông báo, dừng",
+        "Scaler.transform → decision_function\nDùng bundle đã học trên Train",
+        "Căn kết quả với index đặc trưng\nd(x) < 0: bất thường; còn lại: bình thường",
+        "Tính severity; gợi ý loại và dấu hiệu\ncho các điểm bất thường",
+        "Hiển thị KPI, biểu đồ và bảng\nKhông ghi cảnh báo vào SQLite"]
+    right=[
+        "Đọc hàng Demo theo con trỏ\nThêm vào buffer, giữ tối đa 50 mẫu",
+        "extract_latest: cần ít nhất 25 mẫu\nChưa đủ: warming_up, chưa chấm điểm",
+        "Có vector: transform → decision_function\nDùng bundle đã học trên Train",
+        "d(x) < 0: bất thường\nNgược lại: bình thường, không tạo cảnh báo",
+        "Tính severity; gợi ý loại và dấu hiệu\ncho điểm bất thường",
+        "Lưu cảnh báo theo ID thời điểm\nUpsert vào SQLite"]
+    for x,labels in [(35,left),(565,right)]:
+        for i,label in enumerate(labels):
+            y=110+i*140
+            d.box(x,y,480,95,label,size=16)
+            if i<5: d.arrow(f"{x+240},{y+95} {x+240},{y+140}")
+    d.box(565,940,480,65,"Cập nhật hiển thị / chuyển mẫu tiếp",size=16)
+    d.arrow("805,905 805,940")
+    d.arrow("1045,297 1065,297 1065,972 1045,972")
+    d.text(963,370,"Chưa đủ: bỏ qua",14)
+    d.arrow("1045,577 1065,577")
+    d.text(966,650,"Bình thường: bỏ qua",14)
+    d.text(430,370,"Có vector",14)
+    d.text(935,370,"",14)
+    d.text(715,370,"Có vector",14)
+    d.text(695,650,"Bất thường",14)
     d.save(folder / "Hinh_3.3_Luong_SuyLuan.svg")
 
-    d = Diagram("Vòng đời xử lý cảnh báo trong giao diện", 420)
-    d.box(40, 155, 230, 75, "Mới\nnew")
-    d.box(415, 155, 250, 75, "Đã tiếp nhận\nacknowledged", "#d97706", "#fff7ed")
-    d.box(810, 155, 230, 75, "Đã đóng\nclosed", "#059669", "#ecfdf5")
-    d.arrow("270,192 415,192", "Tiếp nhận + ghi chú", (340,139))
-    d.arrow("665,192 810,192", "Đóng + ghi chú", (737,139))
-    d.arrow("155,230 155,295 925,295 925,230", "Đóng trực tiếp", (540,285))
-    d.text(540, 85, "Mô hình phát hiện → tạo mã theo thời điểm dữ liệu → lưu SQLite", 18)
-    d.text(540, 357, "Lưu lại cùng ID cập nhật số đo, giữ trạng thái và ghi chú.\nMẫu mới bình thường không tự đóng cảnh báo đang chờ.", 18, color="#475569")
+    d=Diagram("Vòng đời cảnh báo qua thao tác trên dashboard",560)
+    for x,w,label in [(35,240,"Mới\nnew"),(405,270,"Đã tiếp nhận\nacknowledged"),(805,240,"Đã đóng\nclosed")]:
+        d.box(x,170,w,85,label)
+    d.arrow("275,212 405,212","Tiếp nhận",(340,150))
+    d.arrow("675,212 805,212","Đóng",(740,150))
+    d.arrow("155,255 155,355 925,355 925,255","Đóng trực tiếp",(540,340))
+    d.text(540,90,"Cảnh báo mô phỏng mới → lưu SQLite với trạng thái new",18)
+    d.text(540,420,"Tiếp nhận: cập nhật acknowledged_at. Đóng: cập nhật closed_at.\nCả hai lưu ghi chú và updated_at; giao diện không có thao tác mở lại.",17)
+    d.text(540,505,"Upsert cùng alert_id giữ trạng thái, ghi chú và thời điểm xử lý đã lưu.",17)
     d.save(folder / "Hinh_3.4_VongDoi_CanhBao.svg")
 
-    d = Diagram("Phác thảo bố cục hai chế độ đang hiện thực", 680)
-    for x, title, mode in [(35,"PHÂN TÍCH LỊCH SỬ","history"),(565,"GIÁM SÁT MÔ PHỎNG","stream")]:
-        d.box(x,70,480,565,"", "#cbd5e1", "#f8fafc")
-        d.text(x+240,108,title,21,True)
-        d.box(x+20,130,440,50,"Chọn khoảng ngày" if mode=="history" else "Play / Pause / Bước tiếp / Khởi động lại",size=15)
-        d.box(x+20,200,440,55,"KPI theo phạm vi đã chọn" if mode=="history" else "KPI phiên và cảnh báo cần xử lý",size=16)
-        d.box(x+20,280,440,105,"Biểu đồ công suất và điện áp",size=18)
-        if mode=="history":
-            d.box(x+20,410,440,75,"Phân bố theo dạng và khung giờ",size=17)
-            d.box(x+20,510,440,95,"Danh sách điểm bất thường\ntrong khoảng lịch sử",size=17)
-        else:
-            d.box(x+20,410,440,75,"Lọc trạng thái / dạng gợi ý\nHàng đợi cảnh báo + tải CSV",size=17)
-            d.box(x+20,510,440,95,"Chọn ID → chi tiết → ghi chú\nTiếp nhận / Đóng cảnh báo",size=17)
-    d.text(540,661,"Wireframe diễn tả vùng chức năng; ảnh chụp giao diện thật nằm ở Chương 4.",16,color="#475569")
+    d=Diagram("Bố cục chức năng của hai chế độ dashboard",1010)
+    left=[
+        "Bộ lọc ngày / Xem toàn bộ",
+        "4 KPI theo dữ liệu đã đánh giá",
+        "Công suất  |  Phân bố dạng bất thường",
+        "Điện áp  |  Phân bố theo giờ",
+        "Bảng các điểm bất thường\nSố đo, điểm cảnh báo, loại, dấu hiệu"]
+    right=[
+        "Play / Pause / Bước tiếp / Khởi động lại\nTốc độ và tiến độ phát luồng",
+        "4 KPI của phiên mô phỏng",
+        "Thông báo warm-up / cảnh báo mới nhất",
+        "Biểu đồ công suất  |  Biểu đồ điện áp\nTối đa 100 mẫu gần nhất",
+        "Hàng đợi: lọc trạng thái và dạng gợi ý\nBảng cảnh báo / Tải CSV",
+        "Chọn ID → chi tiết → ghi chú\nTiếp nhận / Đóng cảnh báo"]
+    for x,title,labels in [(35,"PHÂN TÍCH LỊCH SỬ",left),(565,"GIÁM SÁT MÔ PHỎNG",right)]:
+        d.text(x+240,88,title,21,True)
+        for i,label in enumerate(labels):
+            d.box(x,125+i*130,480,95,label,size=16)
+    d.text(540,970,"Sơ đồ vùng chức năng theo mã giao diện hiện tại; không biểu diễn số liệu đo.",16)
     d.save(folder / "Hinh_3.5_Wireframe.svg")
