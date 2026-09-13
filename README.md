@@ -116,11 +116,6 @@ smart-meter-anomaly/
 │   ├── train_hourly.csv                       # 27,334 dòng dữ liệu sạch huấn luyện (80%)
 │   ├── demo_stream.csv                        # 6,834 dòng kiểm định có tiêm lỗi phục vụ demo (20%)
 │   └── stream_buffer.jsonl                    # Đầu ra JSON Lines của producer độc lập
-├── docs/
-│   ├── BAO_CAO_DO_AN.md                       # Báo cáo tổng hợp toàn văn đồ án
-│   ├── BAO_CAO_FINAL.md                       # Bản báo cáo Markdown rút gọn
-│   ├── Bao_Cao_Do_An_Nganh_Hoan_Chinh_Synced.docx # Báo cáo Word đã đồng bộ
-│   └── Mau-bao-cao_Do An Nganh.docx            # Mẫu báo cáo Word
 ├── models/
 │   ├── feature_names.pkl                      # Danh sách 9 đặc trưng chuẩn hóa
 │   ├── isolation_forest_model.pkl             # Trọng số mô hình Isolation Forest
@@ -134,6 +129,7 @@ smart-meter-anomaly/
 │   ├── 03_producer.py                         # Trình phát luồng IoT giả lập độc lập
 │   ├── 04_dashboard.py                        # Ứng dụng Streamlit Dashboard 2 chế độ giám sát
 │   └── style.css                              # CSS tùy biến khóa cứng 100% Light Mode
+├── tests/                                     # Kiểm thử dữ liệu, mô hình và dashboard
 ├── requirements.txt                           # Danh mục thư viện và phiên bản tối thiểu
 └── README.md                                  # Tài liệu hướng dẫn dự án
 ```
@@ -175,7 +171,7 @@ Dashboard mô phỏng việc nhận từng bản ghi từ `data/demo_stream.csv`
 python -m streamlit run src/04_dashboard.py
 ```
 
-Trên dashboard, chọn **"Thời gian thực (Real-Time Monitoring)"**, sau đó dùng **Play**, **Pause**, **Bước tiếp +1** hoặc **Khởi động lại** để điều khiển luồng mô phỏng. Tốc độ phát được chọn trực tiếp trên giao diện.
+Trên dashboard, chọn **"Thời gian thực (Real-Time Monitoring)"**, sau đó dùng **Play**, **Pause**, **Bước tiếp +1** hoặc **Khởi động lại** để điều khiển luồng mô phỏng. Màn hình bắt đầu ở trạng thái rỗng; 24 mẫu đầu dùng làm ngữ cảnh warm-up và mẫu thứ 25 mới được đánh giá. KPI cùng bảng cảnh báo chỉ hiển thị cảnh báo của phiên hiện tại, trong khi SQLite vẫn giữ lịch sử của các phiên trước.
 
 ### Tiện ích tùy chọn: Xuất dữ liệu demo ra JSON Lines
 `03_producer.py` phát các bản ghi trong `demo_stream.csv` vào `data/stream_buffer.jsonl` để quan sát hoặc tích hợp với một consumer khác. Dashboard hiện không đọc tệp này.
@@ -229,16 +225,3 @@ Kết quả thẩm định trên $6,810$ mẫu có đặc trưng hợp lệ, tr�
 | **E_01** | `power_surge`<br>*(Đột biến công suất)* | Công suất $P$ tăng vọt gấp $3-5$ lần so với hôm trước; Badge Đỏ; XAI báo độ lệch cao ở `power_dev_24h`. | **CRITICAL** | 1. Rà soát ngay thiết bị công suất cao (bếp từ, sưởi).<br>2. Kiểm tra nhiệt độ bề mặt aptomat tổng.<br>3. Ngắt phụ tải không ưu tiên để chống nhảy aptomat. |
 | **E_02** | `voltage_drop`<br>*(Sụt điện áp lưới)* | Điện áp $V$ tụt sâu dưới $210\text{V}$; XAI báo `voltage_diff_1h` âm lớn ($\le -15\text{V}$). | **CRITICAL** | 1. Ngắt ngay các thiết bị sử dụng động cơ nhạy cảm (tủ lạnh, máy lạnh inverter).<br>2. Kiểm tra điểm tiếp xúc cọc siết dây hộp công tơ.<br>3. Báo điện lực trạm biến áp hạ thế. |
 | **E_03** | `night_spike`<br>*(Bất thường ban đêm)* | Công suất tăng gấp $2-3.5$ lần lúc $01:00 - 05:00$; cờ `is_night = 1`. | **WARNING** | 1. Kiểm tra rơ-le bình nước nóng xem có bị dính tiếp điểm.<br>2. Đo dòng rò tiếp địa bằng ampe kìm.<br>3. Kiểm tra các nhánh dây âm tường khu vực ẩm ướt. |
-
----
-
-## 9. Hồ sơ Báo cáo Toàn diện (Documentation)
-
-Báo cáo đồ án có bản Markdown toàn diện và các bản bổ sung trong thư mục `docs/`:
-- **[Báo Cáo Toàn Diện Đồ Án Tốt Nghiệp (Toàn Văn 5 Chương & Phụ Lục)](docs/BAO_CAO_DO_AN.md)**
-  - *Chương 1:* Tổng quan hệ thống và 3 bài toán sự cố cốt lõi
-  - *Chương 2:* Cơ sở lý thuyết, phân tích toán học độ phức tạp O(n log n), RobustScaler và Isolation Forest
-  - *Chương 3:* Thiết kế hệ thống, sơ đồ kiến trúc luồng dữ liệu Mermaid, cơ chế Cửa sổ trượt (Sliding Window) và 9 đặc trưng kỹ thuật
-  - *Chương 4:* Hiện thực hóa mã nguồn và 11 kịch bản kiểm thử
-  - *Chương 5:* Kết quả thực nghiệm, ma trận nhầm lẫn (Confusion Matrix), đánh giá hiện tượng trôi dạt khái niệm (Concept Drift) và 3 hướng phát triển tương lai
-  - *Phụ lục & Tài liệu tham khảo:* Hướng dẫn cài đặt, vận hành, bảng tra cứu mã lỗi và 12 trích dẫn nghiên cứu khoa học chuẩn IEEE/ACM

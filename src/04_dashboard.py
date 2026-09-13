@@ -9,6 +9,7 @@ import time
 from contextlib import closing
 from datetime import datetime
 from typing import Optional, Union
+from uuid import uuid4
 
 import joblib
 import numpy as np
@@ -44,6 +45,9 @@ TABLE_COLS = [
 
 ALERT_DB_PATH = os.path.join(os.path.dirname(DEMO_STREAM_PATH), "alert_history.sqlite3")
 STATUS_LABELS = {"new": "Mới", "acknowledged": "Đã tiếp nhận", "closed": "Đã đóng"}
+ALERT_TYPE_VALUES = [key for key in TYPE_LABELS if key not in {"normal", "unknown"}]
+STREAM_STATE_VERSION = 2
+ALERT_WIDGET_KEYS = ("alert_status_filter", "alert_type_filter", "selected_alert_id")
 
 
 def init_alert_store() -> None:
@@ -83,9 +87,24 @@ def save_alert(event: dict) -> None:
         conn.commit()
 
 
-def load_alerts() -> pd.DataFrame:
+def load_alerts(alert_ids: Optional[list[str]] = None) -> pd.DataFrame:
+    """Doc toan bo kho hoac chi cac canh bao thuoc phien hien tai."""
     with closing(sqlite3.connect(ALERT_DB_PATH)) as conn:
-        return pd.read_sql_query("SELECT * FROM alerts ORDER BY data_time DESC", conn)
+        if alert_ids is None:
+            return pd.read_sql_query("SELECT * FROM alerts ORDER BY data_time DESC", conn)
+
+        unique_ids = list(dict.fromkeys(alert_ids))
+        if not unique_ids:
+            return pd.read_sql_query(
+                "SELECT * FROM alerts WHERE 0 ORDER BY data_time DESC", conn
+            )
+
+        placeholders = ",".join("?" for _ in unique_ids)
+        return pd.read_sql_query(
+            f"SELECT * FROM alerts WHERE alert_id IN ({placeholders}) ORDER BY data_time DESC",
+            conn,
+            params=unique_ids,
+        )
 
 
 def update_alert(alert_id: str, status: str, note: str) -> None:
@@ -604,6 +623,38 @@ def render_history_view(bundle, df_demo: pd.DataFrame):
 # 5. CHE DO GIAM SAT THOI GIAN THUC
 # ==============================================================================
 
+def _reset_stream() -> None:
+    """Tao mot phien phat rong ma khong xoa lich su SQLite."""
+    st.session_state.rt_state_version = STREAM_STATE_VERSION
+    st.session_state.rt_run_id = uuid4().hex[:8].upper()
+    st.session_state.rt_is_playing = False
+    st.session_state.rt_cursor = 0
+    st.session_state.rt_buffer = []
+    st.session_state.rt_display = []
+    st.session_state.rt_anomaly_events = []
+    st.session_state.rt_event_keys = set()
+    for key in ALERT_WIDGET_KEYS:
+        st.session_state.pop(key, None)
+
+
+def _init_stream_state() -> None:
+    """Khoi tao state mot lan va thay state cu khi hop dong thay doi."""
+    if st.session_state.get("rt_state_version") != STREAM_STATE_VERSION:
+        _reset_stream()
+        return
+
+    defaults = {
+        "rt_is_playing": False,
+        "rt_cursor": 0,
+        "rt_buffer": [],
+        "rt_display": [],
+        "rt_anomaly_events": [],
+        "rt_event_keys": set(),
+    }
+    for key, value in defaults.items():
+        st.session_state.setdefault(key, value)
+    st.session_state.setdefault("rt_run_id", uuid4().hex[:8].upper())
+
 def _step_stream_engine(df_demo: pd.DataFrame, bundle, n_steps: int = 1):
     """Nap va suy dien cho n_steps ban ghi luong tiep theo."""
     model, scaler, feat_names = bundle["model"], bundle["scaler"], bundle["features"]
@@ -660,7 +711,10 @@ def _step_stream_engine(df_demo: pd.DataFrame, bundle, n_steps: int = 1):
         if is_anom == 1 and ts_key not in st.session_state.rt_event_keys:
             st.session_state.rt_event_keys.add(ts_key)
             event = {
-                "alert_id": f"ALT-{dt.strftime('%Y%m%d%H%M%S')}",
+                "alert_id": (
+                    f"ALT-{st.session_state.rt_run_id}-"
+                    f"{dt.strftime('%Y%m%d%H%M%S')}"
+                ),
                 "data_time": dt.isoformat(),
                 "power": record[TARGET_COL], "voltage": record["Voltage"],
                 "severity": severity, "severity_level": get_severity_level(severity),
@@ -672,23 +726,12 @@ def _step_stream_engine(df_demo: pd.DataFrame, bundle, n_steps: int = 1):
     st.session_state.rt_cursor = cursor
 
 
-def _reset_stream(df_demo: pd.DataFrame, bundle):
-    """Dat lai trang thai phat luong."""
-    st.session_state.rt_is_playing = False
-    st.session_state.rt_cursor = 0
-    st.session_state.rt_buffer = []
-    st.session_state.rt_display = []
-    st.session_state.rt_anomaly_events = []
-    st.session_state.rt_event_keys = set()
-    _step_stream_engine(df_demo, bundle, n_steps=30)
-
-
-def render_alert_queue() -> None:
+def render_alert_queue(alert_ids: list[str]) -> None:
     """Hang doi canh bao co loc, chi tiet va thao tac xu ly."""
-    alerts = load_alerts()
+    alerts = load_alerts(alert_ids)
     st.markdown("#### Cảnh báo cần xử lý")
     if alerts.empty:
-        st.info("Chưa ghi nhận cảnh báo nào.")
+        st.info("Chưa ghi nhận cảnh báo nào trong phiên hiện tại.")
         return
 
     f1, f2 = st.columns(2)
@@ -697,16 +740,19 @@ def render_alert_queue() -> None:
             "Trạng thái", list(STATUS_LABELS), default=["new", "acknowledged"],
             format_func=lambda x: STATUS_LABELS[x], key="alert_status_filter")
     with f2:
-        type_values = sorted(alerts["anomaly_type"].unique().tolist())
         type_filter = st.multiselect(
-            "Dạng gợi ý", type_values, default=type_values,
+            "Dạng gợi ý", ALERT_TYPE_VALUES, default=ALERT_TYPE_VALUES,
             format_func=lambda x: TYPE_LABELS.get(x, x), key="alert_type_filter")
 
     filtered = alerts[
         alerts["status"].isin(status_filter) & alerts["anomaly_type"].isin(type_filter)
     ].copy()
-    filtered["status_order"] = filtered["status"].map({"new": 0, "acknowledged": 1, "closed": 2})
-    filtered = filtered.sort_values(["status_order", "severity", "data_time"], ascending=[True, False, True])
+    filtered["data_time_sort"] = pd.to_datetime(filtered["data_time"], errors="coerce")
+    filtered = filtered.sort_values(
+        ["data_time_sort", "severity"],
+        ascending=[False, False],
+        na_position="last",
+    )
 
     if filtered.empty:
         st.info("Không có cảnh báo phù hợp với bộ lọc.")
@@ -757,19 +803,7 @@ def render_realtime_view(bundle, df_demo: pd.DataFrame):
         st.warning("Chưa tìm thấy tập dữ liệu demo. Hãy chạy python src/01_data_prep.py rồi python src/02_train.py trước!")
         return
 
-    defaults = {
-        "rt_is_playing": False,
-        "rt_cursor": 0,
-        "rt_buffer": [],
-        "rt_display": [],
-        "rt_anomaly_events": [],
-        "rt_event_keys": set(),
-    }
-    for key, val in defaults.items():
-        st.session_state.setdefault(key, val)
-
-    if len(st.session_state.rt_display) == 0 and len(df_demo) >= 30:
-        _step_stream_engine(df_demo, bundle, n_steps=30)
+    _init_stream_state()
 
     # Bang dieu khien
     st.markdown("##### Bảng điều khiển phát luồng trực tiếp")
@@ -794,7 +828,7 @@ def render_realtime_view(bundle, df_demo: pd.DataFrame):
 
     with ctrl_c3:
         if st.button("Khởi động lại", key="btn_reset_stream"):
-            _reset_stream(df_demo, bundle)
+            _reset_stream()
             st.success("Đã reset về điểm khởi đầu!")
             st.rerun()
 
@@ -826,9 +860,10 @@ def render_realtime_view(bundle, df_demo: pd.DataFrame):
     total_anoms = len(st.session_state.rt_anomaly_events)
     session_evaluated = max(0, total_streamed - 24)
     anom_rate = (total_anoms / max(1, session_evaluated) * 100)
-    stored_alerts = load_alerts()
-    open_alerts = int(stored_alerts["status"].isin(["new", "acknowledged"]).sum()) if not stored_alerts.empty else 0
-    latest_power = float(disp_df[TARGET_COL].iloc[-1]) if (not disp_df.empty and TARGET_COL in disp_df.columns) else 0.0
+    session_alert_ids = [event["alert_id"] for event in st.session_state.rt_anomaly_events]
+    session_alerts = load_alerts(session_alert_ids)
+    open_alerts = int(session_alerts["status"].isin(["new", "acknowledged"]).sum()) if not session_alerts.empty else 0
+    latest_power = f"{float(disp_df[TARGET_COL].iloc[-1]):.3f} kW" if (not disp_df.empty and TARGET_COL in disp_df.columns) else "—"
 
     k1, k2, k3, k4 = st.columns(4)
     with k1:
@@ -836,12 +871,14 @@ def render_realtime_view(bundle, df_demo: pd.DataFrame):
     with k2:
         render_kpi("Cảnh Báo Trong Phiên", f"{total_anoms:,}", f"Tỷ lệ: {anom_rate:.1f}% mẫu đã đánh giá", "red")
     with k3:
-        render_kpi("Công Suất Hiện Tại", f"{latest_power:.3f} kW", "Tải tiêu thụ tức thời", "green")
+        render_kpi("Công Suất Hiện Tại", latest_power, "Tải tiêu thụ tức thời", "green")
     with k4:
         render_kpi("Cần Xử Lý", f"{open_alerts:,}", "Cảnh báo mới hoặc đã tiếp nhận", "accent" if open_alerts else "green")
 
     # Thanh thong bao trang thai
-    if not disp_df.empty and disp_df["evaluation_status"].iloc[-1] == "warming_up":
+    if disp_df.empty:
+        st.info("Chưa nhận dữ liệu. Nhấn Play hoặc Bước tiếp +1 để bắt đầu luồng mô phỏng.")
+    elif disp_df["evaluation_status"].iloc[-1] == "warming_up":
         st.info("Đang tích lũy đủ 24 mẫu lịch sử; mẫu mới nhất chưa được mô hình đánh giá.")
     elif not disp_df.empty and "is_anomaly" in disp_df.columns and disp_df["is_anomaly"].iloc[-1] == 1:
         last = disp_df.iloc[-1]
@@ -863,7 +900,7 @@ def render_realtime_view(bundle, df_demo: pd.DataFrame):
     render_chart_grid(disp_df, key_prefix="rt", is_realtime=True)
 
     st.caption(f"Hai biểu đồ trên hiển thị tối đa {MAX_DISPLAY_POINTS} mẫu gần nhất; KPI tính trên toàn phiên mô phỏng.")
-    render_alert_queue()
+    render_alert_queue(session_alert_ids)
 
     if is_playing:
         time.sleep(speed_option)

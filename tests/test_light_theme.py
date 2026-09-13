@@ -52,13 +52,23 @@ ui = runpy.run_path({str(DASHBOARD)!r})
 st.set_page_config(layout='wide')
 ui['load_custom_css']()
 queue = ui['render_alert_queue']
-queue.__globals__['load_alerts'] = lambda: pd.DataFrame([{{
-    'alert_id': 'THEME-TEST', 'data_time': '2010-02-08T23:00:00',
-    'power': 1.514, 'voltage': 216.8, 'severity': 0.65,
+queue.__globals__['load_alerts'] = lambda alert_ids: pd.DataFrame([{{
+    'alert_id': 'THEME-OLD', 'data_time': '2010-02-08T23:00:00',
+    'power': 1.514, 'voltage': 216.8, 'severity': 0.95,
     'severity_level': 'warning', 'anomaly_type': 'voltage_drop',
     'explanation': 'Voltage change', 'status': 'new', 'note': '',
+}}, {{
+    'alert_id': 'THEME-NEW', 'data_time': '2010-02-10T23:00:00',
+    'power': 1.614, 'voltage': 226.8, 'severity': 0.55,
+    'severity_level': 'warning', 'anomaly_type': 'power_surge',
+    'explanation': 'Power change', 'status': 'new', 'note': '',
+}}, {{
+    'alert_id': 'THEME-MIDDLE', 'data_time': '2010-02-09T23:00:00',
+    'power': 1.414, 'voltage': 236.8, 'severity': 0.75,
+    'severity_level': 'critical', 'anomaly_type': 'night_spike',
+    'explanation': 'Night change', 'status': 'new', 'note': '',
 }}])
-queue()
+queue(['THEME-OLD', 'THEME-NEW', 'THEME-MIDDLE'])
 """
         app = AppTest.from_string(script, default_timeout=30).run()
         self.assertEqual(len(app.exception), 0)
@@ -67,6 +77,10 @@ queue()
         self.assertEqual(len(app.selectbox), 1)
         self.assertEqual(len(app.text_area), 1)
         self.assertEqual(len(app.get("download_button")), 1)
+        self.assertEqual(
+            app.dataframe[0].value["Mã cảnh báo"].tolist(),
+            ["THEME-NEW", "THEME-MIDDLE", "THEME-OLD"],
+        )
         self.assertIn("color-scheme: only light", app.markdown[0].value)
 
 

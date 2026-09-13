@@ -61,6 +61,17 @@ class UciAlertStoreTests(unittest.TestCase):
             self.assertEqual(closed["note"], "Đã xác minh")
             self.assertTrue(closed["closed_at"])
 
+            next_event = {
+                **event,
+                "alert_id": f"TEST-NEXT-{timestamp:%Y%m%d%H%M%S}",
+                "data_time": (timestamp + pd.Timedelta(hours=1)).isoformat(),
+            }
+            DASHBOARD.save_alert(next_event)
+
+            current_alerts = DASHBOARD.load_alerts([next_event["alert_id"]])
+            self.assertEqual(current_alerts["alert_id"].tolist(), [next_event["alert_id"]])
+            self.assertTrue(DASHBOARD.load_alerts([]).empty)
+
 
 if __name__ == "__main__":
     unittest.main()
