@@ -1,18 +1,16 @@
-# ============================================================
-# Smart Meter Anomaly Detection - Dependencies
+# Phụ thuộc của dự án
 # Cài đặt: pip install -r requirements.txt
-# ============================================================
 
-# --- Xử lý dữ liệu ---
+# Xử lý dữ liệu
 pandas>=2.0.0
 numpy>=1.24.0
 
-# --- Machine Learning ---
+# Học máy
 scikit-learn>=1.3.0
 joblib>=1.3.0
 matplotlib>=3.7.0
 
-# --- Dashboard / Giao diện ---
+# Dashboard
 streamlit>=1.30.0
 plotly>=5.18.0
 

@@ -1,29 +1,30 @@
-"""
-02_train.py - Pipeline huan luyen mo hinh Isolation Forest va danh gia tren tap Demo.
-"""
 
 import os
 import sys
+
 import joblib
 import pandas as pd
 from sklearn.ensemble import IsolationForest
-from sklearn.preprocessing import RobustScaler
 from sklearn.metrics import classification_report, roc_auc_score
+from sklearn.preprocessing import RobustScaler
 
 from config import (
-    MODELS_DIR,
-    TRAIN_HOURLY_PATH, DEMO_STREAM_PATH,
-    MODEL_BUNDLE_PATH,
+    DEMO_STREAM_PATH,
     ENGINEERED_FEATURE_NAMES,
+    MODEL_BUNDLE_PATH,
+    MODELS_DIR,
+    TRAIN_HOURLY_PATH,
     setup_encoding,
 )
-from features import extract_features, calc_baseline_stats
+from features import calc_baseline_stats, extract_features
 
 setup_encoding()
 
 
-def evaluate_model(model: IsolationForest, scaler: RobustScaler, df_demo_labeled: pd.DataFrame):
-    """Danh gia hieu nang mo hinh tren tap Demo (ROC-AUC, Precision, Recall, F1)."""
+# Đánh giá mô hình trên tập Demo có nhãn.
+def evaluate_model(
+    model: IsolationForest, scaler: RobustScaler, df_demo_labeled: pd.DataFrame
+) -> None:
     print("\n[3/3] Danh gia hieu nang mo hinh tren tap Demo:")
     df_feat = extract_features(df_demo_labeled)
     X = scaler.transform(df_feat[ENGINEERED_FEATURE_NAMES].values)
@@ -38,31 +39,36 @@ def evaluate_model(model: IsolationForest, scaler: RobustScaler, df_demo_labeled
     roc_auc = roc_auc_score(y_true, -scores)
     print(f"   ROC-AUC Score: {roc_auc:.4f}\n")
     print("Classification Report (Tổng quan):")
-    print(classification_report(y_true, preds, target_names=["Bình thường", "Bất thường"], digits=4))
+    print(
+        classification_report(
+            y_true, preds, target_names=["Bình thường", "Bất thường"], digits=4
+        )
+    )
 
     print("\nChi tiết Recall theo từng loại lỗi (Root Cause Analysis):")
-    print(f"{'Loại Bất Thường':<20} | {'Số Lượng':<10} | {'Bắt Được':<10} | {'Bỏ Lọt':<8} | {'Recall (%)':<10}")
+    print(
+        f"{'Loại Bất Thường':<20} | {'Số Lượng':<10} | {'Bắt Được':<10} | {'Bỏ Lọt':<8} | {'Recall (%)':<10}"
+    )
     print("-" * 68)
-    
-    unique_types = sorted(list(set(anomaly_types)))
-    for atype in unique_types:
-        if atype == 'normal':
+
+    for atype in sorted(set(anomaly_types)):
+        if atype == "normal":
             continue
-        mask = (anomaly_types == atype)
+        mask = anomaly_types == atype
         total = mask.sum()
         if total == 0:
             continue
         caught = (preds[mask] == 1).sum()
         missed = total - caught
         recall_pct = (caught / total) * 100
-        print(f"{atype:<20} | {total:<10} | {caught:<10} | {missed:<8} | {recall_pct:.1f}%")
+        print(
+            f"{atype:<20} | {total:<10} | {caught:<10} | {missed:<8} | {recall_pct:.1f}%"
+        )
     print("-" * 68)
 
 
-def main():
-    os.makedirs(MODELS_DIR, exist_ok=True)
-
-    # 1. Doc du lieu Train va trich xuat dac trung
+# Đọc tập Train và trích xuất đặc trưng.
+def load_training_features() -> pd.DataFrame:
     if not os.path.exists(TRAIN_HOURLY_PATH):
         print(f"Loi: Khong tim thay {TRAIN_HOURLY_PATH}. Chay 01_data_prep.py truoc!")
         sys.exit(1)
@@ -70,9 +76,16 @@ def main():
     print("[1/3] Doc tap Train va trich xuat 9 dac trung...")
     df_train = pd.read_csv(TRAIN_HOURLY_PATH, index_col="datetime", parse_dates=True)
     df_train_feats = extract_features(df_train)
-    print(f"  -> Da doc {len(df_train):,} mau Train, trich xuat {len(df_train_feats):,} ban ghi dac trung.")
+    print(
+        f"  -> Da doc {len(df_train):,} mau Train, trich xuat {len(df_train_feats):,} ban ghi dac trung."
+    )
+    return df_train_feats
 
-    # 2. Huan luyen Isolation Forest
+
+# Chuẩn hóa đặc trưng và fit mô hình Isolation Forest.
+def train_model(
+    df_train_feats: pd.DataFrame,
+) -> tuple[IsolationForest, RobustScaler]:
     print("[2/3] Huan luyen mo hinh Isolation Forest...")
     scaler = RobustScaler()
     X_train = scaler.fit_transform(df_train_feats[ENGINEERED_FEATURE_NAMES].values)
@@ -86,8 +99,15 @@ def main():
         n_jobs=-1,
     )
     model.fit(X_train)
+    return model, scaler
 
-    # Luu Model Bundle
+
+# Đóng gói mô hình, scaler và thống kê XAI.
+def save_model_bundle(
+    model: IsolationForest,
+    scaler: RobustScaler,
+    df_train_feats: pd.DataFrame,
+) -> None:
     medians, iqrs = calc_baseline_stats(df_train_feats)
     bundle = {
         "model": model,
@@ -99,13 +119,21 @@ def main():
     joblib.dump(bundle, MODEL_BUNDLE_PATH)
     print(f"  -> Da luu Model Bundle vao: {MODEL_BUNDLE_PATH}")
 
-    # 3. Danh gia mo hinh
-    if os.path.exists(DEMO_STREAM_PATH):
-        df_demo_labeled = pd.read_csv(DEMO_STREAM_PATH, index_col="datetime", parse_dates=True)
-        evaluate_model(model, scaler, df_demo_labeled)
 
-    print("Hoan tat huan luyen va danh gia mo hinh.")
+# Đánh giá trên tập Demo khi tệp dữ liệu tồn tại.
+def evaluate_demo_if_available(model: IsolationForest, scaler: RobustScaler) -> None:
+    if os.path.exists(DEMO_STREAM_PATH):
+        df_demo_labeled = pd.read_csv(
+            DEMO_STREAM_PATH, index_col="datetime", parse_dates=True
+        )
+        evaluate_model(model, scaler, df_demo_labeled)
 
 
 if __name__ == "__main__":
-    main()
+    os.makedirs(MODELS_DIR, exist_ok=True)
+    training_features = load_training_features()
+    isolation_forest, robust_scaler = train_model(training_features)
+    save_model_bundle(isolation_forest, robust_scaler, training_features)
+    evaluate_demo_if_available(isolation_forest, robust_scaler)
+
+    print("Hoan tat huan luyen va danh gia mo hinh.")

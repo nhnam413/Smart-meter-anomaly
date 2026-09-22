@@ -1,19 +1,18 @@
 """Regression checks for theme resolution and the controls in the alert queue."""
 
 import json
-from pathlib import Path
 import subprocess
 import sys
 import unittest
+from pathlib import Path
 
 PROJECT = Path(__file__).resolve().parents[1]
 DASHBOARD = PROJECT / "src" / "04_dashboard.py"
 
 
 class LightThemeTests(unittest.TestCase):
+    # Kiểm tra cấu hình giao diện sáng ở mọi thư mục khởi chạy.
     def test_native_theme_is_light_from_all_launch_directories(self):
-        # Use the same script-level config path as Streamlit's bootstrap.
-        # Checking CSS alone would miss the canvas dataframe's native palette.
         probe = f"""
 import json
 from streamlit import config
@@ -33,19 +32,22 @@ print(json.dumps({{k: config.get_option(k) for k in keys}}))
         for cwd in (PROJECT.parent, PROJECT, PROJECT / "src"):
             with self.subTest(cwd=cwd):
                 result = subprocess.run(
-                    [sys.executable, "-c", probe], cwd=cwd,
-                    capture_output=True, text=True, check=True,
+                    [sys.executable, "-c", probe],
+                    cwd=cwd,
+                    capture_output=True,
+                    text=True,
+                    check=True,
                 )
                 self.assertEqual(json.loads(result.stdout), expected)
 
+    # Kiểm tra điều khiển cảnh báo không làm thay đổi lịch sử trực tiếp.
     def test_alert_controls_render_without_touching_live_history(self):
         from streamlit.testing.v1 import AppTest
 
-        # Exercise the actual CSS and queue with synthetic data and no database IO.
         script = f"""
 import runpy
 import sys
-sys.path.insert(0, {str(PROJECT / 'src')!r})
+sys.path.insert(0, {str(PROJECT / "src")!r})
 import pandas as pd
 import streamlit as st
 ui = runpy.run_path({str(DASHBOARD)!r})

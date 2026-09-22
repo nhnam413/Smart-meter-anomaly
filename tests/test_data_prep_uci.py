@@ -1,9 +1,9 @@
 """TC07: deterministic and constrained anomaly injection on UCI data."""
 
 import importlib.util
-from pathlib import Path
 import sys
 import unittest
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -23,6 +23,7 @@ SPEC.loader.exec_module(DATA_PREP)
 
 
 class UciDataPreparationTests(unittest.TestCase):
+    # Kiểm tra quá trình tiêm lỗi có thể tái tạo và đúng ràng buộc.
     def test_tc07_injection_is_reproducible_and_respects_constraints(self):
         self.assertTrue(TRAIN_PATH.is_file(), f"Thiếu dữ liệu bắt buộc: {TRAIN_PATH}")
         source = pd.read_csv(

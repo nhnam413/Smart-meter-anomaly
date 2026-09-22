@@ -1,10 +1,10 @@
 """TC08: persistent alert workflow using an isolated SQLite database."""
 
 import importlib.util
-from pathlib import Path
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 
 import pandas as pd
 
@@ -14,13 +14,16 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 DEMO_PATH = PROJECT / "data" / "demo_stream.csv"
-SPEC = importlib.util.spec_from_file_location("dashboard_alert_test", SRC / "04_dashboard.py")
+SPEC = importlib.util.spec_from_file_location(
+    "dashboard_alert_test", SRC / "04_dashboard.py"
+)
 DASHBOARD = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(DASHBOARD)
 
 
 class UciAlertStoreTests(unittest.TestCase):
+    # Kiểm tra vòng đời cảnh báo được lưu bền vững và không tạo bản ghi trùng.
     def test_tc08_alert_lifecycle_is_idempotent_and_persistent(self):
         self.assertTrue(DEMO_PATH.is_file(), f"Thiếu dữ liệu bắt buộc: {DEMO_PATH}")
         demo = pd.read_csv(DEMO_PATH, index_col="datetime", parse_dates=True)
@@ -69,7 +72,9 @@ class UciAlertStoreTests(unittest.TestCase):
             DASHBOARD.save_alert(next_event)
 
             current_alerts = DASHBOARD.load_alerts([next_event["alert_id"]])
-            self.assertEqual(current_alerts["alert_id"].tolist(), [next_event["alert_id"]])
+            self.assertEqual(
+                current_alerts["alert_id"].tolist(), [next_event["alert_id"]]
+            )
             self.assertTrue(DASHBOARD.load_alerts([]).empty)
 
 

@@ -1,8 +1,8 @@
 """TC10: full model-pipeline regression test on the labeled UCI Demo data."""
 
-from pathlib import Path
 import sys
 import unittest
+from pathlib import Path
 
 import joblib
 import pandas as pd
@@ -21,6 +21,7 @@ BUNDLE_PATH = PROJECT / "models" / "model_bundle.pkl"
 
 
 class UciModelIntegrationTests(unittest.TestCase):
+    # Kiểm tra toàn bộ pipeline Demo khớp khoảng kết quả báo cáo.
     def test_tc10_full_demo_pipeline_matches_reported_range(self):
         self.assertTrue(DEMO_PATH.is_file(), f"Thiếu dữ liệu bắt buộc: {DEMO_PATH}")
         self.assertTrue(BUNDLE_PATH.is_file(), f"Thiếu mô hình bắt buộc: {BUNDLE_PATH}")
@@ -28,7 +29,9 @@ class UciModelIntegrationTests(unittest.TestCase):
         demo = pd.read_csv(DEMO_PATH, index_col="datetime", parse_dates=True)
         bundle = joblib.load(BUNDLE_PATH)
         required = {"model", "scaler", "features", "medians", "iqrs"}
-        self.assertTrue(required.issubset(bundle), f"Bundle thiếu: {required - set(bundle)}")
+        self.assertTrue(
+            required.issubset(bundle), f"Bundle thiếu: {required - set(bundle)}"
+        )
         self.assertEqual(list(bundle["features"]), ENGINEERED_FEATURE_NAMES)
 
         features = extract_features(demo)

@@ -1,13 +1,11 @@
-"""
-config.py - Cau hinh tap trung cho he thong phat hien bat thuong dien nang.
-"""
+
 
 import os
 import sys
 
 
+# Thiết lập UTF-8 cho console Windows.
 def setup_encoding() -> None:
-    """Thiet lap ma hoa UTF-8 cho console tren Windows."""
     if sys.platform == "win32":
         try:
             sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -16,7 +14,7 @@ def setup_encoding() -> None:
             pass
 
 
-# Duong dan thu muc va tep tin du an
+# Đường dẫn
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
 MODELS_DIR = os.path.join(PROJECT_DIR, "models")
@@ -28,16 +26,16 @@ STREAM_BUFFER_PATH = os.path.join(DATA_DIR, "stream_buffer.jsonl")
 MODEL_BUNDLE_PATH = os.path.join(MODELS_DIR, "model_bundle.pkl")
 CSS_FILE = os.path.join(PROJECT_DIR, "src", "style.css")
 
-# Cot muc tieu va nguong canh bao
+# Dữ liệu và ngưỡng nghiệp vụ
 TARGET_COL = "Global_active_power"
 VOLTAGE_DROP_THRESHOLD = -15.0
 
-# Dinh dang ngay gio thong nhat
+# Định dạng thời gian
 DATE_FORMAT = "%d/%m/%Y"
 DATETIME_FORMAT = "%d/%m/%Y %H:%M:%S"
 DATETIME_MINUTE_FORMAT = "%d/%m/%Y %H:%M"
 
-# 9 dac trung chuoi thoi gian
+# Thứ tự đặc trưng của mô hình
 ENGINEERED_FEATURE_NAMES = [
     "hour_sin",
     "hour_cos",
@@ -50,11 +48,11 @@ ENGINEERED_FEATURE_NAMES = [
     "power_factor",
 ]
 
-# Cau hinh phat luong truc tiep
+# Luồng mô phỏng
 SEND_INTERVAL = 1.0
 MAX_DISPLAY_POINTS = 100
 
-# Nhan hien thi nghiep vu
+# Nhãn hiển thị
 TYPE_LABELS = {
     "power_surge": "Đột biến công suất",
     "voltage_drop": "Sụt điện áp",
@@ -75,7 +73,7 @@ FEATURE_LABELS = {
     "hour_cos": "Chu kỳ thời gian cos",
 }
 
-# Bang mau giao dien chuan Light Mode
+# Bảng màu giao diện
 COLORS = {
     "primary": "#0066FF",
     "primary_dark": "#0050CC",

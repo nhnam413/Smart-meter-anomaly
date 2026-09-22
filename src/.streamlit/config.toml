@@ -1,5 +1,4 @@
-# Script-level configuration is loaded even when launched from the workspace/IDE.
-# Keep a single custom theme: do not add theme.light/theme.dark variants.
+# Cấu hình giao diện khi chạy trực tiếp từ thư mục src.
 [theme]
 base = "light"
 primaryColor = "#0066FF"
